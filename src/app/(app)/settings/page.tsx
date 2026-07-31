@@ -321,9 +321,10 @@ cloudflared tunnel --url https://localhost:3000    # or: ngrok http https://loca
             be a placeholder you mistook for real.
           </Point>
           <Separator />
-          <Point title="Stored locally">
-            The issued key lives in an owner-only file under <code>.data/</code> on the machine running this app. It
-            is gitignored and never sent to the browser.
+          <Point title="Stored in your own infrastructure">
+            The issued key lives in an owner-only file under <code>.data/</code> when self-hosted, or in the Redis
+            store you configured when running serverless. Either way it stays yours, is gitignored, and is never
+            sent to the browser.
           </Point>
           <Separator />
           <Point title="Cached, not warehoused">
