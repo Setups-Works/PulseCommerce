@@ -14,6 +14,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -198,12 +199,49 @@ export default function LandingPage() {
       </section>
 
       <footer className="mt-auto border-t">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-muted-foreground">
-          <p>PulseCommerce — advanced analytics for WooCommerce.</p>
-          <p className="flex items-center gap-1.5">
-            <Server className="size-3.5" />
-            Runs entirely on your own infrastructure
-          </p>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-4 px-4 py-7 text-xs text-muted-foreground">
+          <div className="space-y-1.5">
+            <p>PulseCommerce, advanced analytics for WooCommerce.</p>
+            <p className="flex items-center gap-1.5">
+              <Server className="size-3.5" />
+              Runs entirely on your own infrastructure
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-right leading-tight">
+              Built by{" "}
+              <a
+                href="https://www.linkedin.com/in/nitheeshdr/"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-foreground hover:underline"
+              >
+                Nitheesh Rajendran
+              </a>
+              <br />
+              <a href="https://setups.works" target="_blank" rel="noreferrer" className="hover:underline">
+                setups.works
+              </a>
+            </span>
+            {/* The mark ships in both polarities; CSS picks one per theme. */}
+            <a href="https://setups.works" target="_blank" rel="noreferrer" aria-label="Setups Works">
+              <Image
+                src="/brand/setups-works-black.png"
+                alt="Setups Works"
+                width={132}
+                height={44}
+                className="h-9 w-auto dark:hidden"
+              />
+              <Image
+                src="/brand/setups-works-white.png"
+                alt="Setups Works"
+                width={132}
+                height={44}
+                className="hidden h-9 w-auto dark:block"
+              />
+            </a>
+          </div>
         </div>
       </footer>
     </div>

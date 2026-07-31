@@ -635,6 +635,38 @@ npm run lint         # eslint
 
 ---
 
+## Author
+
+**PulseCommerce** is designed and built by **Nitheesh Rajendran** — Founder &
+Developer — under **Setups Works**.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Nitheesh%20Rajendran-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/nitheeshdr/)
+[![GitHub](https://img.shields.io/badge/GitHub-nitheeshdr-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/nitheeshdr)
+[![IMDb](https://img.shields.io/badge/IMDb-Nitheesh%20Rajendran-F5C518?style=flat-square&logo=imdb&logoColor=black)](https://www.imdb.com/name/nm16304237/)
+[![Website](https://img.shields.io/badge/Setups%20Works-setups.works-006bff?style=flat-square&logo=googlechrome&logoColor=white)](https://setups.works)
+
+> Founder of **Setups Works** ([setups.works](https://setups.works)).
+
+> Founder of **CodeForge AI** ([codeforgeai.io](https://codeforgeai.io)).
+
+---
+
 <div align="center">
+
+<br/>
+
+Built with care by
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/brand/setups-works-white.png">
+  <source media="(prefers-color-scheme: light)" srcset="public/brand/setups-works-black.png">
+  <img src="public/brand/setups-works-black.png" alt="Setups Works" height="44">
+</picture>
+
+<br/>
+
 <sub>Read-only by design · self-hosted · your data never leaves your infrastructure</sub>
+
+<sub>Licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a></sub>
+
 </div>
