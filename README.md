@@ -1,5 +1,10 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/logo-dark.svg">
+  <img src="public/logo.svg" alt="PulseCommerce" width="88" height="88">
+</picture>
+
 # PulseCommerce
 
 **Advanced analytics for WooCommerce.**
@@ -37,6 +42,7 @@ snapshot, and derives every metric from that snapshot at request time.
 
 ## Table of contents
 
+- [Feature list](#feature-list)
 - [Feature tour](#feature-tour)
 - [Quick start](#quick-start)
 - [Connecting a store](#connecting-a-store)
@@ -50,6 +56,204 @@ snapshot, and derives every metric from that snapshot at request time.
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
 - [Scripts](#scripts)
+
+---
+
+## Feature list
+
+<details open>
+<summary><b>Revenue &amp; performance</b></summary>
+
+- Net revenue, gross revenue, orders, average order value, units sold
+- Discounts given, shipping collected, tax collected, refunded amount
+- Items per order, revenue per customer, cancellation rate
+- Every KPI compared against the **equal-length previous window**
+- Revenue and orders on one shared axis (no misleading dual-axis charts)
+- Day / week / month bucketing, automatic or manual
+- Sparkline trend on each headline stat
+- Refund rate, cancellation rate and average fulfilment time
+- Generated findings, ranked by urgency, with plain-English explanations
+
+</details>
+
+<details open>
+<summary><b>Customer analytics</b></summary>
+
+- **RFM scoring** — recency, frequency and monetary quintiles of your own base
+- **Ten standard RFM segments** — Champions, Loyal, Potential Loyalist, New
+  Customers, Promising, Need Attention, At Risk, Cannot Lose Them, Hibernating,
+  Lost
+- **Value tiers** — VIP, High, Mid, Low, One-time
+- **Predicted lifetime value** per customer, discounted by churn risk
+- **Churn risk score**, judged against each customer's own reorder cadence
+- **Revenue deciles** with a Pareto curve and cumulative share
+- **Gini concentration coefficient** plus top 1/5/10/20% and bottom 50% shares
+- Recency-versus-frequency bubble chart, sized by spend
+- Ready-made cohorts: **high value, low value, at risk, rising**
+- Full customer ledger: orders, spend, AOV, CLV, recency, cadence, R/F/M,
+  top product, refunds, percentile
+- Average days between orders, one-time buyer share, repeat rate
+
+</details>
+
+<details open>
+<summary><b>Acquisition &amp; retention</b></summary>
+
+- **New vs returning revenue** by month, stacked
+- **Full new-customer table** and **full returning-customer table**, sortable and
+  searchable, with first-order date, CLV, churn risk and first product bought
+- **Acquisition channels** from WooCommerce Order Attribution — organic, direct,
+  referral, paid/UTM, admin, mobile app
+- Which channels actually bring **first-time** buyers, not just orders
+- **Device breakdown** — mobile, desktop, tablet — by revenue and AOV
+- Pages per session and revenue per customer, per channel
+- **Median time to second order**, with quartiles and a distribution histogram
+- **Cohort retention triangle** — monthly acquisition cohorts, retention or
+  revenue view, unelapsed cells left blank rather than shown as zero
+- **Cumulative LTV curve** per acquired customer
+- Attribution coverage percentage, so partial history is never silently hidden
+
+</details>
+
+<details open>
+<summary><b>Campaigns &amp; audiences</b></summary>
+
+- **Audience builder** with live reach, revenue represented, predicted CLV and
+  average churn risk
+- **Goal presets** — VIP appreciation, win-back lapsed, convert to second order,
+  rescue at-risk high value, loyal advocates, business accounts — each with a
+  stated rationale
+- Filter on segment, value tier, recency window, minimum spend, minimum orders,
+  churn risk, country, account type, product bought, contactability
+- Live audience preview table, exactly matching the export
+- **CSV export** shaped for email and ads platforms, with formula-injection
+  guarding
+- **Campaign performance** from `utm_campaign` — orders, revenue, customers,
+  new-customer share, new-customer revenue, AOV, top device
+- **Coupon performance** — uses, discount given, revenue, return on discount
+
+</details>
+
+<details open>
+<summary><b>Business accounts (B2B)</b></summary>
+
+- Revenue rolled up **by company**, from the billing company field
+- **Email-domain inference** when the billing field is empty, guarded by a
+  two-distinct-buyer minimum
+- Typo'd consumer domains (`gamil.com`, `yahooo.com`) filtered out by
+  Damerau-Levenshtein distance against a provider list
+- Every row labelled with **which signal it came from**
+- Buyers per account, orders, net revenue, AOV, share of B2B, month-on-month
+  growth, recency, countries, top product, contact list
+- B2B vs consumer revenue split and AOV comparison
+
+</details>
+
+<details open>
+<summary><b>Product &amp; catalogue analytics</b></summary>
+
+- **ABC classification** — A carries the first 80% of revenue, B the next 15%
+- Pareto concentration chart with the 80% threshold marked
+- Revenue, units, orders, distinct customers and average price per SKU
+- **Stock cover in days** at current velocity, with critical/low flagging
+- Units-per-day velocity, refund rate per SKU, average rating
+- **Market-basket affinity** — product pairs by support, confidence and lift
+- Category revenue and unit mix
+- Best sellers by value and by volume; slow movers and never-sold catalogue items
+
+</details>
+
+<details open>
+<summary><b>Orders &amp; operations</b></summary>
+
+- Full order register with status, customer, company, units, totals, discount,
+  shipping, tax, refunds, payment method and coupons
+- New vs returning flag per order
+- **Order status mix** and basket-size distribution
+- **Payment method** performance by revenue, share and AOV
+- **Trading heatmap** — day of week × hour of day
+- Weekday revenue performance
+- Average fulfilment time, completion share, cancellation and refund rates
+
+</details>
+
+<details open>
+<summary><b>Forecasting</b></summary>
+
+- Daily revenue projection from OLS trend × day-of-week seasonality factors
+- **95% confidence band** from in-sample residuals
+- Implied pace versus the recent actual run rate
+- Weekday seasonality shown explicitly, so the sawtooth is explainable
+- Forecast horizon and projected total
+
+</details>
+
+<details open>
+<summary><b>Geography</b></summary>
+
+- Revenue, orders, customers and AOV by **country**, **region/state** and **city**
+- Share of revenue per location
+
+</details>
+
+<details open>
+<summary><b>Reports &amp; exports</b></summary>
+
+- **Eleven report types** — executive summary, customer ledger, segmentation,
+  business accounts, products, categories, order register, cohorts, geography,
+  operations, forecast
+- **Excel** — one formatted sheet per report, cover page with findings,
+  auto-filters, frozen headers, currency number formats
+- **PDF** — branded cover with KPI cards and findings, then a table per report
+- **CSV** — raw rows, BOM-prefixed, formula-injection guarded
+- **Report presets** — board pack, CRM upload, merchandising review, finance
+  reconciliation, complete export
+- Exports always match the on-screen date range, and are never row-capped
+  (except PDF, for readability)
+- **Written report view** at `/reports/view` — conclusion first, evidence below,
+  method and limits at the end
+- One-click export of whatever page you are on
+
+</details>
+
+<details open>
+<summary><b>Connection &amp; security</b></summary>
+
+- **WooCommerce app authorization** (`/wc-auth/v1/authorize`) — approve read-only
+  access in your own WordPress admin
+- **No form or environment variable anywhere accepts a consumer key**
+- CSRF-style state token binds the browser redirect to the server-to-server
+  callback
+- Credentials verified against the store before being persisted
+- Issued key stored at `.data/store-config.json` with `0600` permissions,
+  gitignored, never sent to the browser
+- Preflight rejects non-HTTPS and non-routable callback addresses **before** you
+  approve anything
+- Optional password login with HMAC-SHA256 signed session cookies, verified in
+  middleware via Web Crypto
+- One-click disconnect wipes the key and every cached order
+
+</details>
+
+<details open>
+<summary><b>Interface</b></summary>
+
+- Light and dark themes, both deliberately designed rather than auto-inverted
+- Collapsible sidebar, global date-range picker with presets and custom ranges
+- Range and granularity persisted across reloads via an external store
+  (no flash of the wrong range on load)
+- Sortable, searchable, paginated tables with sticky first column
+- Charts: trend, Pareto, ranked bar, donut, heatmap, cohort matrix, scatter,
+  forecast band, sparkline
+- **CVD-validated eight-slot categorical palette**, checked for colour-vision
+  separation, normal-vision distinctness, lightness banding and contrast in both
+  modes
+- Hover tooltips everywhere; legends whenever two or more series are shown
+- Honest empty states that explain *why* a section is empty
+- Partial-data and truncated-history warnings surfaced, never hidden
+- Geist and Geist Mono, with tabular figures in aligned columns
+
+</details>
 
 ---
 
