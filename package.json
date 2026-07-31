@@ -6,12 +6,31 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:https": "next dev --experimental-https"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.4.0",
+    "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "lucide-react": "^1.28.0",
     "next": "16.2.12",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.6.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-day-picker": "^10.0.1",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.0",
+    "shadcn": "^4.16.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
