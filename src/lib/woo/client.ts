@@ -22,6 +22,18 @@ export class WooApiError extends Error {
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000;
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 800;
+
+/**
+ * Transient conditions only. A 401 or 404 will fail identically on every
+ * attempt, so retrying those just multiplies the wait before the real error.
+ */
+function isRetryable(error: unknown): boolean {
+  if (!(error instanceof WooApiError)) return false;
+  // 0 = network-level failure, 408 = our own timeout, 429 = rate limited.
+  return error.status === 0 || error.status === 408 || error.status === 429 || error.status >= 500;
+}
 
 function normaliseUrl(raw: string): string {
   let url = raw.trim().replace(/\/+$/, "");
@@ -74,10 +86,36 @@ export class WooClient {
     return h;
   }
 
-  /** Single page request. Returns the parsed body plus Woo's pagination headers. */
+  /**
+   * Single page request, with bounded retry.
+   *
+   * A full history pull is hundreds of requests over several minutes. Without
+   * retry a single dropped connection or one rate-limit response throws the
+   * whole pull away, which is exactly what happened against a real store.
+   */
   async request<T>(
     endpoint: string,
     params: Record<string, string | number | undefined> = {},
+  ): Promise<{ data: T; totalPages: number; total: number }> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await this.attempt<T>(endpoint, params);
+      } catch (error) {
+        lastError = error;
+        if (!isRetryable(error) || attempt === MAX_RETRIES) break;
+        // Exponential backoff; gives a rate-limiting host room to recover.
+        await new Promise((resolve) => setTimeout(resolve, RETRY_BASE_MS * 2 ** attempt));
+      }
+    }
+
+    throw lastError;
+  }
+
+  private async attempt<T>(
+    endpoint: string,
+    params: Record<string, string | number | undefined>,
   ): Promise<{ data: T; totalPages: number; total: number }> {
     const url = this.buildUrl(endpoint, params);
     const controller = new AbortController();

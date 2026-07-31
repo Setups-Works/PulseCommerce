@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authConfigured } from "@/lib/auth/session";
 import { readStoreConfig } from "@/lib/store/config";
+import { storageIsDurable } from "@/lib/store/kv";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export default async function ConnectPage({
   // Already connected, and not being sent here by a failed authorization.
   if (config && !params.auth) redirect("/dashboard");
 
-  const outcome = typeof params.auth === "string" ? params.auth : null;
+  const outcome = resolveOutcome(typeof params.auth === "string" ? params.auth : null);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -128,7 +130,7 @@ cloudflared tunnel --url https://localhost:3000
             <Point
               icon={ShieldCheck}
               title="Stays on your machine"
-              body="The issued key is written to an owner-only file. Disconnecting deletes it and every cached order."
+              body="The issued key is held in your own storage, never in a browser bundle. Disconnecting deletes it and every cached order."
             />
           </div>
 
@@ -178,6 +180,19 @@ cloudflared tunnel --url https://localhost:3000
       </footer>
     </div>
   );
+}
+
+/**
+ * Environment problems get reported through the URL, which means the message
+ * outlives the problem: fix the environment, and the stale link still shows the
+ * old complaint. Re-check the ones that are conditions rather than events, so a
+ * solved problem stops being reported.
+ */
+function resolveOutcome(outcome: string | null): string | null {
+  if (!outcome) return null;
+  if (outcome === "no_storage" && storageIsDurable()) return null;
+  if (outcome === "missing_auth_secret" && authConfigured()) return null;
+  return outcome;
 }
 
 function Point({
