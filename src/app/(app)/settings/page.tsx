@@ -16,6 +16,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AUTH_MESSAGES } from "@/components/auth-outcome";
+import { PageShell } from "@/components/dashboard/page-state";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -116,7 +117,7 @@ export default function SettingsPage() {
   const outcome = authOutcome ? AUTH_MESSAGES[authOutcome] : null;
 
   return (
-    <>
+    <PageShell>
       {outcome ? (
         <Alert>
           {outcome.tone === "good" ? <CheckCircle2 /> : <TriangleAlert />}
@@ -335,19 +336,18 @@ cloudflared tunnel --url https://localhost:3000    # or: ngrok http https://loca
       {/* --- Colophon ------------------------------------------------------ */}
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">PulseCommerce</p>
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">Designed and built by</p>
+            <a
+              href="https://www.linkedin.com/in/nitheeshdr/"
+              target="_blank"
+              rel="noreferrer"
+              className="block text-base font-semibold tracking-tight hover:underline"
+            >
+              Nitheesh Rajendran
+            </a>
             <p className="text-xs text-muted-foreground">
-              Built by{" "}
-              <a
-                href="https://www.linkedin.com/in/nitheeshdr/"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-foreground hover:underline"
-              >
-                Nitheesh Rajendran
-              </a>{" "}
-              at{" "}
+              Founder &amp; Developer at{" "}
               <a
                 href="https://setups.works"
                 target="_blank"
@@ -378,7 +378,7 @@ cloudflared tunnel --url https://localhost:3000    # or: ngrok http https://loca
           </a>
         </CardContent>
       </Card>
-    </>
+    </PageShell>
   );
 }
 

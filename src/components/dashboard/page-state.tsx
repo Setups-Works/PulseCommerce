@@ -11,9 +11,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { AnalyticsResult } from "@/lib/analytics/types";
 
 /**
- * Every page renders through this: it owns the loading, error and warning
- * states so no page has to re-implement them, and it hands down a guaranteed
- * non-null result.
+ * The page canvas: padding and the gap between stacked sections.
+ *
+ * `AnalyticsPage` applies this itself, so pages that render analytics get it
+ * for free. Pages that don't (Settings) have to opt in, and forgetting left
+ * their cards butted edge to edge with no page padding at all.
+ */
+export function PageShell({ children }: { children: ReactNode }) {
+  return <div className="space-y-5 p-4 sm:p-6">{children}</div>;
+}
+
+/**
+ * Every analytics page renders through this: it owns the loading, error and
+ * warning states so no page has to re-implement them, and it hands down a
+ * guaranteed non-null result.
  */
 export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) => ReactNode }) {
   const { data, initialising, error, refresh, loading, notConnected } = useAnalytics();
@@ -51,7 +62,7 @@ export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) 
   if (!data) return <LoadingState />;
 
   return (
-    <div className="space-y-5 p-4 sm:p-6">
+    <PageShell>
       {data.meta.warnings.length > 0 ? (
         <Alert>
           <AlertTriangle />
@@ -75,7 +86,7 @@ export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) 
       ) : null}
 
       {children(data)}
-    </div>
+    </PageShell>
   );
 }
 
