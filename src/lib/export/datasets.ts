@@ -22,7 +22,6 @@ export const REPORT_IDS = [
   "executive",
   "customers",
   "segments",
-  "companies",
   "products",
   "categories",
   "orders",
@@ -38,7 +37,6 @@ export const REPORT_CATALOGUE: { id: ReportId; name: string; description: string
   { id: "executive", name: "Executive summary", description: "Headline KPIs, period comparison and generated insights." },
   { id: "customers", name: "Customer ledger", description: "Every customer with RFM scores, CLV, tier and churn risk." },
   { id: "segments", name: "Segmentation & concentration", description: "RFM segments, value tiers and revenue deciles." },
-  { id: "companies", name: "Business accounts (B2B)", description: "Company-level revenue, buyers, AOV and growth." },
   { id: "products", name: "Product performance", description: "Revenue, units, ABC class, refund rate and stock cover." },
   { id: "categories", name: "Category performance", description: "Revenue and unit mix by product category." },
   { id: "orders", name: "Order register", description: "Line-level order export with totals, tax, discount and status." },
@@ -56,8 +54,6 @@ export function buildSheet(id: ReportId, r: AnalyticsResult): Sheet {
       return customersSheet(r);
     case "segments":
       return segmentsSheet(r);
-    case "companies":
-      return companiesSheet(r);
     case "products":
       return productsSheet(r);
     case "categories":
@@ -196,37 +192,6 @@ function segmentsSheet(r: AnalyticsResult): Sheet {
       { key: "cumulativeShare", header: "Cumulative share %", format: "percent", width: 18 },
     ],
     rows,
-  };
-}
-
-function companiesSheet(r: AnalyticsResult): Sheet {
-  return {
-    id: "companies",
-    title: "Business accounts",
-    description: `${r.companies.totals.companyCount} companies contributing ${r.companies.totals.b2bShare}% of revenue.`,
-    columns: [
-      { key: "name", header: "Company", format: "text", width: 32 },
-      { key: "source", header: "Detected via", format: "text", width: 14 },
-      { key: "tier", header: "Tier", format: "text", width: 10 },
-      { key: "buyers", header: "Buyers", format: "integer", width: 10 },
-      { key: "orders", header: "Orders", format: "integer", width: 10 },
-      { key: "netRevenue", header: "Net revenue", format: "currency", width: 16 },
-      { key: "averageOrderValue", header: "AOV", format: "currency", width: 14 },
-      { key: "units", header: "Units", format: "integer", width: 10 },
-      { key: "revenueShare", header: "Share of B2B %", format: "percent", width: 16 },
-      { key: "growthPct", header: "MoM growth %", format: "percent", width: 15 },
-      { key: "recencyDays", header: "Days since last order", format: "integer", width: 20 },
-      { key: "countryList", header: "Countries", format: "text", width: 16 },
-      { key: "topProduct", header: "Top product", format: "text", width: 28 },
-      { key: "firstOrderDate", header: "First order", format: "date", width: 14 },
-      { key: "lastOrderDate", header: "Last order", format: "date", width: 14 },
-    ],
-    rows: r.companies.companies.map((c) => ({
-      ...c,
-      growthPct: c.growth === null ? null : c.growth * 100,
-      countryList: c.countries.join(", "),
-      topProduct: c.topProducts[0]?.name ?? "",
-    })),
   };
 }
 

@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download, Megaphone, Target, Ticket, TrendingUp, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChartCard } from "@/components/charts/chart-card";
@@ -76,6 +77,7 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
   const [filter, setFilter] = useState<AudienceFilter>(AUDIENCE_PRESETS[1].filter);
   const [activePreset, setActivePreset] = useState<string | null>("winback");
   const [name, setName] = useState("Win-back lapsed customers");
+  const router = useRouter();
 
   const records = data.customers.records;
   const audience = useMemo(() => applyAudience(records, filter), [records, filter]);
@@ -395,6 +397,7 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
                 searchAccessor={(c) => `${c.name} ${c.email} ${c.company}`}
                 searchPlaceholder="Search this audience…"
                 initialSorting={[{ id: "predictedClv", desc: true }]}
+                onRowClick={(c) => router.push(`/customers/${encodeURIComponent(c.key)}`)}
                 pageSize={10}
                 emptyMessage="No customers match these filters. Loosen one and the preview will fill in."
                 stickyFirstColumn

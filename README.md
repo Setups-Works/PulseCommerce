@@ -135,17 +135,31 @@ snapshot, and derives every metric from that snapshot at request time.
 </details>
 
 <details open>
-<summary><b>Business accounts (B2B)</b></summary>
+<summary><b>Customer profiles</b></summary>
 
-- Revenue rolled up **by company**, from the billing company field
-- **Email-domain inference** when the billing field is empty, guarded by a
-  two-distinct-buyer minimum
-- Typo'd consumer domains (`gamil.com`, `yahooo.com`) filtered out by
-  Damerau-Levenshtein distance against a provider list
-- Every row labelled with **which signal it came from**
-- Buyers per account, orders, net revenue, AOV, share of B2B, month-on-month
-  growth, recency, countries, top product, contact list
-- B2B vs consumer revenue split and AOV comparison
+- Click any customer row anywhere in the app to open their profile
+- Identity, location, payment method and how long they have been a customer
+- **Acquisition channel and device** they arrived on
+- RFM scores shown as filled pips as well as numbers, so not colour-only
+- Revenue percentile, refunds taken and discounts used
+- What they buy, ranked by revenue
+- Order value over time
+- **Full order history** with status, line items, units, total and net
+
+</details>
+
+<details open>
+<summary><b>Inventory &amp; restock planning</b></summary>
+
+- **Days of cover** per SKU from current stock and observed sales velocity
+- **Reorder point** from a stated lead time plus safety stock
+- **Suggested order quantity** to reach a healthy cover level
+- Status per SKU: out of stock, critical, low, healthy, overstocked, untracked
+- **Revenue at risk** if a critical SKU stays out for one lead time
+- **Capital tied up** per SKU at selling price, to surface overstock
+- Restock planner with reorder / all / overstocked views
+- **CSV export** shaped as a draft purchase order
+- Every assumption stated on the page rather than buried
 
 </details>
 
@@ -199,7 +213,7 @@ snapshot, and derives every metric from that snapshot at request time.
 <details open>
 <summary><b>Reports &amp; exports</b></summary>
 
-- **Eleven report types** — executive summary, customer ledger, segmentation,
+- **Ten report types** — executive summary, customer ledger, segmentation,
   business accounts, products, categories, order register, cohorts, geography,
   operations, forecast
 - **Excel** — one formatted sheet per report, cover page with findings,
@@ -286,13 +300,14 @@ country, account type and product bought; see reach and revenue at stake live;
 export a CSV shaped for an email or ads platform. Plus campaign performance from
 `utm_campaign` and coupon return-on-discount.
 
-### Business accounts
-B2B revenue grouped by billing company, with buyer counts, growth, tiers and
-contacts. When the billing company field is empty — common even on stores with
-real business customers — an organisation is inferred from a shared non-consumer
-email domain, but only when two or more different people order from it, and typo'd
-consumer domains (`gamil.com`, `yahooo.com`) are filtered out by edit distance.
-Every row shows which signal it came from.
+### Customer profiles
+Every customer table in the app drills through to a profile: their orders, what
+they bought, how they were acquired, their RFM scores and full history.
+
+### Inventory
+Days of cover per SKU, reorder points from a stated lead time, suggested order
+quantities, revenue at risk from stockouts and capital tied up in overstock,
+with a CSV export shaped as a draft purchase order.
 
 ### Cohorts and retention
 Monthly acquisition cohorts with a full retention triangle and a cumulative LTV
@@ -444,9 +459,9 @@ gitignored, and the secret is never sent to the browser.
 
 ## Reports and exports
 
-Eleven report types — executive summary, customer ledger, segmentation,
-business accounts, products, categories, order register, cohorts, geography,
-operations and forecast — downloadable as:
+Ten report types — executive summary, customer ledger, segmentation, products,
+categories, order register, cohorts, geography, operations and forecast —
+downloadable as:
 
 | Format | What you get |
 |---|---|
@@ -509,12 +524,12 @@ src/
 ├── app/
 │   ├── (app)/            Dashboard pages behind the sidebar shell
 │   │   ├── dashboard/    Headline KPIs, trend, findings
-│   │   ├── customers/    RFM, tiers, CLV, churn
+│   │   ├── customers/    RFM, tiers, CLV, churn, and [key] profiles
 │   │   ├── acquisition/  New vs returning, channels, devices
 │   │   ├── campaigns/    Audience builder + campaign performance
-│   │   ├── companies/    B2B accounts
 │   │   ├── cohorts/      Retention triangle, LTV curve
 │   │   ├── products/     ABC, stock cover, affinity
+│   │   ├── inventory/    Restock planner and reorder points
 │   │   ├── orders/       Order register, payments, coupons
 │   │   ├── forecast/     Trend + seasonality projection
 │   │   ├── reports/      Report builder and written report

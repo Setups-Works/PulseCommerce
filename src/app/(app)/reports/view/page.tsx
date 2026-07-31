@@ -26,7 +26,7 @@ export default function ReportViewPage() {
 
 function ReportView({ data }: { data: AnalyticsResult }) {
   const fmt = useFormatters(data.meta.currency);
-  const { kpis, customers, products, companies, operations, cohorts, geography } = data;
+  const { kpis, customers, products, operations, cohorts, geography } = data;
 
   const rev = kpis.netRevenue;
   const direction = rev.change === null ? "held flat" : rev.change >= 0 ? "grew" : "fell";
@@ -238,11 +238,6 @@ function ReportView({ data }: { data: AnalyticsResult }) {
             <span className="font-medium text-foreground">Comparison window.</span> Every change figure compares
             against {formatDate(data.meta.previousRange.from)} to {formatDate(data.meta.previousRange.to)}, the
             equal-length window immediately before this one.
-            {companies.totals.companyCount === 0
-              ? " No business accounts were detected, so B2B figures are omitted."
-              : ` ${companies.totals.companyCount} business accounts contributed ${fmt.percent(
-                  companies.totals.b2bShare,
-                )} of revenue.`}
           </p>
         </div>
         <p className="pt-2 text-xs text-muted-foreground">

@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Compass, MonitorSmartphone, Repeat2, Timer, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ChartCard, legendFromLabels } from "@/components/charts/chart-card";
 import { DonutChart, donutLegend } from "@/components/charts/donut-chart";
@@ -250,6 +251,7 @@ function AcquisitionContent({ data }: { data: AnalyticsResult }) {
 function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }) {
   const [tab, setTab] = useState<"new" | "returning">("new");
   const columns = useMemo(() => buildCustomerColumns(fmt, tab), [fmt, tab]);
+  const router = useRouter();
 
   const rows = tab === "new" ? data.customers.newCustomers : data.customers.returningCustomers;
 
@@ -291,6 +293,7 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
           searchAccessor={(c) => `${c.name} ${c.email} ${c.company} ${c.segment} ${c.tier}`}
           searchPlaceholder="Search by name, email or company…"
           initialSorting={[{ id: "netRevenue", desc: true }]}
+          onRowClick={(c) => router.push(`/customers/${encodeURIComponent(c.key)}`)}
           emptyMessage={
             tab === "new"
               ? "No first-time customers in this period."

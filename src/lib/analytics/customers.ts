@@ -1,4 +1,5 @@
-import type { WooCustomer, WooOrder } from "@/lib/woo/types";
+import { channelLabel } from "@/lib/woo/attribution";
+import type { WooCustomer, WooOrder, WooOrderStatus } from "@/lib/woo/types";
 import {
   countryName,
   customerKey,
@@ -37,6 +38,18 @@ interface Accumulator {
   dates: number[];
   products: Map<string, { units: number; revenue: number }>;
   payments: Set<string>;
+  history: {
+    id: number;
+    number: string;
+    date: string;
+    status: WooOrderStatus;
+    total: number;
+    net: number;
+    units: number;
+    items: string[];
+  }[];
+  channel: string | null;
+  deviceType: string | null;
 }
 
 export interface CustomerContext {
@@ -115,6 +128,9 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
         dates: [],
         products: new Map(),
         payments: new Set(),
+        history: [],
+        channel: null,
+        deviceType: null,
       };
       acc.set(key, entry);
     }
@@ -128,6 +144,23 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
     entry.units += orderUnits(order);
     entry.dates.push(new Date(order.date_created).getTime());
     if (order.payment_method_title) entry.payments.add(order.payment_method_title);
+
+    entry.history.push({
+      id: order.id,
+      number: order.number ?? String(order.id),
+      date: order.date_created,
+      status: order.status,
+      total: round2(num(order.total)),
+      net: round2(Math.max(0, orderNet(order))),
+      units: orderUnits(order),
+      items: order.line_items.map((li) => li.name),
+    });
+
+    // Attribution from the earliest order is how they were acquired.
+    if (order.attribution && entry.channel === null) {
+      entry.channel = channelLabel(order.attribution);
+      entry.deviceType = order.attribution.deviceType || null;
+    }
     // A customer's company can appear on a later order only — keep the latest non-empty.
     if (order.billing?.company?.trim()) entry.company = order.billing.company.trim();
 
@@ -227,6 +260,9 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
       revenueShare: round2(safeDiv(e.net, totalRevenue) * 100),
       revenuePercentile,
       isNewCustomer,
+      history: [...e.history].sort((a, b) => b.date.localeCompare(a.date)),
+      channel: e.channel,
+      deviceType: e.deviceType,
     } satisfies CustomerRecord;
   });
 }

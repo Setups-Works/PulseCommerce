@@ -1,5 +1,4 @@
 import {
-  Building2,
   ChartColumnBig,
   ChartLine,
   Compass,
@@ -7,6 +6,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Package,
+  Warehouse,
   ReceiptText,
   Settings,
   Users,
@@ -53,12 +53,6 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         description: "New vs returning, channels, devices and time to second order",
       },
       {
-        href: "/companies",
-        label: "Business accounts",
-        icon: Building2,
-        description: "B2B revenue by company",
-      },
-      {
         href: "/cohorts",
         label: "Cohorts & retention",
         icon: ChartColumnBig,
@@ -74,6 +68,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: "Products",
         icon: Package,
         description: "ABC analysis, stock cover and basket affinity",
+      },
+      {
+        href: "/inventory",
+        label: "Inventory",
+        icon: Warehouse,
+        description: "Stock cover, reorder points and a restock plan",
       },
       {
         href: "/orders",

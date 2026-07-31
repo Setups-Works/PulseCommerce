@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { CircleDollarSign, Repeat, TrendingDown, TriangleAlert, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ChartCard, legendFromLabels } from "@/components/charts/chart-card";
 import { ParetoChart } from "@/components/charts/pareto-chart";
@@ -30,6 +31,7 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
   const fmt = useFormatters(data.meta.currency);
   const { customers, kpis } = data;
   const [tab, setTab] = useState<CohortTab>("top");
+  const router = useRouter();
 
   const columns = useMemo(() => buildColumns(fmt), [fmt]);
 
@@ -220,6 +222,7 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
                 searchPlaceholder="Search by name, email, company or segment…"
                 initialSorting={[{ id: "netRevenue", desc: true }]}
                 emptyMessage="No customers match this view for the selected period."
+                onRowClick={(c) => router.push(`/customers/${encodeURIComponent(c.key)}`)}
                 stickyFirstColumn
               />
             </TabsContent>

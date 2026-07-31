@@ -1,7 +1,7 @@
 import type { StoreSnapshot, WooOrder } from "@/lib/woo/types";
 import { buildAcquisitionAnalytics } from "./acquisition";
 import { buildCohortAnalytics } from "./cohorts";
-import { buildCompanyAnalytics } from "./companies";
+import { buildInventoryAnalytics } from "./inventory";
 import { buildCustomerAnalytics, buildCustomerDirectory, buildCustomerRecords, type CustomerContext } from "./customers";
 import {
   bucketKey,
@@ -110,8 +110,8 @@ export function computeAnalytics(snapshot: StoreSnapshot, opts: AnalyticsOptions
     timeseries,
     customers,
     acquisition: buildAcquisitionAnalytics(inRange, firstOrderByCustomer),
-    companies: buildCompanyAnalytics(inRange, asOf),
     products: buildProductAnalytics(inRange, snapshot.products, granularity, rangeDays),
+    inventory: { records: [], needsReorder: [], overstocked: [], counts: { outOfStock: 0, critical: 0, low: 0, healthy: 0, overstocked: 0, untracked: 0, noSales: 0 }, totals: { trackedSkus: 0, unitsOnHand: 0, stockValue: 0, revenueAtRisk: 0, suggestedUnits: 0, averageDaysOfCover: 0 }, assumptions: { leadTimeDays: 0, safetyStockDays: 0 } },
     cohorts: buildCohortAnalytics(snapshot.orders),
     geography: buildGeography(inRange),
     operations: buildOperationsAnalytics(inRange),
@@ -120,6 +120,8 @@ export function computeAnalytics(snapshot: StoreSnapshot, opts: AnalyticsOptions
     insights: [],
   };
 
+  // Inventory is derived from the finished product records, so it runs after.
+  result.inventory = buildInventoryAnalytics(result.products.products);
   result.insights = buildInsights(result);
   return result;
 }
@@ -551,22 +553,6 @@ function buildInsights(r: AnalyticsResult): Insight[] {
     metric: `${repeat.toFixed(1)}%`,
   });
 
-  const b2b = r.companies.totals;
-  if (b2b.companyCount > 0) {
-    out.push({
-      id: "b2b-mix",
-      severity: "neutral",
-      title: `${b2b.companyCount} business accounts contribute ${b2b.b2bShare.toFixed(1)}% of revenue`,
-      detail: `Business orders average ${money(b2b.b2bAverageOrderValue)} against ${money(
-        b2b.b2cAverageOrderValue,
-      )} for consumer orders — ${
-        b2b.b2cAverageOrderValue > 0
-          ? `${(b2b.b2bAverageOrderValue / b2b.b2cAverageOrderValue).toFixed(1)}× larger`
-          : "materially larger"
-      }.`,
-      metric: `${b2b.b2bShare.toFixed(1)}%`,
-    });
-  }
 
   const stock = r.products.stockRisks;
   if (stock.length > 0) {

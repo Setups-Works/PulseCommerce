@@ -20,7 +20,6 @@ const PAGE_REPORTS: Record<string, { id: ReportId; label: string }> = {
   "/dashboard": { id: "executive", label: "this dashboard" },
   "/forecast": { id: "forecast", label: "the forecast" },
   "/customers": { id: "customers", label: "the customer ledger" },
-  "/companies": { id: "companies", label: "business accounts" },
   "/cohorts": { id: "cohorts", label: "cohort retention" },
   "/acquisition": { id: "customers", label: "the customer ledger" },
   "/products": { id: "products", label: "product performance" },

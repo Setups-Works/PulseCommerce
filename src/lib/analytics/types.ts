@@ -108,6 +108,20 @@ export interface CustomerRecord {
   revenuePercentile: number;
   /** True when their first ever order fell inside the selected range. */
   isNewCustomer: boolean;
+  /** Their orders in this period, newest first — powers the profile view. */
+  history: {
+    id: number;
+    number: string;
+    date: string;
+    status: WooOrderStatus;
+    total: number;
+    net: number;
+    units: number;
+    items: string[];
+  }[];
+  /** How they arrived, when WooCommerce Order Attribution recorded it. */
+  channel: string | null;
+  deviceType: string | null;
 }
 
 export interface CustomerAnalytics {
@@ -141,42 +155,6 @@ export interface CustomerAnalytics {
     oneTimeBuyerShare: number;
   };
   newVsReturning: { month: string; label: string; newCustomers: number; returning: number; newRevenue: number; returningRevenue: number }[];
-}
-
-export interface CompanyRecord {
-  name: string;
-  /** Whether the account came from the billing company field or email-domain inference. */
-  source: "billing" | "email-domain";
-  buyers: number;
-  orders: number;
-  grossRevenue: number;
-  netRevenue: number;
-  units: number;
-  averageOrderValue: number;
-  firstOrderDate: string;
-  lastOrderDate: string;
-  recencyDays: number;
-  revenueShare: number;
-  countries: string[];
-  topProducts: { name: string; units: number; revenue: number }[];
-  contacts: { name: string; email: string; orders: number; revenue: number }[];
-  tier: ValueTier;
-  monthly: { month: string; revenue: number; orders: number }[];
-  growth: number | null;
-}
-
-export interface CompanyAnalytics {
-  companies: CompanyRecord[];
-  totals: {
-    b2bRevenue: number;
-    b2cRevenue: number;
-    b2bOrders: number;
-    b2cOrders: number;
-    b2bShare: number;
-    b2bAverageOrderValue: number;
-    b2cAverageOrderValue: number;
-    companyCount: number;
-  };
 }
 
 export interface ProductRecord {
@@ -216,6 +194,53 @@ export interface ProductAnalytics {
   /** Products frequently bought together, by co-occurrence lift. */
   affinities: { a: string; b: string; support: number; confidence: number; lift: number; orders: number }[];
   totals: { skusSold: number; catalogueSize: number; unitsSold: number; averageUnitPrice: number };
+}
+
+export interface InventoryRecord {
+  id: number;
+  name: string;
+  sku: string;
+  category: string;
+  stockQuantity: number | null;
+  stockStatus: string;
+  velocity: number;
+  daysOfCover: number | null;
+  /** Stock level at which a reorder must be placed to avoid a stockout. */
+  reorderPoint: number;
+  /** Units to order now to reach a healthy cover level. */
+  suggestedOrder: number;
+  status: "out-of-stock" | "critical" | "low" | "healthy" | "overstocked" | "untracked" | "no-sales";
+  revenue: number;
+  units: number;
+  averagePrice: number;
+  /** Revenue that would be lost over one lead time if this SKU stays out. */
+  revenueAtRisk: number;
+  /** Capital tied up, at selling price. */
+  stockValue: number;
+}
+
+export interface InventoryAnalytics {
+  records: InventoryRecord[];
+  needsReorder: InventoryRecord[];
+  overstocked: InventoryRecord[];
+  counts: {
+    outOfStock: number;
+    critical: number;
+    low: number;
+    healthy: number;
+    overstocked: number;
+    untracked: number;
+    noSales: number;
+  };
+  totals: {
+    trackedSkus: number;
+    unitsOnHand: number;
+    stockValue: number;
+    revenueAtRisk: number;
+    suggestedUnits: number;
+    averageDaysOfCover: number;
+  };
+  assumptions: { leadTimeDays: number; safetyStockDays: number };
 }
 
 export interface CohortRow {
@@ -371,8 +396,8 @@ export interface AnalyticsResult {
   timeseries: TimePoint[];
   customers: CustomerAnalytics;
   acquisition: AcquisitionAnalytics;
-  companies: CompanyAnalytics;
   products: ProductAnalytics;
+  inventory: InventoryAnalytics;
   cohorts: CohortAnalytics;
   geography: { countries: GeoRecord[]; states: GeoRecord[]; cities: GeoRecord[] };
   operations: OperationsAnalytics;

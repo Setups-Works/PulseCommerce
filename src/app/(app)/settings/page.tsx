@@ -12,6 +12,7 @@ import {
   TriangleAlert,
   Unplug,
 } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AUTH_MESSAGES } from "@/components/auth-outcome";
@@ -328,6 +329,53 @@ cloudflared tunnel --url https://localhost:3000    # or: ngrok http https://loca
             A fetched snapshot is cached in memory for 10 minutes and on disk for an hour so large stores load
             instantly. Disconnecting deletes both, along with the key.
           </Point>
+        </CardContent>
+      </Card>
+
+      {/* --- Colophon ------------------------------------------------------ */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">PulseCommerce</p>
+            <p className="text-xs text-muted-foreground">
+              Built by{" "}
+              <a
+                href="https://www.linkedin.com/in/nitheeshdr/"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-foreground hover:underline"
+              >
+                Nitheesh Rajendran
+              </a>{" "}
+              at{" "}
+              <a
+                href="https://setups.works"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-foreground hover:underline"
+              >
+                Setups Works
+              </a>
+            </p>
+          </div>
+
+          {/* The mark ships in both polarities; CSS picks one per theme. */}
+          <a href="https://setups.works" target="_blank" rel="noreferrer" aria-label="Setups Works">
+            <Image
+              src="/brand/setups-works-black.png"
+              alt="Setups Works"
+              width={132}
+              height={44}
+              className="h-10 w-auto dark:hidden"
+            />
+            <Image
+              src="/brand/setups-works-white.png"
+              alt="Setups Works"
+              width={132}
+              height={44}
+              className="hidden h-10 w-auto dark:block"
+            />
+          </a>
         </CardContent>
       </Card>
     </>

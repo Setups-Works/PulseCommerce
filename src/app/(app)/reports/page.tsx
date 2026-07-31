@@ -33,7 +33,7 @@ const PRESETS: { id: string; name: string; description: string; reports: ReportI
     id: "crm",
     name: "CRM upload",
     description: "Customer-level records with segments and churn risk, ready to import into a marketing tool.",
-    reports: ["customers", "segments", "companies"],
+    reports: ["customers", "segments", "geography"],
   },
   {
     id: "merch",
@@ -50,7 +50,7 @@ const PRESETS: { id: string; name: string; description: string; reports: ReportI
   {
     id: "everything",
     name: "Complete export",
-    description: "All eleven reports in one workbook.",
+    description: "Every report in one workbook.",
     reports: REPORT_CATALOGUE.map((r) => r.id),
   },
 ];
