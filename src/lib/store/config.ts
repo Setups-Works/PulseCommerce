@@ -1,5 +1,4 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { getStore } from "./kv";
 
 export interface StoreConfig {
   url: string;
@@ -12,8 +11,7 @@ export interface StoreConfig {
   updatedAt?: string;
 }
 
-const CONFIG_DIR = path.join(process.cwd(), ".data");
-const CONFIG_FILE = path.join(CONFIG_DIR, "store-config.json");
+const CONFIG_KEY = "store-config";
 
 export const DEFAULT_HISTORY_MONTHS = 24;
 /** 100 orders per page — 300 pages covers a 30k-order history. */
@@ -28,7 +26,8 @@ export const DEFAULT_MAX_PAGES = 300;
  */
 export async function readStoreConfig(): Promise<StoreConfig | null> {
   try {
-    const raw = await fs.readFile(CONFIG_FILE, "utf8");
+    const raw = await getStore().get(CONFIG_KEY);
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as StoreConfig;
     if (!parsed.url || !parsed.consumerKey || !parsed.consumerSecret) return null;
     return {
@@ -42,16 +41,11 @@ export async function readStoreConfig(): Promise<StoreConfig | null> {
 }
 
 export async function writeStoreConfig(config: StoreConfig): Promise<void> {
-  await fs.mkdir(CONFIG_DIR, { recursive: true });
-  await fs.writeFile(
-    CONFIG_FILE,
-    JSON.stringify({ ...config, updatedAt: new Date().toISOString() }, null, 2),
-    { mode: 0o600 },
-  );
+  await getStore().set(CONFIG_KEY, JSON.stringify({ ...config, updatedAt: new Date().toISOString() }));
 }
 
 export async function clearStoreConfig(): Promise<void> {
-  await fs.rm(CONFIG_FILE, { force: true });
+  await getStore().delete(CONFIG_KEY);
 }
 
 /** Updates the data-window settings without touching the credentials. */

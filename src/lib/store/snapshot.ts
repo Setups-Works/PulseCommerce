@@ -6,6 +6,7 @@ import { attachAttribution } from "@/lib/woo/attribution";
 import { decodeEntities } from "@/lib/woo/entities";
 import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "@/lib/woo/types";
 import { readStoreConfig, type StoreConfig } from "./config";
+import { isServerless } from "./kv";
 import { NotConnectedError } from "./errors";
 
 interface CacheEntry {
@@ -18,7 +19,17 @@ const MEMORY_TTL_MS = 10 * 60 * 1000;
 /** On-disk cache: survives dev-server restarts and cold serverless starts. */
 const DISK_TTL_MS = Number(process.env.SNAPSHOT_CACHE_MINUTES ?? 60) * 60 * 1000;
 
-const CACHE_DIR = path.join(process.cwd(), ".data", "cache");
+/**
+ * Snapshot cache directory.
+ *
+ * A snapshot can be tens of megabytes, which rules out a key-value store, so it
+ * stays on disk. Serverless application directories are read-only, but /tmp is
+ * writable and survives between invocations on a warm instance, which is
+ * exactly the case worth optimising.
+ */
+const CACHE_DIR = isServerless()
+  ? path.join("/tmp", "pulsecommerce-cache")
+  : path.join(process.cwd(), ".data", "cache");
 
 const cache = new Map<string, CacheEntry>();
 /** Collapses concurrent first-loads into one upstream fetch. */
@@ -91,6 +102,8 @@ async function writeDiskCache(key: string, snapshot: StoreSnapshot): Promise<voi
     await fs.writeFile(tmp, JSON.stringify(snapshot), { mode: 0o600 });
     await fs.rename(tmp, file);
   } catch (err) {
+    // A read-only or full filesystem costs speed, never correctness: the
+    // memory cache still serves, and the next cold start simply re-fetches.
     console.warn("[snapshot] could not persist cache:", err instanceof Error ? err.message : err);
   }
 }

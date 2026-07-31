@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { completePending } from "@/lib/auth/pending";
+import { verifyState } from "@/lib/auth/pending";
+import { DEFAULT_HISTORY_MONTHS, DEFAULT_MAX_PAGES, writeStoreConfig } from "@/lib/store/config";
+import { invalidateSnapshotCache } from "@/lib/store/snapshot";
+import { WooClient } from "@/lib/woo/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Server-to-server callback from WooCommerce carrying the freshly issued REST
- * key. This is called by the store, not the browser, so there is no session
- * here — the `user_id` we set when starting the flow is our state token, and it
- * is the only thing tying this delivery to the browser that requested it.
+ * Server-to-server callback from WooCommerce carrying the freshly issued key.
+ *
+ * This is called by the store, not the browser, so there is no session here.
+ * The `user_id` we set when starting the flow is a signed token carrying the
+ * store URL, and verifying it is what stops anyone POSTing arbitrary
+ * credentials at this endpoint.
+ *
+ * The connection is persisted *here* rather than on the browser's return leg,
+ * because on serverless the two legs can land on different instances.
  */
 const schema = z.object({
   key_id: z.number().optional(),
@@ -32,18 +40,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Unexpected callback payload." }, { status: 400 });
   }
 
-  const { user_id: state, consumer_key, consumer_secret, key_permissions } = parsed.data;
+  const { user_id: state, consumer_key, consumer_secret } = parsed.data;
 
-  const pending = await completePending(state, {
+  const storeUrl = await verifyState(state);
+  if (!storeUrl) {
+    return NextResponse.json(
+      { success: false, error: "Unknown or expired authorization." },
+      { status: 400 },
+    );
+  }
+
+  const config = {
+    url: storeUrl,
     consumerKey: consumer_key,
     consumerSecret: consumer_secret,
-    keyPermissions: key_permissions ?? "read",
-  });
+    historyMonths: DEFAULT_HISTORY_MONTHS,
+    maxPages: DEFAULT_MAX_PAGES,
+  };
 
-  if (!pending) {
-    // Unknown or expired state: refuse rather than store credentials we cannot
-    // attribute to a request we started.
-    return NextResponse.json({ success: false, error: "Unknown or expired authorization." }, { status: 400 });
+  // Never persist credentials without confirming they can actually read the store.
+  try {
+    await new WooClient(config).testConnection();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "The issued key could not read the store." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await writeStoreConfig(config);
+    invalidateSnapshotCache();
+  } catch (error) {
+    console.error("[woo-auth] could not persist the connection", error);
+    return NextResponse.json({ success: false, error: "Could not persist the connection." }, { status: 500 });
   }
 
   // Woo only checks for a 200; the body is ignored.

@@ -56,6 +56,28 @@ export const AUTH_MESSAGES: Record<string, { title: string; detail: string; tone
     detail: "Set APP_URL to a full address including the scheme, for example https://analytics.example.com.",
     tone: "bad",
   },
+  missing_store_url: {
+    title: "No store URL given",
+    detail: "Enter the address of the WooCommerce store you want to analyse.",
+    tone: "bad",
+  },
+  bad_store_url: {
+    title: "That store URL could not be parsed",
+    detail: "Use the site root, for example https://yourstore.com — not the admin or an API path.",
+    tone: "bad",
+  },
+  missing_auth_secret: {
+    title: "AUTH_SECRET is not set",
+    detail:
+      "The authorization flow signs its state token with AUTH_SECRET, so it is required. Generate one with `openssl rand -hex 32`, add it to your environment, and redeploy.",
+    tone: "bad",
+  },
+  no_storage: {
+    title: "This deployment cannot save a connection",
+    detail:
+      "Serverless platforms have a read-only filesystem, so the issued key would arrive and immediately vanish. Add a Redis store and set KV_REST_API_URL and KV_REST_API_TOKEN (Vercel KV and Upstash both provide these), then redeploy.",
+    tone: "bad",
+  },
 };
 
 export function AuthOutcome({ outcome }: { outcome: string }) {

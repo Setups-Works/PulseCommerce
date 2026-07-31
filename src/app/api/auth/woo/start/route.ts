@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createPending } from "@/lib/auth/pending";
+import { createState, MissingAuthSecretError } from "@/lib/auth/pending";
+import { storageIsDurable } from "@/lib/store/kv";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,41 +12,52 @@ export const dynamic = "force-dynamic";
  * the store owner approves the app inside their own WordPress admin, and Woo
  * then issues a REST key and POSTs it to our callback. The upside over pasting
  * keys by hand is that the merchant never handles a secret.
+ *
+ * Everything that could make the round trip fail is checked here, because the
+ * alternative is a merchant approving an app that was never going to work.
  */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const raw = params.get("url");
 
-  if (!raw) {
-    return NextResponse.json({ error: "A store URL is required." }, { status: 400 });
-  }
+  const fail = (code: string, detail?: string) =>
+    NextResponse.redirect(
+      new URL(
+        `/?auth=${code}${detail ? `&detected=${encodeURIComponent(detail)}` : ""}`,
+        request.url,
+      ),
+    );
+
+  if (!raw?.trim()) return fail("missing_store_url");
 
   let storeUrl: string;
   try {
     storeUrl = normalise(raw);
     new URL(storeUrl);
   } catch {
-    return NextResponse.json({ error: "That store URL could not be parsed." }, { status: 400 });
+    return fail("bad_store_url");
   }
+
+  // Without durable storage the credentials would arrive and vanish.
+  if (!storageIsDurable()) return fail("no_storage");
 
   const appUrl = publicAppUrl(request);
-
   const problem = describeCallbackProblem(appUrl);
-  if (problem) {
-    // Better to stop here than to let the merchant approve the app in their
-    // admin and then watch the credentials never arrive.
-    return NextResponse.redirect(
-      new URL(`/settings?auth=${problem.code}&detected=${encodeURIComponent(appUrl)}`, request.url),
-    );
-  }
+  if (problem) return fail(problem, appUrl);
 
-  const pending = await createPending(storeUrl);
+  let state: string;
+  try {
+    state = await createState(storeUrl);
+  } catch (error) {
+    if (error instanceof MissingAuthSecretError) return fail("missing_auth_secret");
+    throw error;
+  }
 
   const authorize = new URL(`${storeUrl}/wc-auth/v1/authorize`);
   authorize.searchParams.set("app_name", "PulseCommerce Analytics");
   authorize.searchParams.set("scope", "read");
-  authorize.searchParams.set("user_id", pending.state);
-  authorize.searchParams.set("return_url", `${appUrl}/api/auth/woo/return?state=${pending.state}`);
+  authorize.searchParams.set("user_id", state);
+  authorize.searchParams.set("return_url", `${appUrl}/api/auth/woo/return`);
   authorize.searchParams.set("callback_url", `${appUrl}/api/auth/woo/callback`);
 
   return NextResponse.redirect(authorize.toString());
@@ -59,14 +71,14 @@ export async function GET(request: Request) {
  *     store, so `localhost` points the store at itself, not at us. Serving the
  *     app over local HTTPS is necessary but not sufficient.
  */
-function describeCallbackProblem(appUrl: string): { code: string } | null {
-  if (!appUrl.startsWith("https://")) return { code: "https_required" };
+function describeCallbackProblem(appUrl: string): string | null {
+  if (!appUrl.startsWith("https://")) return "https_required";
 
   let host: string;
   try {
     host = new URL(appUrl).hostname.toLowerCase();
   } catch {
-    return { code: "bad_app_url" };
+    return "bad_app_url";
   }
 
   const isLoopback =
@@ -81,7 +93,7 @@ function describeCallbackProblem(appUrl: string): { code: string } | null {
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 
-  return isLoopback ? { code: "not_reachable" } : null;
+  return isLoopback ? "not_reachable" : null;
 }
 
 function normalise(raw: string): string {
@@ -95,10 +107,14 @@ function normalise(raw: string): string {
  */
 export function publicAppUrl(request: Request): string {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, "");
+  // Vercel exposes the deployment host but not the scheme; it is always HTTPS.
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+
   const url = new URL(request.url);
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const proto = forwardedProto ?? url.protocol.replace(":", "");
-  const host = forwardedHost ?? request.headers.get("host") ?? url.host;
+  const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.host;
   return `${proto}://${host}`;
 }

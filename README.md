@@ -222,8 +222,10 @@ snapshot, and derives every metric from that snapshot at request time.
 - **WooCommerce app authorization** (`/wc-auth/v1/authorize`) — approve read-only
   access in your own WordPress admin
 - **No form or environment variable anywhere accepts a consumer key**
-- CSRF-style state token binds the browser redirect to the server-to-server
-  callback
+- HMAC-signed, self-contained state token binds the browser redirect to the
+  server-to-server callback, with no shared server state, so the two legs may
+  land on different serverless instances
+- Pluggable durable storage — filesystem when self-hosted, Redis on serverless
 - Credentials verified against the store before being persisted
 - Issued key stored at `.data/store-config.json` with `0600` permissions,
   gitignored, never sent to the browser
@@ -427,9 +429,11 @@ browser.
 
 | Variable | Required | Purpose |
 |---|:---:|---|
-| `APP_URL` | to connect | Public HTTPS address WooCommerce delivers credentials to. |
-| `AUTH_SECRET` | for login | Signs the session cookie. `openssl rand -hex 32`. |
+| `APP_URL` | to connect | Public HTTPS address WooCommerce delivers credentials to. Auto-detected on Vercel. |
+| `AUTH_SECRET` | **to connect** | Signs the authorization state token and the session cookie. `openssl rand -hex 32`. |
 | `APP_PASSWORD` | for login | Set alongside `AUTH_SECRET` to require a password. |
+| `KV_REST_API_URL` | on serverless | Redis endpoint for the issued key. Vercel KV and Upstash both provide it. |
+| `KV_REST_API_TOKEN` | on serverless | Token for the above. `UPSTASH_REDIS_REST_*` names work too. |
 | `SNAPSHOT_CACHE_MINUTES` | no | How long a snapshot stays warm on disk. Default `60`. |
 
 Credentials are **never** environment variables. The issued key is written to
@@ -591,10 +595,27 @@ npm run start
 Set `APP_URL` to the public HTTPS address, and `AUTH_SECRET` + `APP_PASSWORD` if
 you want the dashboard gated.
 
-> **Serverless note:** the disk cache uses the local filesystem. On platforms with
-> ephemeral or read-only filesystems, the memory cache still works but each cold
-> start re-pulls from WooCommerce. For large stores prefer a host with a
-> persistent volume.
+### Serverless (Vercel, Netlify, Lambda)
+
+These platforms have a **read-only filesystem**, so the issued key cannot be
+written next to the app. Provision a Redis store and set:
+
+```bash
+KV_REST_API_URL=https://your-store.upstash.io
+KV_REST_API_TOKEN=...
+AUTH_SECRET=...              # required: signs the authorization state token
+```
+
+Vercel KV and Upstash both expose exactly these variables; the
+`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` names are also accepted.
+`APP_URL` is auto-detected from `VERCEL_PROJECT_PRODUCTION_URL`.
+
+Without a Redis store the app still runs and reports honestly — the connect page
+says the deployment cannot save a connection rather than failing mid-flow.
+
+The **snapshot cache** falls back to `/tmp`, which survives between invocations
+on a warm instance. Cold starts re-pull from WooCommerce, so for a large store
+prefer a host with a persistent volume, or expect the occasional slow first load.
 
 ---
 

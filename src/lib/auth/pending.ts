@@ -1,91 +1,108 @@
-import { randomBytes } from "node:crypto";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
 /**
- * Short-lived state for an in-flight WooCommerce authorization.
+ * State for an in-flight WooCommerce authorization.
  *
- * The flow is split across two requests that Woo makes independently: a
+ * The flow spans two requests WooCommerce makes independently: a
  * server-to-server POST carrying the credentials, and a browser redirect back
- * to us. The `state` token is what ties them together and stops an attacker
- * POSTing arbitrary credentials into someone else's session.
+ * to us. Something has to tie them together.
+ *
+ * That something is a *signed, self-contained token* rather than a server-side
+ * record. WooCommerce echoes the `user_id` parameter back on both legs, so the
+ * token carries the store URL with it and needs no shared storage — which
+ * matters because on serverless the two legs can land on different instances
+ * that share no filesystem.
  */
 
-const DIR = path.join(process.cwd(), ".data");
-const FILE = path.join(DIR, "pending-auth.json");
 const TTL_MS = 15 * 60 * 1000;
 
-export interface PendingAuth {
-  state: string;
-  storeUrl: string;
-  createdAt: number;
-  /** Set by the callback once Woo delivers credentials. */
-  completed?: {
-    consumerKey: string;
-    consumerSecret: string;
-    keyPermissions: string;
-  };
-}
-
-type Store = Record<string, PendingAuth>;
-
-async function read(): Promise<Store> {
-  try {
-    return JSON.parse(await fs.readFile(FILE, "utf8")) as Store;
-  } catch {
-    return {};
+export class MissingAuthSecretError extends Error {
+  readonly code = "missing_auth_secret";
+  constructor() {
+    super(
+      "AUTH_SECRET is not set. The authorization flow signs its state token with it, so it is required. Generate one with `openssl rand -hex 32`.",
+    );
+    this.name = "MissingAuthSecretError";
   }
 }
 
-async function write(store: Store): Promise<void> {
-  await fs.mkdir(DIR, { recursive: true });
-  await fs.writeFile(FILE, JSON.stringify(store), { mode: 0o600 });
+interface StatePayload {
+  /** Store being authorized. */
+  u: string;
+  /** Issued at (ms). */
+  t: number;
+  /** Random, so two authorizations of the same store differ. */
+  n: string;
 }
 
-function prune(store: Store): Store {
-  const now = Date.now();
-  const out: Store = {};
-  for (const [k, v] of Object.entries(store)) {
-    if (now - v.createdAt < TTL_MS) out[k] = v;
-  }
+function secret(): string {
+  const value = process.env.AUTH_SECRET;
+  if (!value || value.length < 16) throw new MissingAuthSecretError();
+  return value;
+}
+
+function b64url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromB64url(value: string): Uint8Array {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
   return out;
 }
 
-export async function createPending(storeUrl: string): Promise<PendingAuth> {
-  const store = prune(await read());
-  const pending: PendingAuth = {
-    state: randomBytes(24).toString("hex"),
-    storeUrl,
-    createdAt: Date.now(),
-  };
-  store[pending.state] = pending;
-  await write(store);
-  return pending;
+async function key(): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
 }
 
-export async function getPending(state: string): Promise<PendingAuth | null> {
-  const store = prune(await read());
-  return store[state] ?? null;
+/**
+ * Builds the state token. Kept compact because WooCommerce round-trips it as a
+ * query parameter: the signature is truncated to 16 bytes, which is ample for
+ * a token that also expires in 15 minutes.
+ */
+export async function createState(storeUrl: string): Promise<string> {
+  const nonce = b64url(crypto.getRandomValues(new Uint8Array(9)));
+  const payload: StatePayload = { u: storeUrl, t: Date.now(), n: nonce };
+  const body = b64url(new TextEncoder().encode(JSON.stringify(payload)));
+  const signature = new Uint8Array(
+    await crypto.subtle.sign("HMAC", await key(), new TextEncoder().encode(body)),
+  ).slice(0, 16);
+  return `${body}.${b64url(signature)}`;
 }
 
-export async function completePending(
-  state: string,
-  credentials: NonNullable<PendingAuth["completed"]>,
-): Promise<PendingAuth | null> {
-  const store = prune(await read());
-  const pending = store[state];
-  if (!pending) return null;
-  pending.completed = credentials;
-  store[state] = pending;
-  await write(store);
-  return pending;
-}
+/** Returns the store URL the token was issued for, or null if it isn't valid. */
+export async function verifyState(token: string | null | undefined): Promise<string | null> {
+  if (!token) return null;
+  const [body, signature] = token.split(".");
+  if (!body || !signature) return null;
 
-export async function consumePending(state: string): Promise<PendingAuth | null> {
-  const store = prune(await read());
-  const pending = store[state];
-  if (!pending) return null;
-  delete store[state];
-  await write(store);
-  return pending;
+  try {
+    const expected = new Uint8Array(
+      await crypto.subtle.sign("HMAC", await key(), new TextEncoder().encode(body)),
+    ).slice(0, 16);
+
+    const provided = fromB64url(signature);
+    if (provided.length !== expected.length) return null;
+
+    // Constant-time compare so the signature can't be probed byte by byte.
+    let diff = 0;
+    for (let i = 0; i < expected.length; i++) diff |= expected[i] ^ provided[i];
+    if (diff !== 0) return null;
+
+    const payload = JSON.parse(new TextDecoder().decode(fromB64url(body))) as StatePayload;
+    if (typeof payload.t !== "number" || Date.now() - payload.t > TTL_MS) return null;
+    if (typeof payload.u !== "string" || !payload.u) return null;
+
+    return payload.u;
+  } catch {
+    return null;
+  }
 }
