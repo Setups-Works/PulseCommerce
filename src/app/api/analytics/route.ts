@@ -7,6 +7,12 @@ import { WooApiError } from "@/lib/woo/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/**
+ * A cold pull walks the store's entire order history: ~165s for 20k orders.
+ * Hosts cap this by plan, but declaring it stops the default short timeout
+ * from killing the first load. Every later request is served from cache.
+ */
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
