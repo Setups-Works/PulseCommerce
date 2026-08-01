@@ -108,6 +108,17 @@ export interface CustomerRecord {
   revenuePercentile: number;
   /** True when their first ever order fell inside the selected range. */
   isNewCustomer: boolean;
+  /**
+   * True when they placed a repeat order relevant to this window: either they
+   * had already bought before it, or they bought more than once inside it.
+   *
+   * Deliberately not the inverse of `isNewCustomer`. A customer acquired in
+   * the window who then bought twice more is both newly acquired and
+   * returning, which is exactly how the headline KPIs count them. Treating
+   * the two as exclusive made the returning list empty on any range covering
+   * the store's full history, since nobody predates it.
+   */
+  isReturningCustomer: boolean;
   /** Their orders in this period, newest first — powers the profile view. */
   history: {
     id: number;

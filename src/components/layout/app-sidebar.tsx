@@ -3,6 +3,7 @@
 import { Activity, CircleDot, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { StoreSwitcher } from "@/components/layout/store-switcher";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,41 +67,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t group-data-[collapsible=icon]:hidden">
-        {initialising ? (
-          <div className="space-y-2 px-1.5 py-1">
-            <Skeleton className="h-3.5 w-32" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        ) : data ? (
-          <div className="space-y-1.5 px-1.5 py-1">
-            <div className="flex items-center gap-1.5">
-              <CircleDot className="size-3 text-[var(--good)]" />
-              <span className="min-w-0 flex-1 truncate text-xs font-medium" title={data.meta.storeName}>
-                {data.meta.storeName}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <Badge variant="secondary" className="text-[10px]">
-                Connected
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">
-                synced {formatRelative(data.meta.fetchedAt)}
-              </span>
-            </div>
-            <a
-              href={data.meta.storeUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              Open store <ExternalLink className="size-3" />
-            </a>
-          </div>
-        ) : (
-          <Link href="/settings" className="px-1.5 py-1 text-[11px] text-primary hover:underline">
-            Connect a store →
-          </Link>
-        )}
+        <StoreSwitcher />
+        {data?.meta.storeUrl ? (
+          <a
+            href={data.meta.storeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 px-1.5 pb-1 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Open store <ExternalLink className="size-3" />
+          </a>
+        ) : null}
       </SidebarFooter>
 
       <SidebarRail />

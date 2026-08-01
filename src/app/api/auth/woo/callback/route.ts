@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyState } from "@/lib/auth/pending";
-import { DEFAULT_HISTORY_MONTHS, DEFAULT_MAX_PAGES, writeStoreConfig } from "@/lib/store/config";
-import { invalidateSnapshotCache } from "@/lib/store/snapshot";
+import { DEFAULT_HISTORY_MONTHS, DEFAULT_MAX_PAGES, upsertStore } from "@/lib/store/config";
 import { WooClient } from "@/lib/woo/client";
 
 export const runtime = "nodejs";
@@ -58,9 +57,12 @@ export async function POST(request: Request) {
     maxPages: DEFAULT_MAX_PAGES,
   };
 
-  // Never persist credentials without confirming they can actually read the store.
+  // Never persist credentials without confirming they can actually read the
+  // store, and capture its name while we are there.
+  let storeName: string | undefined;
   try {
-    await new WooClient(config).testConnection();
+    const meta = await new WooClient(config).testConnection();
+    storeName = meta.storeName;
   } catch {
     return NextResponse.json(
       { success: false, error: "The issued key could not read the store." },
@@ -69,8 +71,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await writeStoreConfig(config);
-    invalidateSnapshotCache();
+    await upsertStore({ ...config, name: storeName });
   } catch (error) {
     console.error("[woo-auth] could not persist the connection", error);
     return NextResponse.json({ success: false, error: "Could not persist the connection." }, { status: 500 });

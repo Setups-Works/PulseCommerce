@@ -7,6 +7,8 @@ import {
   Loader2,
   LogOut,
   ShieldCheck,
+  Check,
+  Loader2 as Spinner,
   Store,
   Trash2,
   TriangleAlert,
@@ -16,6 +18,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AUTH_MESSAGES } from "@/components/auth-outcome";
+import { hostOf, useConnectedStores } from "@/components/layout/store-switcher";
 import { PageShell } from "@/components/dashboard/page-state";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -47,6 +50,8 @@ export default function SettingsPage() {
   const [maxPages, setMaxPages] = useState(300);
   const [savingWindow, setSavingWindow] = useState(false);
   const [authOutcome, setAuthOutcome] = useState<string | null>(null);
+  const { stores, reload: reloadStores } = useConnectedStores();
+  const [busyStore, setBusyStore] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -102,11 +107,40 @@ export default function SettingsPage() {
     }
   };
 
-  const disconnect = async () => {
-    await fetch("/api/settings", { method: "DELETE" });
-    toast.success("Disconnected", { description: "The stored key and every cached order were removed." });
-    await loadConfig();
-    refresh();
+  const disconnect = async (url?: string) => {
+    setBusyStore(url ?? "all");
+    try {
+      await fetch(`/api/settings${url ? `?url=${encodeURIComponent(url)}` : ""}`, { method: "DELETE" });
+      toast.success(url ? "Store disconnected" : "All stores disconnected", {
+        description: "The stored key and every cached order were removed.",
+      });
+      await Promise.all([loadConfig(), reloadStores()]);
+      refresh();
+    } finally {
+      setBusyStore(null);
+    }
+  };
+
+  const switchTo = async (url: string) => {
+    setBusyStore(url);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeUrl: url }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not switch store.");
+      toast.success("Switched store", { description: json.config?.name ?? url });
+      await Promise.all([loadConfig(), reloadStores()]);
+      refresh();
+    } catch (error) {
+      toast.error("Could not switch store", {
+        description: error instanceof Error ? error.message : "Something went wrong.",
+      });
+    } finally {
+      setBusyStore(null);
+    }
   };
 
   const signOut = async () => {
@@ -190,7 +224,12 @@ export default function SettingsPage() {
             <Button variant="outline" size="sm" onClick={refresh}>
               Re-sync now
             </Button>
-            <Button variant="outline" size="sm" onClick={disconnect} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => disconnect(config?.url)}
+              className="gap-1.5"
+            >
               <Trash2 className="size-3.5" />
               Disconnect
             </Button>
@@ -204,15 +243,75 @@ export default function SettingsPage() {
         ) : null}
       </Card>
 
+      {/* --- Connected stores --------------------------------------------- */}
+      {stores.length > 1 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Connected stores</CardTitle>
+            <CardDescription className="text-xs">
+              Each store keeps its own credentials, data window and cached orders, so switching reads a different
+              cache rather than re-pulling anything.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {stores.map((store) => (
+              <div
+                key={store.url}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Store className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{store.name ?? hostOf(store.url)}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{hostOf(store.url)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {store.active ? (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <Check className="size-3" strokeWidth={3} />
+                      Active
+                    </Badge>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs"
+                      disabled={busyStore !== null}
+                      onClick={() => switchTo(store.url)}
+                    >
+                      {busyStore === store.url ? <Spinner className="size-3.5 animate-spin" /> : null}
+                      Switch to
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    disabled={busyStore !== null}
+                    onClick={() => disconnect(store.url)}
+                  >
+                    <Trash2 className="size-3.5" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* --- Authorize ---------------------------------------------------- */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold">
-            {connected ? "Authorize a different store" : "Authorize your store"}
+            {connected ? "Connect another store" : "Authorize your store"}
           </CardTitle>
           <CardDescription className="text-xs">
-            Enter your store address and approve read-only access in your own WordPress admin. WooCommerce issues
-            the key and delivers it here directly, so you never handle a secret.
+            Enter a store address and approve read-only access in its WordPress admin. WooCommerce issues the key
+            and delivers it here directly, so you never handle a secret. Connecting a store you already have
+            re-issues its key rather than adding a duplicate.
           </CardDescription>
         </CardHeader>
 

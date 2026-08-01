@@ -259,20 +259,16 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
     const records = data.customers.records;
     return {
       fresh: records.filter((c) => c.isNewCustomer),
-      returning: records.filter((c) => !c.isNewCustomer),
+      returning: records.filter((c) => c.isReturningCustomer),
     };
   }, [data.customers.records]);
 
   const rows = tab === "new" ? fresh : returning;
 
-  const coversAllHistory =
-    !!data.meta.dataBounds && data.meta.range.from <= data.meta.dataBounds.from;
-
   const COPY = {
     new: "Customers whose first ever order landed inside this period. Their next order is the one that matters: converting them to a second purchase is the single biggest jump in lifetime value.",
-    returning: coversAllHistory
-      ? "Customers who had already bought before this period began. The selected range covers the store's entire history, so nobody predates it and this list is necessarily empty. Narrow the range to see who came back."
-      : "Customers who had already bought before this period began and came back during it. This is retained revenue, not acquisition.",
+    returning:
+      "Customers who placed a repeat order: they had either bought before this period, or bought more than once inside it. The two lists overlap, because someone acquired this period who then bought again is both.",
   } as const;
 
   return (
@@ -320,9 +316,7 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
           emptyMessage={
             tab === "new"
               ? "No first-time customers in this period."
-              : coversAllHistory
-                ? "The selected range starts at the store's first ever order, so every customer in it is a first-time customer. Narrow the range to separate new from returning."
-                : "No previously-seen customers ordered in this period."
+              : "Nobody placed a repeat order in this period."
           }
           stickyFirstColumn
         />

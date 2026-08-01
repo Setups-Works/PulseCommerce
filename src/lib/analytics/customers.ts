@@ -260,6 +260,7 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
       revenueShare: round2(safeDiv(e.net, totalRevenue) * 100),
       revenuePercentile,
       isNewCustomer,
+      isReturningCustomer: !isNewCustomer || e.orders > 1,
       history: [...e.history].sort((a, b) => b.date.localeCompare(a.date)),
       channel: e.channel,
       deviceType: e.deviceType,
