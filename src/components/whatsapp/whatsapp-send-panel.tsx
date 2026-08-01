@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { AudienceFilter } from "@/lib/audience";
 import { MESSAGE_TEMPLATES, VARIABLE_HELP } from "@/lib/whatsapp/templates";
+import { ProductPicker, type PickedProduct } from "@/components/whatsapp/product-picker";
 
 interface Preview {
   matched: number;
@@ -31,6 +32,25 @@ interface Preview {
   preview: string | null;
   estimatedMs: number;
   delayBetweenMessagesMs: number;
+}
+
+interface Coupon {
+  id: number;
+  code: string;
+  discountType: string;
+  amount: string;
+  usable: boolean;
+  reason: string | null;
+  expires: string | null;
+}
+
+/** "10% off" or "₹150 off", which is what a customer needs to read. */
+function couponValue(coupon: Coupon): string {
+  const amount = Number(coupon.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return "a discount";
+  return coupon.discountType === "percent"
+    ? `${amount % 1 === 0 ? amount : amount.toFixed(1)}% off`
+    : `₹${Math.round(amount)} off`;
 }
 
 interface Progress {
@@ -72,6 +92,9 @@ export function WhatsAppSendPanel({
   const [mediaUrl, setMediaUrl] = useState("");
   const [useProductImage, setUseProductImage] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const [product, setProduct] = useState<PickedProduct | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[] | null>(null);
+  const [couponCode, setCouponCode] = useState("");
 
   const [previewState, setPreviewState] = useState<{ sig: string; data: Preview } | null>(null);
   const [confirmValue, setConfirmValue] = useState("");
@@ -116,10 +139,23 @@ export function WhatsAppSendPanel({
     };
   }, []);
 
+  const coupon = coupons?.find((c) => c.code === couponCode) ?? null;
+
   const message = {
     type,
     text,
     ...(type === "text" ? {} : useProductImage ? { useProductImage } : { mediaUrl }),
+    ...(coupon ? { coupon: { code: coupon.code, value: couponValue(coupon) } } : {}),
+    ...(product
+      ? {
+          product: {
+            name: product.name,
+            url: product.url,
+            image: product.image,
+            category: product.category,
+          },
+        }
+      : {}),
   };
 
   /*
@@ -128,11 +164,13 @@ export function WhatsAppSendPanel({
    * is derived rather than reset in an effect, so there is no render where a
    * stale count is on screen next to a live send button.
    */
-  const signature = JSON.stringify({ filter, range, type, text, mediaUrl, useProductImage });
+  const signature = JSON.stringify({
+    filter, range, type, text, mediaUrl, useProductImage, couponCode, productId: product?.id ?? null,
+  });
   const preview = previewState?.sig === signature ? previewState.data : null;
   const composed =
     text.trim().length > 0 &&
-    (type === "text" || useProductImage || mediaUrl.trim().length > 0);
+    (type === "text" || useProductImage || Boolean(product?.image) || mediaUrl.trim().length > 0);
 
   const applyTemplate = (id: string) => {
     const template = MESSAGE_TEMPLATES.find((t) => t.id === id);
@@ -187,6 +225,19 @@ export function WhatsAppSendPanel({
       setBusy(null);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void (async () => {
+      try {
+        const res = await fetch("/api/whatsapp/coupons", { cache: "no-store" });
+        const body = await res.json();
+        setCoupons(res.ok ? (body.coupons ?? []) : []);
+      } catch {
+        setCoupons([]);
+      }
+    })();
+  }, []);
 
   const tick = useCallback((id: string) => {
     const run = async () => {
@@ -327,6 +378,45 @@ export function WhatsAppSendPanel({
                 <span className="text-foreground">Best paired with: {activeTemplate.suggestedAudience}.</span>
               </p>
             ) : null}
+          </div>
+
+          {/* Coupon and a campaign-wide product: both optional, both feed the
+              same {{...}} variables the template already references. */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-coupon">Coupon code</Label>
+              <select
+                id="wa-coupon"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                disabled={running}
+                className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+              >
+                <option value="">No coupon</option>
+                {(coupons ?? []).map((c) => (
+                  <option key={c.id} value={c.code} disabled={!c.usable}>
+                    {c.code} — {couponValue(c)}
+                    {c.usable ? "" : ` (${c.reason})`}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {coupons === null
+                  ? "Reading coupons from WooCommerce…"
+                  : coupons.length === 0
+                    ? "No coupons in WooCommerce yet. Create one there and it appears here."
+                    : "Fills {{coupon}} and {{coupon_value}}. Codes that have expired or hit their usage limit cannot be picked."}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Campaign product</Label>
+              <ProductPicker selected={product} onSelect={setProduct} disabled={running} />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Optional. Sends everyone this product instead of whatever each customer
+                bought most, and its photo overrides the per-customer one.
+              </p>
+            </div>
           </div>
 
           <div className="flex gap-1.5">

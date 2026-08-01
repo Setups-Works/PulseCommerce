@@ -128,6 +128,19 @@ export interface WooProduct {
   rating_count: number;
 }
 
+/** A discount coupon, as WooCommerce returns it. */
+export interface WooCoupon {
+  id: number;
+  code: string;
+  discount_type: string;
+  amount: string;
+  date_expires: string | null;
+  usage_limit: number | null;
+  usage_count: number;
+  minimum_amount: string;
+  individual_use: boolean;
+}
+
 /**
  * Everything the analytics engine needs, in one payload. Built either from a
  * live WooCommerce store or from the demo generator.

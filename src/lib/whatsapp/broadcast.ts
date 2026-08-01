@@ -30,6 +30,10 @@ export interface BroadcastMessage {
   text: string;
   /** Publicly reachable URL — OpenWA fetches the media itself. */
   mediaUrl?: string;
+  /** Coupon code and its worth, substituted into {{coupon}} for everyone. */
+  coupon?: { code: string; value: string };
+  /** One product for the whole campaign, instead of each customer's own. */
+  product?: { name: string; url: string; image: string; category: string };
   /**
    * Attach each recipient's own product photo instead of one shared image.
    * Recipients with no photo fall back to a text message rather than being
@@ -270,7 +274,22 @@ export async function createBroadcast(input: {
 
 /** Substitutes every template variable for one recipient. */
 export function renderMessage(message: BroadcastMessage, recipient: BroadcastRecipient): string {
-  return renderTemplate(message.text, { ...recipient.vars, name: recipient.name });
+  return renderTemplate(message.text, {
+    ...recipient.vars,
+    name: recipient.name,
+    // A campaign-wide product overrides whatever that customer bought: the
+    // operator picked this one deliberately, so it wins.
+    ...(message.product
+      ? {
+          product: message.product.name,
+          product_url: message.product.url,
+          product_image: message.product.image,
+          category: message.product.category,
+        }
+      : {}),
+    coupon: message.coupon?.code ?? "",
+    coupon_value: message.coupon?.value ?? "",
+  });
 }
 
 /** The image to attach for one recipient, if any. */
@@ -278,6 +297,7 @@ export function mediaFor(
   message: BroadcastMessage,
   recipient: BroadcastRecipient,
 ): string | null {
+  if (message.product?.image) return message.product.image;
   if (message.useProductImage) return recipient.vars.product_image || null;
   return message.mediaUrl || null;
 }

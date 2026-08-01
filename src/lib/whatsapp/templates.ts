@@ -104,6 +104,32 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
     requires: "product",
   },
   {
+    id: "coupon-reorder",
+    name: "Coupon + their product",
+    purpose:
+      "Pairs a discount code with the product that person actually buys, so the offer has something specific to be spent on rather than being a general announcement.",
+    suggestedAudience: "Lapsed customers, or one-time buyers worth converting",
+    body:
+      "Hi {{name}}, here is {{coupon_value}} on your next order of {{product}}.\n\n" +
+      "Use code {{coupon}} at checkout:\n{{product_url}}\n\n" +
+      "— {{store}}",
+    withImage: true,
+    requires: "product",
+  },
+  {
+    id: "coupon-offer",
+    name: "Coupon, no product",
+    purpose:
+      "A plain discount announcement for customers with no clear favourite product, or for a store-wide offer.",
+    suggestedAudience: "Any audience",
+    body:
+      "Hi {{name}}, here is {{coupon_value}} on your next order with us.\n\n" +
+      "Use code {{coupon}} at checkout.\n\n" +
+      "— {{store}}",
+    withImage: false,
+    requires: "none",
+  },
+  {
     id: "offer",
     name: "Offer or announcement",
     purpose:
@@ -118,6 +144,8 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
 /** The values a template can draw on for one recipient. */
 export interface TemplateVariables {
   name: string;
+  coupon: string;
+  coupon_value: string;
   product: string;
   product_url: string;
   product_image: string;
@@ -137,6 +165,8 @@ export const VARIABLE_HELP: { token: string; describes: string }[] = [
   { token: "{{orders}}", describes: "How many orders they have placed" },
   { token: "{{spend}}", describes: "What they have spent in total" },
   { token: "{{store}}", describes: "Your store name" },
+  { token: "{{coupon}}", describes: "The coupon code you attach to the message" },
+  { token: "{{coupon_value}}", describes: "What that coupon is worth, e.g. \"10% off\"" },
 ];
 
 /**

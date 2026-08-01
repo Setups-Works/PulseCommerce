@@ -1,5 +1,5 @@
 import { decodeEntities } from "./entities";
-import type { WooCustomer, WooOrder, WooProduct } from "./types";
+import type { WooCustomer, WooOrder, WooProduct, WooCoupon } from "./types";
 
 export interface WooCredentials {
   url: string;
@@ -242,6 +242,13 @@ export class WooClient {
     return this.fetchAll<WooCustomer>("customers", { ...params, _fields: CUSTOMER_FIELDS }, { maxPages });
   }
 
+  /** Coupons. Few enough that one page covers any realistic store. */
+  getCoupons(): Promise<WooCoupon[]> {
+    return this.fetchAll<WooCoupon>("coupons", { per_page: 100, _fields: COUPON_FIELDS }, {
+      maxPages: 3,
+    });
+  }
+
   getProducts(params: Record<string, string | number | undefined>, maxPages?: number) {
     return this.fetchAll<WooProduct>("products", { ...params, _fields: PRODUCT_FIELDS }, { maxPages });
   }
@@ -263,6 +270,11 @@ const ORDER_FIELDS = [
 const CUSTOMER_FIELDS = [
   "id", "date_created", "email", "first_name", "last_name", "username", "billing", "shipping",
   "is_paying_customer", "role",
+].join(",");
+
+const COUPON_FIELDS = [
+  "id", "code", "discount_type", "amount", "date_expires", "usage_limit", "usage_count",
+  "minimum_amount", "individual_use",
 ].join(",");
 
 const PRODUCT_FIELDS = [

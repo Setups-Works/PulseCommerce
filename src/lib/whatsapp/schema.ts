@@ -49,8 +49,17 @@ export const messageSchema = z
     mediaUrl: z.string().url().optional(),
     /** Each recipient gets their own product photo instead of a shared one. */
     useProductImage: z.boolean().optional(),
+    coupon: z.object({ code: z.string().min(1), value: z.string() }).optional(),
+    product: z
+      .object({
+        name: z.string(),
+        url: z.string(),
+        image: z.string(),
+        category: z.string(),
+      })
+      .optional(),
   })
-  .refine((m) => m.type === "text" || m.useProductImage || Boolean(m.mediaUrl), {
+  .refine((m) => m.type === "text" || m.useProductImage || Boolean(m.product?.image) || Boolean(m.mediaUrl), {
     message:
       "An image or video message needs either a media URL or the per-customer product photo.",
     path: ["mediaUrl"],
