@@ -198,6 +198,143 @@ dedicated number should be used rather than the main business line. Tappable
 buttons and product cards are not available on this route; they are a feature of
 the official API. If guaranteed delivery or buttons matter more than cost, the
 official API is the alternative and can be quoted separately.</p>
+<h3 style="font:600 14px/1.4 Helvetica,Arial,sans-serif;color:#111;margin:20px 0 8px;">The nine templates</h3>
+<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;margin:0 0 18px;font:400 13px/1.5 Helvetica,Arial,sans-serif;">
+<thead>
+<tr>
+<th style="text-align:left;border-bottom:2px solid #111;padding:8px 10px;font-weight:600;color:#111;">Template</th>
+<th style="text-align:left;border-bottom:2px solid #111;padding:8px 10px;font-weight:600;color:#111;">What it says</th>
+<th style="text-align:left;border-bottom:2px solid #111;padding:8px 10px;font-weight:600;color:#111;">When to send it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Reorder</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Names the product they bought, links straight to it</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Their usual reorder gap has passed</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Category arrivals</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">New items in the range they already shop</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">You add stock to a category</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Win back</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">References their product and when they last ordered</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">At Risk or Hibernating customers</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Second order</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Asks how they got on, invites a repeat</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">One-time buyers, still recent</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">VIP thank you</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Names their order count, invites a reply</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Champions and top-tier customers</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Review request</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Asks for feedback on what they actually buy</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Repeat customers with a recent order</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Coupon and product</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">A discount tied to their own product</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Lapsed customers worth converting</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Coupon only</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">A store-wide discount offer</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Any audience with no clear favourite</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Announcement</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Your own words, with the greeting still personal</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">News, opening hours, anything else</td>
+</tr>
+</tbody></table>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Templates are edited freely before sending. No approval process applies, unlike
+Meta&#39;s official API.</p>
+<h3 style="font:600 14px/1.4 Helvetica,Arial,sans-serif;color:#111;margin:20px 0 8px;">The ten variables</h3>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Each resolves from that customer&#39;s own order history at the moment of sending:</p>
+<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;margin:0 0 18px;font:400 13px/1.5 Helvetica,Arial,sans-serif;">
+<thead>
+<tr>
+<th style="text-align:left;border-bottom:2px solid #111;padding:8px 10px;font-weight:600;color:#111;">Variable</th>
+<th style="text-align:left;border-bottom:2px solid #111;padding:8px 10px;font-weight:600;color:#111;">Becomes, for one customer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">name</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Priya</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">product</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Manjistha Soap</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">product_url</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">The buy link for that product</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">category</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Herbal Soaps</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">last_order</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">14 March</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">orders</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">7</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">spend</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">₹4,180</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">store</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">Nature&#39;s Joy</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">coupon</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">SAVE10NOW</td>
+</tr>
+<tr>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">coupon_value</td>
+<td style="border-bottom:1px solid #e3e3e3;padding:8px 10px;color:#222;vertical-align:top;">10% off</td>
+</tr>
+</tbody></table>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The product chosen is the one they have spent the most on, not their most recent
+purchase — a one-off small order should not become the thing a reorder message is
+built around. A variable with no value for someone is removed and the sentence
+tidied afterwards, so nobody receives a literal placeholder or a dangling comma.</p>
+<h3 style="font:600 14px/1.4 Helvetica,Arial,sans-serif;color:#111;margin:20px 0 8px;">Discount coupons</h3>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Coupons are created in WooCommerce directly from the campaign screen, so the code
+exists in your store the moment it is generated. Each is limited to one use per
+customer, expires on a date you set, and — when a campaign product is chosen — is
+restricted to that product so a discount meant for one item cannot be spent across
+the catalogue. Generated codes avoid the characters O, 0, I and 1, because they
+are read off a phone screen and typed at a checkout.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Codes that have expired or reached their usage limit are shown but cannot be
+selected. Sending a code that will be refused at the checkout is worse than
+sending none at all.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Coupon performance is reported back: uses, discount given, revenue produced, and
+return on discount — so you can see whether an offer bought incremental orders or
+simply discounted sales that would have happened anyway.</p>
+<h3 style="font:600 14px/1.4 Helvetica,Arial,sans-serif;color:#111;margin:20px 0 8px;">How a large send actually runs</h3>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Messages go out roughly four seconds apart with random variation, in batches of a
+hundred handed to the gateway at a time. A campaign to the full customer base
+therefore runs for hours rather than minutes, which is deliberate: sending
+thousands of messages in a short window is the single most reliable way to have a
+WhatsApp number restricted.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The send is a resumable job. Closing the page pauses it rather than breaking it,
+anything already handed over still goes out, and reopening continues from where it
+stopped. If the gateway&#39;s own process restarts part-way through, the platform
+detects it and reconnects by itself rather than failing the remaining recipients.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Every excluded recipient is counted and categorised — no phone number on file, a
+number that cannot be read, a duplicate shared with another record, or someone on
+the opt-out list — so a result of &quot;sent 9,800 of 11,224&quot; always has an explanation.</p>
 <h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">7. Shared WhatsApp inbox</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Replies to a campaign land somewhere the business can see them, alongside who
 sent them.</p>
@@ -421,9 +558,139 @@ factors, with a 95% interval derived from historical variance. It answers whethe
 the store is pacing ahead of or behind its recent trend. It has no knowledge of
 planned promotions, stockouts, or seasonality outside the period analysed.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
+<hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
+<h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">Appendix: complete feature list</h1>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Everything included in the thirteen modules, listed so nothing delivered goes
+unmentioned.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Revenue and performance.</strong> Net and gross revenue, orders, average order value,
+units, discounts, shipping, tax, refunds, items per order, revenue per customer,
+cancellation rate, period-on-period comparison, daily, weekly and monthly views,
+sparkline trends, and written findings ranked by urgency.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Customer analytics.</strong> RFM scoring, ten segments, five value tiers, predicted
+lifetime value, churn risk, revenue deciles, Pareto curve, Gini coefficient,
+recency-frequency plot, top-customer spotlight, ready-made high value, low value,
+at risk and rising cohorts, and a complete ledger with orders expandable in place.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Customer profiles.</strong> Contact details, location, acquisition channel and device,
+RFM scores, revenue percentile, refunds, discounts used, what they buy ranked by
+revenue, order value over time, and full order history.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Acquisition and retention.</strong> New versus returning revenue, full customer tables,
+channel attribution, first-time buyer analysis by channel, device breakdown, pages
+per session, time to second order with quartiles, monthly cohort retention, the
+cumulative lifetime value curve, and attribution coverage.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Campaigns and audiences.</strong> Audience builder with live reach, six goal presets,
+filters on segment, tier, recency, spend, order count, churn risk, country, account
+type, product purchased and contactability, revenue and predicted value at stake,
+CSV export for email and advertising platforms, campaign performance from UTM tags,
+and coupon return on discount.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">WhatsApp campaigns.</strong> Text, image and video messages, nine templates, ten
+personalisation variables, per-customer product photographs, catalogue product
+search, coupon creation and attachment, dry run, test send, typed confirmation,
+opt-out list, paced sending with variation, resumable jobs, automatic recovery,
+live progress and a stop control.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Shared inbox.</strong> Conversations matched to customers, order count and lifetime
+spend beside each, link to the full profile, live reply polling, text, media and
+product replies, starting a conversation from a number, unread counts, search
+across names and numbers, and opt-out enforcement.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Product and catalogue analytics.</strong> ABC classification, Pareto concentration,
+revenue, units, orders and distinct customers per product, average price and
+velocity, refund rate per product, average rating, market-basket affinity by lift,
+category mix, best sellers by value and volume, slow movers and never-sold items.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Inventory and restock planning.</strong> Days of cover, reorder points from your supplier
+lead time, suggested order quantities, out of stock, critical, low, healthy and
+overstocked states, revenue at risk, capital tied up, a restock planner, and a
+draft purchase order export.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Orders and operations.</strong> Full order register, status mix, basket-size
+distribution, payment method performance, a day-by-hour trading heatmap, weekday
+performance and fulfilment timing.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Forecasting and geography.</strong> Daily revenue projection, 95% confidence band,
+weekday seasonality shown explicitly, and revenue, orders, customers and average
+order value by country, state and city.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Reports and exports.</strong> Ten report types, Excel with formatted sheets, filters and
+currency formats, PDF with cover, headline figures and findings, CSV for
+spreadsheets and pipelines, presets for a board pack, CRM upload, merchandising
+review and finance reconciliation, a written report view, and exports that match
+the on-screen date range without truncation.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Platform.</strong> Multiple stores with instant switching, a command palette across
+customers, products and orders, keyboard navigation throughout, light and dark
+themes, persisted date ranges, sortable, searchable and expandable tables, optional
+password protection, honest empty states, and partial-data warnings surfaced rather
+than hidden.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Security.</strong> Approval inside your own WordPress admin, no credential ever typed
+into a form in this product, verification before saving, keys shown only masked,
+customer phone numbers never sent to the browser, opt-outs enforced on the server,
+and a one-click disconnect that wipes the stored key and every cached order.</p>
+<hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
+<h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">Terms and conditions</h1>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">About the figures</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">All store figures in this document were computed from naturesjoystore.com covering
+1 August 2025 to 31 July 2026, across 20,444 orders retrieved through the
+WooCommerce REST API. Figures change as the store trades and should be re-run
+before being relied upon.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Net revenue is order total less tax, shipping and refunds, counting only orders in
+completed, processing or on-hold status. Cancelled, failed and pending orders are
+excluded from revenue but included in cancellation rates. This may differ from
+figures shown elsewhere in WooCommerce, which counts differently.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Guest checkouts carry no WooCommerce customer identifier, so buyers are identified
+by billing email address. One person ordering under two email addresses counts as
+two customers, which affects customer counts and repeat rates.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">About projections</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Win-back revenue, campaign returns, break-even points and forecasts are
+illustrations based on stated assumptions. They are not forecasts, guarantees,
+warranties or commitments of any kind, and actual results will differ, potentially
+materially.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Predicted lifetime value and churn risk are estimates derived from observed
+purchase behaviour. Forecasts use a least-squares trend with day-of-week
+seasonality and have no knowledge of planned promotions, stock availability, price
+changes or seasonality outside the period analysed.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Days of cover and revenue at risk are calculated from observed sales velocity and
+current stock levels where WooCommerce tracks them. Products without stock
+management enabled cannot be planned for.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">About WhatsApp delivery</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Messaging uses a self-hosted gateway connecting through unofficial,
+reverse-engineered clients rather than Meta&#39;s official WhatsApp Business API.
+Message delivery is not guaranteed.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">WhatsApp may, at its sole discretion and without notice, restrict, suspend or
+permanently ban any number used for automated messaging. No appeal route exists
+through this software or through Setups Works. A number reserved for this purpose
+must be used, never the primary business line. Setups Works accepts no liability
+for the restriction, loss or suspension of any number, for messages that fail to
+deliver, or for consequential business loss arising from either.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Tappable buttons and product cards are features of Meta&#39;s official API and cannot
+be delivered by a self-hosted gateway. They are excluded from this scope.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">You are responsible for ensuring messages sent comply with applicable law,
+including consent, data protection and unsolicited-communication rules in the
+recipient&#39;s jurisdiction, and with WhatsApp&#39;s own terms. The opt-out list is
+provided as a tool; honouring requests to stop remains your obligation.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">About third-party costs</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">WhatsApp Cloud API rates are set by Meta, vary by country and message category,
+and change without notice. Any rates shown are illustrative ranges rather than
+quotations; confirm current pricing with Meta before making a decision on that
+basis.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Server hosting for the WhatsApp gateway, estimated at approximately ₹500 per
+month, is billed by your hosting provider and is not included in the quoted price.
+A dedicated phone number for WhatsApp sending is also not included. Domain, SSL
+and WooCommerce hosting remain your existing arrangements.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The WhatsApp gateway is independent open-source software provided under its own
+licence and maintained by its own authors. Setups Works does not control its
+development, its availability, or its continued compatibility with WhatsApp.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">About your data</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">All store and customer data remains the property of Nature&#39;s Joy and stays on
+infrastructure you control. No data is transmitted to Setups Works or to any
+third-party analytics or messaging service.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Store access is read-only with a single exception: creating the discount coupons
+you request. Nothing modifies an order, a product, a customer or a store setting.
+Access can be revoked at any time from WordPress without notice to us.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">About this quotation</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The quoted fee covers the build, deployment, configuration, documentation and
+handover of the thirteen modules described in this document. Source code is
+delivered to a repository owned by Nature&#39;s Joy. Work outside this scope,
+including additional modules, custom metrics, integrations or ongoing support, is
+quoted separately.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">This quotation is valid for 30 days from the date of issue. Payment terms to be
+agreed in writing before work commences.</p>
+<hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
 <div style="text-align:center; margin-top:3rem;"><img src="https://crm.setups.works/uploads/company/bd02979422e6ebfe486aa19a208b6b73.png" alt="Setups Works, the digital agency" width="260" /><p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Nitheesh Rajendran</strong>
 Founder and Developer</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><a href="https://setups.works">setups.works</a> · <a href="https://www.linkedin.com/in/nitheeshdr/">linkedin.com/in/nitheeshdr</a></p>
 </div>
-
 </div>
