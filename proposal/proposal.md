@@ -1,0 +1,368 @@
+# Prepared for Nature's Joy
+
+**Nature's Joy Herbal Cosmetics Private Limited**
+naturesjoystore.com
+
+Prepared by **Nitheesh Rajendran**, Setups Works
+setups.works
+
+---
+
+# Executive summary
+
+Setups Works proposes to deliver **PulseCommerce**, a private analytics platform
+for the Nature's Joy WooCommerce store.
+
+WooCommerce reports on orders. It does not report on customers, cohorts,
+marketing channels, or stock risk. That leaves a set of questions unanswered
+that directly affect revenue: which customers are worth keeping, which have
+quietly stopped buying, where new customers actually come from, which products
+are about to run out, and what next month is likely to look like.
+
+PulseCommerce answers those questions from your existing order data, without
+adding load to the storefront, without copying customer records to a third
+party, and without anyone modelling a database first.
+
+This document sets out the proposed scope, how the platform connects to your
+store, what is delivered, and commercial terms.
+
+---
+
+# The opportunity
+
+## What is visible today
+
+The WooCommerce admin shows gross sales by date, a list of top products, and a
+handful of counts. It is transaction-centric by design: it reports on orders,
+not on the people placing them.
+
+## What is not visible
+
+Questions a growing store needs answered, none of which WooCommerce reports:
+
+**On customers**
+- Which customers generate most of the revenue, and how exposed is the business
+  if they leave?
+- Who has stopped buying without anyone noticing?
+- How long does a customer typically take to place a second order, and is the
+  business doing anything in that window?
+- What proportion of customers ever buy twice?
+
+**On marketing**
+- Which channel brings genuinely new customers, as opposed to capturing demand
+  that already existed?
+- What does each channel actually return, per customer rather than per click?
+- Are the discount codes profitable, or are they discounting sales that would
+  have happened anyway?
+
+**On stock**
+- Which products will run out before the next delivery lands?
+- How much revenue is at risk if a best-seller stocks out?
+- Which products are tying up capital in months of unnecessary cover?
+
+**On the future**
+- What is next month likely to look like, and is the store pacing ahead or behind?
+
+Every one of these requires computation across the full order history. None can
+be read off a WooCommerce screen.
+
+## Why the usual alternatives do not fit
+
+**Manual spreadsheet exports.** Stale the moment they are produced, and they put
+the analytical work on whoever has least time for it.
+
+**General business-intelligence tools.** Capable, but someone has to model
+WooCommerce's database before a single question is answered. At this size the
+setup cost usually exceeds the value.
+
+**Hosted analytics services.** Convenient, but they copy the entire order
+history, including customer names, email addresses, and postal addresses, onto a
+third party's servers. That is a data-protection question before it is a cost
+question.
+
+**Analytics plugins.** They run heavy queries against the same database that
+serves the storefront, which is a reliable way to slow a shop down.
+
+---
+
+# Proposed solution
+
+A private analytics platform, running on infrastructure Nature's Joy controls,
+reading the store through WooCommerce's official REST API.
+
+Four principles shape it.
+
+## Read-only, by construction
+
+The platform issues only GET requests, and only to orders, customers, and
+products. The access key carries read scope. There is no code path by which it
+can modify an order, a product, or any store setting.
+
+## No secrets change hands
+
+Access is approved inside your own WordPress admin. WooCommerce issues the key
+and delivers it directly to the application. There is deliberately no form in the
+product that accepts a key by hand, because a merchant pasting a secret into a
+third party's form is the exact risk that approval flow exists to remove.
+
+## Your data stays yours
+
+The application runs on your hosting. The key is held in your storage. Order data
+is cached in your infrastructure. Nothing is transmitted to any third-party
+analytics service.
+
+## Honest numbers
+
+Where a figure is an estimate, the interface says so. Where a definition could be
+read two ways, both are reported and labelled rather than silently merged. Every
+metric definition is documented so figures can be reconciled against WooCommerce
+rather than taken on trust.
+
+---
+
+# Proposed scope
+
+Eleven modules.
+
+## 1. Revenue and performance
+
+Net revenue, gross revenue, orders, average order value, units sold, discounts
+given, shipping and tax collected, refunds, items per order, revenue per
+customer, and cancellation rate. Every figure compared against the equal-length
+preceding period. Daily, weekly, or monthly views. Written findings ranked by
+urgency, in plain language.
+
+## 2. Customer analytics
+
+- **RFM segmentation** across the ten standard segments, from Champions to Lost,
+  scored as quintiles within your own customer base so segments stay meaningful
+  as the store grows
+- **Value tiers** from VIP through to one-time buyers
+- **Predicted lifetime value** per customer
+- **Churn risk**, judged against each customer's own reorder rhythm rather than a
+  fixed rule, so a monthly buyer and a seasonal buyer are assessed correctly
+- **Revenue concentration**: deciles, Pareto curve, and a Gini coefficient
+  quantifying how exposed the business is to losing its best customers
+- Filtering on segment, tier, spend, order count, churn risk, recency, country,
+  and product purchased
+- A complete customer ledger, with each customer's orders expandable in place
+
+## 3. Customer profiles
+
+Every customer opens to a full profile: contact details, location, the channel
+and device they arrived through, RFM scores, revenue percentile, refunds,
+discounts used, what they buy, order value over time, and complete order history.
+
+## 4. Acquisition and retention
+
+- New versus returning revenue by month, with full customer lists for each
+- **Channel attribution** using WooCommerce Order Attribution: organic search,
+  direct, referral, paid, and campaign traffic
+- Which channels bring genuinely first-time buyers rather than repeat demand
+- Device breakdown by revenue and average order value
+- **Time to second order**, with median, quartiles, and distribution, which
+  identifies the window a follow-up should target
+- **Cohort retention**: monthly acquisition cohorts tracked over time
+- **Cumulative lifetime-value curve**, showing when an acquired customer pays back
+
+## 5. Campaigns and audiences
+
+- An **audience builder** with goal-driven presets: win-back lapsed customers,
+  convert one-time buyers to a second order, rescue at-risk high-value customers,
+  reward loyal advocates
+- Live reach, revenue represented, and value at stake as filters are applied
+- **CSV export** shaped for direct import into an email or advertising platform
+- **Campaign performance** from UTM tagging, including new-customer share, which
+  is the number that matters for paid acquisition
+- **Coupon performance**, reporting revenue returned per unit of discount given
+
+## 6. Product and catalogue analytics
+
+ABC classification identifying which products carry the revenue, Pareto
+concentration, revenue and units per SKU, refund rate per product, category mix,
+best sellers by both value and volume, slow movers, and market-basket analysis
+showing which products genuinely sell together.
+
+## 7. Inventory and restock planning
+
+- **Days of cover** per product, from current stock and observed sales velocity
+- **Reorder points** calculated from your supplier lead time plus safety stock
+- **Suggested order quantities** to reach a healthy cover level
+- **Revenue at risk** if a fast-moving product stocks out
+- **Capital tied up** in products carrying excessive cover
+- Exports as a **draft purchase order**
+- Every assumption shown on screen and adjustable to your actual supplier terms
+
+## 8. Orders and operations
+
+Full order register with totals, tax, shipping, discounts, refunds, payment
+method, and coupons. Order status mix, basket-size distribution, payment method
+performance, a day-by-hour trading heatmap for timing campaigns and staffing,
+weekday performance, and fulfilment timing.
+
+## 9. Forecasting
+
+Daily revenue projection combining trend with day-of-week seasonality, presented
+with a 95% confidence band. The seasonality is shown explicitly so the projection
+can be sense-checked rather than accepted blindly.
+
+## 10. Geography
+
+Revenue, orders, customers, and average order value by country, region, and city.
+
+## 11. Reports and exports
+
+- Ten report types covering every module
+- **Excel** workbooks with formatted sheets, filters, and correct currency
+  formatting
+- **PDF** reports with a cover, headline figures, and findings
+- **CSV** for spreadsheets and data pipelines
+- Presets for a board pack, CRM upload, merchandising review, and finance
+  reconciliation
+- A **written report view** presenting a period as a document: conclusion first,
+  evidence below, method and limits at the end
+
+## Platform capabilities
+
+Support for connecting more than one store and switching between them, a search
+palette covering customers, products, and orders, keyboard navigation, light and
+dark themes, and optional password protection.
+
+---
+
+# How access works
+
+1. You enter your store address in the application.
+2. You are sent to your own WordPress admin, where you review and approve
+   **read-only** access.
+3. WooCommerce issues a key and delivers it directly to the application.
+4. The application verifies the key against the store before storing it.
+
+No password is shared. No key is emailed. Access can be revoked at any time,
+either from within the application or from WordPress itself. Disconnecting
+removes the stored key and every cached order.
+
+---
+
+# Deliverables
+
+1. **The platform**, covering the eleven modules above.
+2. **Source code**, in a repository Nature's Joy owns.
+3. **Deployment** to the agreed hosting, configured and verified against the live
+   store.
+4. **Documentation** covering setup, connection, configuration, architecture, and
+   troubleshooting.
+5. **Metric definitions in writing**, so every figure can be reconciled against
+   WooCommerce.
+6. **Handover session** covering day-to-day use and how to read each module.
+
+## Hosting options
+
+**Managed by Setups Works.** Hosting, monitoring, and updates handled on your
+behalf. Nothing for your team to operate.
+
+**Nature's Joy infrastructure.** Any host running Node. Best performance, as the
+data cache persists between requests.
+
+**Serverless.** Lowest operational overhead, using a managed cache. Suitable for
+most catalogue sizes.
+
+---
+
+# Commercial terms
+
+> **Complete before sending.** Figures below are placeholders.
+
+| Item | Scope | Fee |
+|---|---|---|
+| Implementation and handover | Build, deployment, connection, configuration, documentation, walkthrough | `[amount]` |
+| Managed hosting | Hosting, monitoring, updates, per month | `[amount]` |
+| Support | Agreed response times and hours, per month | `[amount]` |
+| Further development | Additional modules or custom metrics, per day | `[day rate]` |
+
+**Payment schedule:** `[for example, 50% on commencement, 50% on handover]`
+
+**Timeline:** `[timeframe]` from commencement to handover.
+
+---
+
+# Optional extensions
+
+Available separately, either at the outset or later.
+
+- **Scheduled reports** delivered by email weekly or monthly
+- **Stock alerts** when a product crosses its reorder point, so a fast-moving
+  product cannot run out unnoticed
+- **Direct email-platform integration**, so audiences sync automatically rather
+  than being exported and imported
+- **Profitability analysis**, given cost-of-goods data, turning revenue figures
+  into margin
+- **Multi-currency consolidation**, should trading extend beyond INR
+- **Additional stores**, supported by the platform without further development
+
+---
+
+# Next steps
+
+1. Review the scope above and confirm which modules and options are wanted.
+2. Agree commercial terms and schedule.
+3. **Walkthrough.** On acceptance, Setups Works will demonstrate the platform
+   against Nature's Joy data so the findings can be seen before rollout.
+4. Deployment, verification, and handover.
+
+---
+
+# Appendix: how key figures are defined
+
+Included so that, once delivered, every number can be reconciled against
+WooCommerce rather than taken on trust. These are the definitions where
+analytics tools most often disagree with each other.
+
+**Net revenue.** Order total less tax, shipping, and refunds, counted only for
+orders in completed, processing, or on-hold status. Cancelled, failed, and
+pending orders are excluded from revenue while still counting toward
+cancellation rates.
+
+**Customer identity.** Guest checkouts carry no WooCommerce customer ID, so
+buyers are identified by billing email address. A customer ordering under two
+different email addresses will appear as two customers. On most stores the
+majority of orders are guest checkouts, so this materially affects customer
+counts and should be understood when reading them.
+
+**Returning customer rate.** The share of customers active in a period who had
+already purchased before it began.
+
+**Repeat rate in period.** The share of customers who purchased more than once
+inside the period itself. On a short window this differs from the returning
+customer rate by a wide margin. Both are reported separately and labelled,
+because conflating them is a common source of misleading retention figures.
+
+**RFM scores.** Recency, frequency, and monetary values scored as quintiles
+within the store's own customer base rather than against absolute thresholds, so
+segments remain meaningful regardless of the store's size.
+
+**Predicted lifetime value.** Each customer's observed purchase rate projected
+twelve months forward, discounted by their churn risk. An estimate, and presented
+as one.
+
+**Days of cover.** Current stock divided by units sold per day over the selected
+period. Reorder points add a supplier lead time and a safety-stock buffer, both
+configurable to your actual terms.
+
+**Forecast.** A least-squares trend multiplied by day-of-week seasonality
+factors, with a 95% interval derived from historical variance. It answers whether
+the store is pacing ahead of or behind its recent trend. It has no knowledge of
+planned promotions, stockouts, or seasonality outside the period analysed.
+
+---
+
+<div style="text-align:center; margin-top:3rem;">
+
+<img src="https://crm.setups.works/uploads/company/bd02979422e6ebfe486aa19a208b6b73.png" alt="Setups Works, the digital agency" width="260" />
+
+**Nitheesh Rajendran**
+Founder and Developer
+
+[setups.works](https://setups.works) · [linkedin.com/in/nitheeshdr](https://www.linkedin.com/in/nitheeshdr/)
+
+</div>
