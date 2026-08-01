@@ -574,6 +574,25 @@ Against the cheapest subscription platform, the private gateway saves
 approximately ₹3,61,000 over three years. The saving is not the build fee. It is
 the per-message charge ceasing to apply.
 
+## What is not in this price
+
+The fee covers the thirteen modules described in this document and nothing
+beyond them. Anything additional is quoted separately before any work on it
+begins, so there are no unexpected charges:
+
+| Additional work | How it is charged |
+|---|---|
+| A new module not listed in the thirteen | Quoted per module, on scope |
+| Custom metrics or reports specific to your business | Quoted on scope |
+| Integrations with other systems — ERP, courier, accounting | Quoted on scope |
+| Scheduled or automated campaign triggers | Quoted on scope |
+| Ongoing support and maintenance | Monthly retainer, agreed separately |
+| Managed hosting of the platform or gateway | Monthly, agreed separately |
+| Changes requested after handover | Day rate, agreed separately |
+
+Nothing in this list is required for the platform to work. Every one of them is
+optional, and none will be started without a written quotation you have accepted.
+
 **Payment schedule:** to be agreed in writing before work commences.
 
 **Timeline:** to be confirmed on acceptance.
