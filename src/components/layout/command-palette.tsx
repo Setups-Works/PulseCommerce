@@ -282,6 +282,7 @@ export const NAV_SHORTCUTS: Record<string, string> = {
   "/inventory": "i",
   "/orders": "o",
   "/campaigns": "m",
+  "/inbox": "w",
   "/reports": "r",
   "/settings": "s",
 };

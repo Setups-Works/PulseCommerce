@@ -35,6 +35,31 @@ export interface WhatsAppSession {
   engineLoaded: boolean;
 }
 
+/** A conversation, as listed by the gateway. */
+export interface WhatsAppChat {
+  id: string;
+  name: string | null;
+  isGroup: boolean;
+  unreadCount: number;
+  timestamp: number;
+  lastMessage?: string;
+}
+
+/** One stored message. */
+export interface WhatsAppMessage {
+  id: string;
+  waMessageId: string;
+  chatId: string;
+  from: string;
+  to: string;
+  body: string;
+  type: string;
+  direction: "incoming" | "outgoing";
+  timestamp: number;
+  status: string | null;
+  createdAt: string;
+}
+
 export interface NumberCheck {
   number: string;
   exists: boolean;
@@ -152,6 +177,23 @@ export class WhatsAppClient {
   /** Connection state. Also the cheapest way to verify a base URL and key. */
   getSession(): Promise<WhatsAppSession> {
     return this.request<WhatsAppSession>(`/api/sessions/${this.sessionId}`);
+  }
+
+  /** Open conversations, newest first. Note the path uses {id}, not {sessionId}. */
+  listChats(limit = 50): Promise<WhatsAppChat[]> {
+    return this.request<WhatsAppChat[]>(
+      `/api/sessions/${this.sessionId}/chats?limit=${limit}`,
+      { timeoutMs: 45_000 },
+    );
+  }
+
+  /** Stored messages for one conversation, oldest last as the gateway returns them. */
+  async getMessages(chatId: string, limit = 50): Promise<WhatsAppMessage[]> {
+    const body = await this.request<{ messages?: WhatsAppMessage[] }>(
+      `/api/sessions/${this.sessionId}/messages?chatId=${encodeURIComponent(chatId)}&limit=${limit}`,
+      { timeoutMs: 45_000 },
+    );
+    return body?.messages ?? [];
   }
 
   listSessions(): Promise<WhatsAppSession[]> {
