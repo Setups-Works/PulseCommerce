@@ -45,7 +45,12 @@ export async function GET() {
   }
 }
 
-/** Starts the engine so it begins offering a QR. */
+/**
+ * Ensures the engine is running so it offers a QR.
+ *
+ * Idempotent on purpose: a session that is already started is the outcome this
+ * wants, not a failure, so calling it repeatedly is safe.
+ */
 export async function POST() {
   const config = await readWhatsAppConfig();
   if (!config) {
@@ -55,7 +60,7 @@ export async function POST() {
   const client = new WhatsAppClient(config);
 
   try {
-    const session = await client.startSession();
+    const session = await client.ensureStarted();
     // The engine needs a moment before a QR exists; one immediate read here
     // saves the browser a wasted poll.
     const qr =

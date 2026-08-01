@@ -123,7 +123,7 @@ export function WhatsAppLinkQr({ onLinked }: { onLinked?: () => void }) {
           onClick={() => {
             stop();
             setBusy(true);
-            poll(true);
+            poll(false);
           }}
           className="gap-1.5"
           disabled={busy}

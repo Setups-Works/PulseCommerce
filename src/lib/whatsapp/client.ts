@@ -142,16 +142,31 @@ export class WhatsAppClient {
     return this.request<WhatsAppSession[]>("/api/sessions");
   }
 
-  /**
-   * Boots the engine so it starts producing a QR. Safe to call on a session
-   * that is already running — the gateway returns its current state rather
-   * than restarting it.
-   */
+  /** Boots the engine. Rejects with 400 if the session is already running. */
   startSession(): Promise<WhatsAppSession> {
     return this.request<WhatsAppSession>(`/api/sessions/${this.sessionId}/start`, {
       method: "POST",
       timeoutMs: 60_000,
     });
+  }
+
+  /**
+   * Gets the session running, whether or not it already was.
+   *
+   * "Session is already started" comes back as a 400, which reads as a failure
+   * but describes exactly the state the caller wanted. Treating it as an error
+   * meant refreshing a QR panel reported a problem instead of showing the QR
+   * that was sitting there ready.
+   */
+  async ensureStarted(): Promise<WhatsAppSession> {
+    try {
+      return await this.startSession();
+    } catch (error) {
+      if (error instanceof WhatsAppApiError && error.status === 400) {
+        return this.getSession();
+      }
+      throw error;
+    }
   }
 
   /**
