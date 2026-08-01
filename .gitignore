@@ -45,4 +45,7 @@ next-env.d.ts
 .data/
 .gstack/
 
-certificates
+certificates/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

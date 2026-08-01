@@ -1241,7 +1241,48 @@ npm run dev:https    # https://localhost:3000, needed for the authorize flow
 npm run build        # production build
 npm run start        # serve the production build
 npm run lint         # eslint
+npm run typecheck    # tsc --noEmit
+npm test             # Playwright end-to-end suite
+npm run test:ui      # the same suite, interactively
 ```
+
+### Tests
+
+The suite runs against a production build with **no store connected and no
+gateway configured** — the state a fresh clone is in, and the one most likely to
+break unnoticed. Nothing touches a real store or sends a message; the config
+blanks any Redis credentials from `.env.local` so a developer's own store cannot
+be reached from a test run.
+
+What it asserts:
+
+- Every endpoint **refuses** work it cannot do, rather than half-attempting it —
+  a missing store is a `409`, not a crash or an empty dashboard
+- A broadcast without a confirmation count is rejected
+- An image message with no media and no product is rejected
+- The audience schema exposes no way to pass phone numbers directly
+- Every route in `src/app/api` appears in the OpenAPI document
+- **Every mermaid diagram in this README parses**, in a real browser with the
+  library GitHub renders with
+
+That last one exists because a diagram here once shipped broken: a label
+contained a semicolon, mermaid read it as the end of a statement, and nothing
+failed — the markdown was valid, the app built, lint passed, and GitHub printed
+a parse error where the diagram should have been.
+
+### API reference
+
+The API is described by an OpenAPI document at **`/api/openapi`** and rendered
+at **`/api-docs`**. It is written by hand rather than generated: these are
+Next.js handlers with Zod validation inside them, which no generator reads
+faithfully, and a generated document that drifts is worse than one somebody
+keeps honest. CI fails if a route exists that the document does not describe.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request: typecheck and
+lint, the end-to-end suite with a Playwright report uploaded on failure, and the
+API-documentation coverage check.
 
 ---
 
