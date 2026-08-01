@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isNotConnected } from "@/lib/store/errors";
-import { READY_STATUS, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
+import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import {
   createBroadcast,
   listBroadcastIds,
@@ -88,10 +88,10 @@ export async function POST(request: Request) {
     // A session that is not linked would fail every message in the batch, so
     // this is checked before a job exists rather than after it half-runs.
     const session = await new WhatsAppClient(resolved.config).getSession();
-    if (session.status !== READY_STATUS) {
+    if (!isSessionSendable(session)) {
       return NextResponse.json(
         {
-          error: `The WhatsApp session is "${session.status}", not "ready". Link a number in OpenWA before sending.`,
+          error: `The WhatsApp session cannot send right now (status "${session.status}", engine ${session.engineLoaded ? "loaded" : "not loaded"}). Link or restart the number in Settings before sending.`,
         },
         { status: 409 },
       );

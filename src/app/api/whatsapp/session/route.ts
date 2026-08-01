@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { READY_STATUS, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
+import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 
 export const runtime = "nodejs";
@@ -22,7 +22,7 @@ export async function GET() {
 
   try {
     const session = await client.getSession();
-    const ready = session.status === READY_STATUS;
+    const ready = isSessionSendable(session);
 
     // A linked session has no QR to show, and asking for one is pointless work.
     const qr = ready ? { qrCode: null, status: null } : await client.getQr().catch(() => ({
@@ -64,13 +64,13 @@ export async function POST() {
     // The engine needs a moment before a QR exists; one immediate read here
     // saves the browser a wasted poll.
     const qr =
-      session.status === READY_STATUS
+      isSessionSendable(session)
         ? { qrCode: null, status: null }
         : await client.getQr().catch(() => ({ qrCode: null, status: null }));
 
     return NextResponse.json({
       session,
-      ready: session.status === READY_STATUS,
+      ready: isSessionSendable(session),
       qrCode: qr.qrCode,
       qrStatus: qr.status,
     });

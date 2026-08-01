@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { WhatsAppApiError, WhatsAppClient, READY_STATUS } from "@/lib/whatsapp/client";
+import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import { normalisePhone } from "@/lib/whatsapp/phone";
 import { readOptOutSet } from "@/lib/whatsapp/opt-out";
@@ -70,10 +70,10 @@ export async function POST(request: Request) {
 
   try {
     const session = await client.getSession();
-    if (session.status !== READY_STATUS) {
+    if (!isSessionSendable(session)) {
       return NextResponse.json(
         {
-          error: `The WhatsApp session is "${session.status}", not "ready". Link a number in OpenWA before sending.`,
+          error: `The WhatsApp session cannot send right now (status "${session.status}", engine ${session.engineLoaded ? "loaded" : "not loaded"}). Link or restart the number in Settings before sending.`,
         },
         { status: 409 },
       );

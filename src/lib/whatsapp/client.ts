@@ -68,10 +68,26 @@ export interface BulkAccepted {
 }
 
 /**
- * A session is only safe to send from in this state. Anything else means the
- * number is not linked, is mid-handshake, or has been logged out.
+ * A linked session reports this status — but the status alone does not mean
+ * anything can be sent. See isSessionSendable.
  */
 export const READY_STATUS = "ready";
+
+/**
+ * Whether the gateway can actually deliver a message right now.
+ *
+ * `status` is a persisted database value and `engineLoaded` is the live one,
+ * and they disagree after the gateway process restarts: the row still says
+ * "ready" while the in-memory engine is gone. A send in that state fails with
+ * "Session is not active. Start the session first." for every recipient, so
+ * both signals have to agree before anything is dispatched.
+ */
+export function isSessionSendable(session: {
+  status: string;
+  engineLoaded?: boolean;
+}): boolean {
+  return session.status === READY_STATUS && session.engineLoaded !== false;
+}
 
 export class WhatsAppClient {
   private readonly baseUrl: string;

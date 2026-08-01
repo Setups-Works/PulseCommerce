@@ -12,7 +12,7 @@ import {
   writeWhatsAppConfig,
   type WhatsAppConfig,
 } from "@/lib/whatsapp/config";
-import { READY_STATUS, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
+import { isSessionSendable, READY_STATUS, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +64,7 @@ export async function GET() {
     connected: true,
     config: redactWhatsAppConfig({ ...config, sessionId }),
     session,
-    ready: session?.status === READY_STATUS,
+    ready: session ? isSessionSendable(session) : false,
     fromEnv,
     error,
   });
@@ -180,9 +180,9 @@ export async function PUT(request: Request) {
       connected: true,
       config: redactWhatsAppConfig(config),
       session,
-      ready: session.status === READY_STATUS,
+      ready: isSessionSendable(session),
       warning:
-        session.status === READY_STATUS
+        isSessionSendable(session)
           ? null
           : `The session is "${session.status}", not "ready". Link a number in OpenWA before sending.`,
     });
