@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { readStoreConfig } from "@/lib/store/config";
-import { WooClient } from "@/lib/woo/client";
+import { WooApiError, WooClient } from "@/lib/woo/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,4 +59,104 @@ export async function GET() {
       { status: 502 },
     );
   }
+}
+
+
+const createSchema = z.object({
+  /** Left blank to generate one, which is the usual case for a campaign. */
+  code: z.string().max(40).optional(),
+  discountType: z.enum(["percent", "fixed_cart", "fixed_product"]).default("percent"),
+  amount: z.coerce.number().positive().max(100000),
+  /** Days from now. Campaign codes want an end date, or they linger forever. */
+  expiresInDays: z.coerce.number().int().min(1).max(365).optional(),
+  /** Total redemptions allowed across everyone. */
+  usageLimit: z.coerce.number().int().min(1).max(100000).optional(),
+  /** Redemptions allowed per customer. One is the sane campaign default. */
+  usageLimitPerUser: z.coerce.number().int().min(1).max(100).default(1),
+  /** Restricts the code to the product the campaign is about. */
+  productIds: z.array(z.number().int()).optional(),
+});
+
+/**
+ * Creates a coupon in WooCommerce.
+ *
+ * This is the only endpoint in the application that writes to the store, and
+ * the only reason the authorization asks for read_write at all. A percentage
+ * over 100 is refused before it reaches WooCommerce, because a coupon worth
+ * more than the order is a mistake nobody wants to discover from a customer.
+ */
+export async function POST(request: Request) {
+  const config = await readStoreConfig();
+  if (!config) {
+    return NextResponse.json({ error: "No WooCommerce store is connected." }, { status: 409 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const parsed = createSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues.map((i) => i.message).join(" ") },
+      { status: 422 },
+    );
+  }
+
+  const input = parsed.data;
+  if (input.discountType === "percent" && input.amount > 100) {
+    return NextResponse.json(
+      { error: "A percentage discount cannot exceed 100%." },
+      { status: 422 },
+    );
+  }
+
+  const expires = input.expiresInDays
+    ? new Date(Date.now() + input.expiresInDays * 86_400_000).toISOString().slice(0, 10)
+    : null;
+
+  try {
+    const coupon = await new WooClient(config).createCoupon({
+      code: (input.code?.trim() || generateCode()).toUpperCase(),
+      discount_type: input.discountType,
+      amount: String(input.amount),
+      date_expires: expires,
+      usage_limit: input.usageLimit ?? null,
+      usage_limit_per_user: input.usageLimitPerUser,
+      individual_use: true,
+      ...(input.productIds?.length ? { product_ids: input.productIds } : {}),
+      description: "Created by PulseCommerce for a WhatsApp campaign",
+    });
+
+    return NextResponse.json({ coupon }, { status: 201 });
+  } catch (error) {
+    if (error instanceof WooApiError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status >= 400 && error.status < 600 ? error.status : 502 },
+      );
+    }
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "The coupon could not be created." },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * A short, unambiguous code.
+ *
+ * No O/0 or I/1: these get read off a phone screen and typed at a checkout,
+ * and a code nobody can transcribe is a discount nobody redeems.
+ */
+function generateCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 8; i += 1) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
 }

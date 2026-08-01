@@ -95,6 +95,8 @@ export function WhatsAppSendPanel({
   const [product, setProduct] = useState<PickedProduct | null>(null);
   const [coupons, setCoupons] = useState<Coupon[] | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [creatingCoupon, setCreatingCoupon] = useState(false);
+  const [newCoupon, setNewCoupon] = useState({ amount: "10", type: "percent", days: "30" });
 
   const [previewState, setPreviewState] = useState<{ sig: string; data: Preview } | null>(null);
   const [confirmValue, setConfirmValue] = useState("");
@@ -238,6 +240,41 @@ export function WhatsAppSendPanel({
       }
     })();
   }, []);
+
+  /**
+   * Creates a coupon in WooCommerce and selects it.
+   *
+   * Restricted to the campaign product when one is chosen, so a discount meant
+   * for a specific item cannot be spent across the whole catalogue.
+   */
+  const createCoupon = async () => {
+    setCreatingCoupon(true);
+    try {
+      const res = await fetch("/api/whatsapp/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          discountType: newCoupon.type,
+          amount: Number(newCoupon.amount),
+          expiresInDays: Number(newCoupon.days) || undefined,
+          usageLimitPerUser: 1,
+          ...(product ? { productIds: [product.id] } : {}),
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        toast.error(body.error ?? "The coupon could not be created.");
+        return;
+      }
+
+      const listed = await fetch("/api/whatsapp/coupons", { cache: "no-store" }).then((r) => r.json());
+      setCoupons(listed.coupons ?? []);
+      setCouponCode(body.coupon.code);
+      toast.success(`Coupon ${body.coupon.code} created in WooCommerce.`);
+    } finally {
+      setCreatingCoupon(false);
+    }
+  };
 
   const tick = useCallback((id: string) => {
     const run = async () => {
@@ -401,12 +438,61 @@ export function WhatsAppSendPanel({
                 ))}
               </select>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                {coupons === null
-                  ? "Reading coupons from WooCommerce…"
-                  : coupons.length === 0
-                    ? "No coupons in WooCommerce yet. Create one there and it appears here."
-                    : "Fills {{coupon}} and {{coupon_value}}. Codes that have expired or hit their usage limit cannot be picked."}
+                Fills <code>{"{{coupon}}"}</code> and <code>{"{{coupon_value}}"}</code>. Codes that
+                have expired or hit their usage limit cannot be picked.
               </p>
+
+              <details className="rounded-md border p-2">
+                <summary className="cursor-pointer text-[11px] font-medium">
+                  Create a new coupon
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={newCoupon.amount}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, amount: e.target.value })}
+                      inputMode="decimal"
+                      className="h-8 text-xs"
+                      placeholder="10"
+                    />
+                    <select
+                      value={newCoupon.type}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, type: e.target.value })}
+                      className="h-8 rounded-md border bg-transparent px-2 text-xs"
+                    >
+                      <option value="percent">% off</option>
+                      <option value="fixed_cart">off cart</option>
+                      <option value="fixed_product">off item</option>
+                    </select>
+                    <Input
+                      value={newCoupon.days}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, days: e.target.value })}
+                      inputMode="numeric"
+                      className="h-8 w-20 text-xs"
+                      placeholder="days"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={createCoupon}
+                    disabled={creatingCoupon || running || !Number(newCoupon.amount)}
+                    className="w-full gap-1.5"
+                  >
+                    {creatingCoupon ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                    Create in WooCommerce
+                  </Button>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Generates a code, limits it to one use per customer, and expires it after
+                    the days given.{" "}
+                    {product
+                      ? `Restricted to ${product.name}, so it cannot be spent elsewhere.`
+                      : "Pick a campaign product first to restrict it to that item."}{" "}
+                    This writes to your store — the only thing in this app that does.
+                  </p>
+                </div>
+              </details>
             </div>
 
             <div className="space-y-1.5">

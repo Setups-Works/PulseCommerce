@@ -55,7 +55,18 @@ export async function GET(request: Request) {
 
   const authorize = new URL(`${storeUrl}/wc-auth/v1/authorize`);
   authorize.searchParams.set("app_name", "PulseCommerce Analytics");
-  authorize.searchParams.set("scope", "read");
+  /*
+   * read_write, for one reason only: creating discount coupons for WhatsApp
+   * campaigns. WooCommerce has no finer-grained scope than "read" or
+   * "read_write", so there is no way to ask for coupon writes alone.
+   *
+   * The narrowing is therefore enforced in this codebase rather than by the
+   * key: WooClient exposes exactly one mutating method, createCoupon, and no
+   * path in the app writes to orders, products, customers or settings. If you
+   * do not need generated coupons, set this back to "read" and re-authorize —
+   * everything else works unchanged.
+   */
+  authorize.searchParams.set("scope", "read_write");
   authorize.searchParams.set("user_id", state);
   authorize.searchParams.set("return_url", `${appUrl}/api/auth/woo/return`);
   authorize.searchParams.set("callback_url", `${appUrl}/api/auth/woo/callback`);

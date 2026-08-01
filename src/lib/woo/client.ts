@@ -113,6 +113,52 @@ export class WooClient {
     throw lastError;
   }
 
+  /**
+   * The single write path. Kept separate from `attempt` so that every mutating
+   * call in this codebase is visible in one place, and no retry logic can turn
+   * a timed-out write into a duplicate coupon.
+   */
+  private async post<T>(endpoint: string, body: unknown): Promise<T> {
+    const url = this.buildUrl(endpoint, {});
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { ...this.headers(), "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+        cache: "no-store",
+      });
+
+      const text = await res.text().catch(() => "");
+      if (!res.ok) {
+        // 401 here almost always means the key predates the scope change,
+        // which is a re-authorization rather than a broken request.
+        const message =
+          res.status === 401 || res.status === 403
+            ? "WooCommerce refused the write. The store key is read-only — reconnect the store in Settings to re-approve it with write access."
+            : describeStatus(res.status, endpoint);
+        throw new WooApiError(message, res.status, endpoint, text.slice(0, 500));
+      }
+
+      return JSON.parse(text) as T;
+    } catch (err) {
+      if (err instanceof WooApiError) throw err;
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new WooApiError(`Request to ${endpoint} timed out after 30s.`, 408, endpoint);
+      }
+      throw new WooApiError(
+        err instanceof Error ? err.message : `Request to ${endpoint} failed.`,
+        0,
+        endpoint,
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   private async attempt<T>(
     endpoint: string,
     params: Record<string, string | number | undefined>,
@@ -240,6 +286,27 @@ export class WooClient {
 
   getCustomers(params: Record<string, string | number | undefined>, maxPages?: number) {
     return this.fetchAll<WooCustomer>("customers", { ...params, _fields: CUSTOMER_FIELDS }, { maxPages });
+  }
+
+  /**
+   * Creates a discount coupon.
+   *
+   * The only method in this client that writes anything. Everything else is a
+   * GET, and that is deliberate: the app asks WooCommerce for read_write solely
+   * because coupon creation needs it, so the narrowing lives here.
+   */
+  async createCoupon(input: {
+    code: string;
+    discount_type: "percent" | "fixed_cart" | "fixed_product";
+    amount: string;
+    date_expires?: string | null;
+    usage_limit?: number | null;
+    usage_limit_per_user?: number | null;
+    individual_use?: boolean;
+    product_ids?: number[];
+    description?: string;
+  }): Promise<WooCoupon> {
+    return this.post<WooCoupon>("coupons", input);
   }
 
   /** Coupons. Few enough that one page covers any realistic store. */
