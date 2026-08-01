@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import type { AudienceFilter } from "@/lib/audience";
+import { EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { MESSAGE_TEMPLATES, VARIABLE_HELP } from "@/lib/whatsapp/templates";
 import { ProductPicker, type PickedProduct } from "@/components/whatsapp/product-picker";
 
@@ -79,10 +79,13 @@ export function WhatsAppSendPanel({
   filter,
   range,
   audienceSize,
+  allCustomers = [],
 }: {
   filter: AudienceFilter;
   range?: { from: string; to: string };
   audienceSize: number;
+  /** Every customer in range, for picking specific recipients. */
+  allCustomers?: { key: string; name: string; email: string; orders: number }[];
 }) {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [ready, setReady] = useState(false);
@@ -93,6 +96,9 @@ export function WhatsAppSendPanel({
   const [useProductImage, setUseProductImage] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [product, setProduct] = useState<PickedProduct | null>(null);
+  const [audienceMode, setAudienceMode] = useState<"filtered" | "everyone" | "picked">("filtered");
+  const [picked, setPicked] = useState<string[]>([]);
+  const [customerQuery, setCustomerQuery] = useState("");
   const [coupons, setCoupons] = useState<Coupon[] | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [creatingCoupon, setCreatingCoupon] = useState(false);
@@ -143,6 +149,33 @@ export function WhatsAppSendPanel({
 
   const coupon = coupons?.find((c) => c.code === couponCode) ?? null;
 
+  /*
+   * Who the send addresses.
+   *
+   * "Everyone" drops the filters rather than reusing whatever happens to be on
+   * screen, because "send to all customers" should not silently inherit a
+   * churn-risk filter somebody set ten minutes ago. Picked customers narrow the
+   * current filter rather than replacing it, so an unreachable or opted-out
+   * choice is still excluded server-side.
+   */
+  const effectiveFilter =
+    audienceMode === "everyone" ? { ...EMPTY_AUDIENCE, requirePhone: true } : filter;
+  const customerKeys = audienceMode === "picked" ? picked : undefined;
+
+  const targetCount =
+    audienceMode === "everyone"
+      ? allCustomers.length
+      : audienceMode === "picked"
+        ? picked.length
+        : audienceSize;
+
+  const matchingCustomers = customerQuery.trim()
+    ? allCustomers.filter((c) => {
+        const needle = customerQuery.toLowerCase();
+        return c.name.toLowerCase().includes(needle) || c.email.toLowerCase().includes(needle);
+      })
+    : allCustomers;
+
   const message = {
     type,
     text,
@@ -167,7 +200,8 @@ export function WhatsAppSendPanel({
    * stale count is on screen next to a live send button.
    */
   const signature = JSON.stringify({
-    filter, range, type, text, mediaUrl, useProductImage, couponCode, productId: product?.id ?? null,
+    filter: effectiveFilter, range, type, text, mediaUrl, useProductImage, couponCode,
+    productId: product?.id ?? null, customerKeys,
   });
   const preview = previewState?.sig === signature ? previewState.data : null;
   const composed =
@@ -196,7 +230,7 @@ export function WhatsAppSendPanel({
       const res = await fetch("/api/whatsapp/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filter, range, message }),
+        body: JSON.stringify({ filter: effectiveFilter, range, customerKeys, message }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -308,7 +342,13 @@ export function WhatsAppSendPanel({
       const res = await fetch("/api/whatsapp/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filter, range, message, confirm: preview.deliverable }),
+        body: JSON.stringify({
+          filter: effectiveFilter,
+          range,
+          customerKeys,
+          message,
+          confirm: preview.deliverable,
+        }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -363,8 +403,13 @@ export function WhatsAppSendPanel({
               Send on WhatsApp
             </CardTitle>
             <CardDescription className="text-xs">
-              Goes to the {audienceSize.toLocaleString()} customers matching the filters above,
-              minus anyone unreachable or opted out.
+              Goes to {targetCount.toLocaleString()}{" "}
+              {audienceMode === "picked"
+                ? "chosen customers"
+                : audienceMode === "everyone"
+                  ? "customers — everyone in range"
+                  : "customers matching the filters above"}
+              , minus anyone unreachable or opted out.
             </CardDescription>
           </div>
           {!ready ? (
@@ -390,8 +435,106 @@ export function WhatsAppSendPanel({
         ) : null}
 
         <div className="space-y-3">
-          {/* Templates first: choosing the intent is the decision, and the
-              message type and photo setting follow from it. */}
+          {/* Who first, then what. The audience is the decision that changes
+              the stakes; the message is the one that changes the words. */}
+          <div className="space-y-1.5">
+            <Label>Send to</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                ["filtered", `Current filters (${audienceSize.toLocaleString()})`],
+                ["everyone", `Everyone (${allCustomers.length.toLocaleString()})`],
+                ["picked", picked.length ? `Chosen (${picked.length})` : "Choose customers"],
+              ] as const).map(([mode, label]) => (
+                <Button
+                  key={mode}
+                  type="button"
+                  size="sm"
+                  variant={audienceMode === mode ? "default" : "outline"}
+                  onClick={() => setAudienceMode(mode)}
+                  disabled={running}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            {audienceMode === "everyone" ? (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Ignores the filters above deliberately — &ldquo;everyone&rdquo; should not
+                quietly inherit a filter set earlier. Anyone unreachable or opted out is
+                still excluded.
+              </p>
+            ) : null}
+          </div>
+
+          {audienceMode === "picked" ? (
+            <div className="space-y-2 rounded-lg border p-2">
+              <div className="flex gap-2">
+                <Input
+                  value={customerQuery}
+                  onChange={(e) => setCustomerQuery(e.target.value)}
+                  placeholder="Search customers by name or email…"
+                  className="h-8 text-xs"
+                  disabled={running}
+                />
+                {picked.length ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setPicked([])}
+                    disabled={running}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className="max-h-52 space-y-0.5 overflow-y-auto">
+                {matchingCustomers.length === 0 ? (
+                  <p className="p-2 text-xs text-muted-foreground">
+                    {customerQuery ? `Nobody matches “${customerQuery}”.` : "No customers in range."}
+                  </p>
+                ) : (
+                  matchingCustomers.slice(0, 200).map((c) => {
+                    const on = picked.includes(c.key);
+                    return (
+                      <label
+                        key={c.key}
+                        className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-muted"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          disabled={running}
+                          onChange={() =>
+                            setPicked((prev) =>
+                              on ? prev.filter((k) => k !== c.key) : [...prev, c.key],
+                            )
+                          }
+                        />
+                        <span className="min-w-0 flex-1 truncate text-xs">
+                          {c.name || c.email || c.key}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                          {c.orders} {c.orders === 1 ? "order" : "orders"}
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+
+              {matchingCustomers.length > 200 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Showing the first 200 of {matchingCustomers.length.toLocaleString()}. Narrow
+                  the search to reach the rest.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Templates: choosing the intent is the decision, and the message
+              type and photo setting follow from it. */}
           <div className="space-y-1.5">
             <Label>Start from a template</Label>
             <div className="flex flex-wrap gap-1.5">

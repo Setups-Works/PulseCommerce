@@ -9,7 +9,12 @@ import {
   readBroadcast,
 } from "@/lib/whatsapp/broadcast";
 import { describeAudience, resolveAudience } from "@/lib/whatsapp/recipients";
-import { audienceFilterSchema, messageSchema, rangeSchema } from "@/lib/whatsapp/schema";
+import {
+  audienceFilterSchema,
+  customerKeysSchema,
+  messageSchema,
+  rangeSchema,
+} from "@/lib/whatsapp/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +32,7 @@ export async function GET() {
 const schema = z.object({
   filter: audienceFilterSchema,
   range: rangeSchema,
+  customerKeys: customerKeysSchema,
   message: messageSchema,
   /**
    * Must equal the deliverable count the operator was shown. A stale or absent
@@ -63,6 +69,7 @@ export async function POST(request: Request) {
     const resolved = await resolveAudience({
       filter: parsed.data.filter,
       range: parsed.data.range,
+      customerKeys: parsed.data.customerKeys,
     });
 
     if (resolved.recipients.length === 0) {

@@ -21,6 +21,15 @@ import { resolveRecipients, type RecipientContext, type ResolveResult } from "./
 export interface AudienceRequest {
   filter: AudienceFilter;
   range?: { from: string; to: string };
+  /**
+   * Restricts the audience to these customers.
+   *
+   * Keys, not phone numbers — the security property is unchanged. A key only
+   * means anything against the connected store's own snapshot, the server still
+   * resolves the number itself, and the opt-out list is still applied
+   * afterwards. Anything unrecognised is simply not found.
+   */
+  customerKeys?: string[];
 }
 
 /** Maps customer key to their most recent billing phone. */
@@ -50,7 +59,14 @@ export async function resolveAudience(request: AudienceRequest): Promise<Resolve
   const snapshot = await loadSnapshot();
   const analytics = computeAnalytics(snapshot, { range: request.range });
 
-  const audience = applyAudience(analytics.customers.records, request.filter);
+  let audience = applyAudience(analytics.customers.records, request.filter);
+
+  if (request.customerKeys?.length) {
+    // An explicit selection narrows the filtered set rather than replacing it,
+    // so a chosen customer who is unreachable or opted out is still excluded.
+    const wanted = new Set(request.customerKeys);
+    audience = audience.filter((c) => wanted.has(c.key));
+  }
   const [phoneByKey, optedOut] = [phoneMapFromSnapshot(snapshot), await readOptOutSet()];
 
   return {

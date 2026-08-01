@@ -3,7 +3,12 @@ import { z } from "zod";
 import { isNotConnected } from "@/lib/store/errors";
 import { renderMessage } from "@/lib/whatsapp/broadcast";
 import { resolveAudience } from "@/lib/whatsapp/recipients";
-import { audienceFilterSchema, messageSchema, rangeSchema } from "@/lib/whatsapp/schema";
+import {
+  audienceFilterSchema,
+  customerKeysSchema,
+  messageSchema,
+  rangeSchema,
+} from "@/lib/whatsapp/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +17,7 @@ export const maxDuration = 120;
 const schema = z.object({
   filter: audienceFilterSchema,
   range: rangeSchema,
+  customerKeys: customerKeysSchema,
   message: messageSchema.optional(),
 });
 
@@ -43,6 +49,7 @@ export async function POST(request: Request) {
     const resolved = await resolveAudience({
       filter: parsed.data.filter,
       range: parsed.data.range,
+      customerKeys: parsed.data.customerKeys,
     });
 
     const { recipients, skipped, matched, sample, config } = resolved;

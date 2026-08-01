@@ -307,6 +307,7 @@ export const openApiDocument = {
             properties: {
               filter: { $ref: "#/components/schemas/AudienceFilter" },
               range: { $ref: "#/components/schemas/DateRange" },
+              customerKeys: { $ref: "#/components/schemas/CustomerKeys" },
               message: { $ref: "#/components/schemas/Message" },
             },
             required: ["filter"],
@@ -395,6 +396,7 @@ export const openApiDocument = {
             properties: {
               filter: { $ref: "#/components/schemas/AudienceFilter" },
               range: { $ref: "#/components/schemas/DateRange" },
+              customerKeys: { $ref: "#/components/schemas/CustomerKeys" },
               message: { $ref: "#/components/schemas/Message" },
               confirm: {
                 type: "integer",
@@ -667,6 +669,15 @@ export const openApiDocument = {
           },
         },
         required: ["type", "text"],
+      },
+      CustomerKeys: {
+        type: "array",
+        maxItems: 50000,
+        items: { type: "string" },
+        description:
+          "Narrows the audience to these customers. Keys, never phone numbers — a key " +
+          "only means anything against the connected store's own data, the server still " +
+          "resolves the number, and opt-outs are still applied afterwards.",
       },
       AudienceFilter: {
         type: "object",

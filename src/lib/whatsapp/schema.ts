@@ -38,6 +38,12 @@ export const audienceFilterSchema = z
     accountType: raw.accountType ?? "any",
   }));
 
+/**
+ * An explicit customer selection. Capped: a list longer than the customer base
+ * is not a selection, it is a malformed request.
+ */
+export const customerKeysSchema = z.array(z.string().min(1)).max(50_000).optional();
+
 export const rangeSchema = z
   .object({ from: z.string(), to: z.string() })
   .optional();

@@ -354,7 +354,16 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
           </CardContent>
         </Card>
 
-        <WhatsAppSendPanel filter={filter} audienceSize={audience.length} />
+        <WhatsAppSendPanel
+          filter={filter}
+          audienceSize={audience.length}
+          allCustomers={records.map((c) => ({
+            key: c.key,
+            name: c.name,
+            email: c.email,
+            orders: c.orders,
+          }))}
+        />
 
         {/* --- Preview ---------------------------------------------------- */}
         <div className="space-y-4 lg:col-span-2">

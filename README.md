@@ -156,7 +156,7 @@ never reach a third-party messaging service.
 <summary><b>WhatsApp campaigns</b></summary>
 
 - Send **text, image or video** through a **self-hosted gateway** you control
-- **Nine templates**: reorder their product, new in a category they buy, win
+- **Ten templates**: announce one product, reorder their product, new in a category they buy, win
   back a lapsed customer, nudge a one-time buyer, thank a VIP, ask for a review,
   coupon + their product, coupon only, plain announcement
 - **Per-customer variables** — `{{name}}`, `{{product}}`, `{{product_url}}`,
@@ -938,9 +938,29 @@ nobody receives a literal `{{product}}` or a dangling comma.
 A **campaign product** picked from the catalogue overrides that for everyone,
 and supplies the photo.
 
+### Choosing who receives it
+
+Three ways, on the Campaigns page:
+
+| Mode | Who it reaches |
+|---|---|
+| **Current filters** | Whatever the audience builder above resolves to |
+| **Everyone** | Every customer in the selected date range |
+| **Choose customers** | A specific list you tick, searchable by name or email |
+
+**"Everyone" drops the filters deliberately** rather than reusing whatever is on
+screen — sending to all customers should not quietly inherit a churn-risk filter
+somebody set ten minutes earlier.
+
+A chosen list **narrows** the current filter rather than replacing it, so
+somebody unreachable or opted out is still excluded. Selections travel as
+customer **keys**, never phone numbers: a key only means anything against the
+connected store's own data, the server still resolves the number itself, and the
+opt-out list is applied afterwards regardless.
+
 ### Templates
 
-Nine, each written for a specific job rather than as a blank box:
+Ten, each written for a specific job rather than as a blank box:
 
 | Template | What it says | When to send it |
 |---|---|---|
@@ -952,6 +972,7 @@ Nine, each written for a specific job rather than as a blank box:
 | Review request | Asks for feedback on what they buy | Repeat customers with a recent order |
 | Coupon + product | A discount tied to their own product | Lapsed customers worth converting |
 | Coupon only | A store-wide discount offer | Any audience, no clear favourite |
+| Announce one product | Its photo, your caption, and the buy link | A launch, a restock, a push on one item |
 | Announcement | Your own words, greeting still personal | Anything else |
 
 Templates are edited freely before sending. No approval process applies, unlike

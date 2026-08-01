@@ -130,6 +130,19 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
     requires: "none",
   },
   {
+    id: "product-launch",
+    name: "Announce one product",
+    purpose:
+      "Leads with the product itself — its photo, a caption you write, and the buy link. Pick the product above and it fills itself in; use it for a launch, a restock, or a push on one item.",
+    suggestedAudience: "Everyone, or anyone who buys the category",
+    body:
+      "Hi {{name}}, {{product}} is back in stock.\n\n" +
+      "{{product_url}}\n\n" +
+      "— {{store}}",
+    withImage: true,
+    requires: "none",
+  },
+  {
     id: "offer",
     name: "Offer or announcement",
     purpose:
