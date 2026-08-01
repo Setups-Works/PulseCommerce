@@ -22,6 +22,8 @@ export interface AudienceFilter {
   boughtProduct: string;
   /** Excludes anyone without a usable email — they can't be mailed. */
   requireEmail: boolean;
+  /** Excludes anyone without a billing phone — they can't be messaged. */
+  requirePhone: boolean;
 }
 
 export const EMPTY_AUDIENCE: AudienceFilter = {
@@ -36,6 +38,7 @@ export const EMPTY_AUDIENCE: AudienceFilter = {
   accountType: "any",
   boughtProduct: "",
   requireEmail: true,
+  requirePhone: false,
 };
 
 export interface AudiencePreset {
@@ -101,6 +104,7 @@ export function applyAudience(records: CustomerRecord[], filter: AudienceFilter)
 
   return records.filter((c) => {
     if (filter.requireEmail && !c.email) return false;
+    if (filter.requirePhone && !c.hasPhone) return false;
     if (filter.segments.length && !filter.segments.includes(c.segment)) return false;
     if (filter.tiers.length && !filter.tiers.includes(c.tier)) return false;
     if (filter.recencyMin !== null && c.recencyDays < filter.recencyMin) return false;

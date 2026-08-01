@@ -47,9 +47,20 @@ const inflight = new Map<string, Promise<StoreSnapshot>>();
  * serverless request. The same store over the same window holds the same
  * orders whichever key read them.
  */
+/**
+ * Bumped whenever the shape of a cached snapshot changes, so a deploy that
+ * reads a new field can never be served an old snapshot that lacks it. The cost
+ * is one cold pull after the deploy; silently missing data would be worse.
+ *
+ * 2 — billing phone retained, for WhatsApp sending.
+ */
+const SNAPSHOT_SCHEMA_VERSION = 2;
+
 function cacheKey(config: StoreConfig): string {
   return createHash("sha256")
-    .update(`${normalise(config.url)}::${config.historyMonths}::${config.maxPages}`)
+    .update(
+      `v${SNAPSHOT_SCHEMA_VERSION}::${normalise(config.url)}::${config.historyMonths}::${config.maxPages}`,
+    )
     .digest("hex")
     .slice(0, 16);
 }

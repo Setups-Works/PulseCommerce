@@ -25,6 +25,8 @@ interface Accumulator {
   id: number;
   name: string;
   email: string;
+  /** Held only to derive reachability; the number never leaves the server. */
+  phone: string;
   company: string;
   country: string;
   state: string;
@@ -115,6 +117,7 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
         id: order.customer_id || 0,
         name: customerName(order),
         email: (order.billing?.email ?? directory?.email ?? "").toLowerCase(),
+        phone: (order.billing?.phone ?? directory?.billing?.phone ?? "").trim(),
         company: (order.billing?.company ?? directory?.billing?.company ?? "").trim(),
         country: order.billing?.country ?? "",
         state: order.billing?.state ?? "",
@@ -163,6 +166,8 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
     }
     // A customer's company can appear on a later order only — keep the latest non-empty.
     if (order.billing?.company?.trim()) entry.company = order.billing.company.trim();
+    // Same for the phone: the most recent one they gave is the one to reach them on.
+    if (order.billing?.phone?.trim()) entry.phone = order.billing.phone.trim();
 
     for (const li of order.line_items) {
       const p = entry.products.get(li.name) ?? { units: 0, revenue: 0 };
@@ -230,6 +235,7 @@ export function buildCustomerRecords(orders: WooOrder[], ctx: CustomerContext): 
       key: e.key,
       name: e.name,
       email: e.email,
+      hasPhone: e.phone.length > 0,
       company: e.company,
       country: e.country,
       state: e.state,

@@ -47,6 +47,10 @@ function slimOrder(order: WooOrder): WooOrder {
       state: billing.state,
       country: billing.country,
       email: billing.email,
+      // Kept for WhatsApp sending. It stays server-side: the analytics payload
+      // carries only whether a customer is reachable, never the number, and a
+      // send resolves numbers from the snapshot at the moment it runs.
+      phone: billing.phone,
     },
     shipping: {},
     payment_method: order.payment_method,

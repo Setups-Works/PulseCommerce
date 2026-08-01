@@ -72,6 +72,12 @@ export interface CustomerRecord {
   key: string;
   name: string;
   email: string;
+  /**
+   * Whether a billing phone exists, not the number itself. Reachability is all
+   * the browser needs to size and filter an audience; the number is PII that
+   * stays server-side and is resolved from the snapshot at send time.
+   */
+  hasPhone: boolean;
   company: string;
   country: string;
   state: string;

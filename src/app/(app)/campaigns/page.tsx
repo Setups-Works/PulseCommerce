@@ -10,6 +10,7 @@ import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { SegmentBadge, TierBadge } from "@/components/dashboard/badges";
 import { DataTable } from "@/components/dashboard/data-table";
 import { AnalyticsPage } from "@/components/dashboard/page-state";
+import { WhatsAppSendPanel } from "@/components/whatsapp/whatsapp-send-panel";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -352,6 +353,8 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
             </div>
           </CardContent>
         </Card>
+
+        <WhatsAppSendPanel filter={filter} audienceSize={audience.length} />
 
         {/* --- Preview ---------------------------------------------------- */}
         <div className="space-y-4 lg:col-span-2">
