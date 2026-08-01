@@ -149,6 +149,37 @@
     border: 1px solid var(--brand-100); padding: 5px 10px; border-radius: 999px;
   }
 
+  .modgrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 11px;
+    margin-top: 22px;
+  }
+  .mod {
+    display: flex; gap: 11px; align-items: flex-start;
+    border: 1px solid var(--hair); background: var(--panel);
+    border-radius: 9px; padding: 13px 14px; min-height: 92px;
+  }
+  .mod .n {
+    font-family: var(--display); font-size: 13px; font-weight: 700;
+    color: var(--brand-500); letter-spacing: 0.02em; flex: none; padding-top: 1px;
+  }
+  .mod h3 { font-size: 14.5px; margin-bottom: 3px; line-height: 1.25; }
+  .mod p { font-size: 12px; line-height: 1.45; color: var(--muted); }
+  .mod.hi { background: var(--brand-50); border-color: var(--brand-100); }
+  .mod.hi .n { color: var(--brand-600); }
+  .mod.ghost { border-style: dashed; background: transparent; align-items: center; }
+  .mod.ghost h3 { color: var(--brand-600); }
+
+  .chart { margin-top: 20px; }
+  .callout {
+    border-left: 4px solid var(--brand-500); background: var(--brand-50);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin-top: 20px;
+  }
+  .callout p { font-size: 14.5px; line-height: 1.55; color: var(--ink); }
+  .slide.dark .callout { background: var(--d-panel); border-left-color: var(--brand-500); }
+  .slide.dark .callout p { color: var(--d-ink); }
+
   @media print {
     body { background: none; }
     .slide { margin: 0; }
@@ -207,62 +238,134 @@
   <div class="foot"><span>PulseCommerce</span><span>02</span></div>
 </section>
 
-<!-- 3 — Real findings -------------------------------------------------- -->
+<!-- Store at a glance ------------------------------------------------ -->
 <section class="slide">
-  <div class="eyebrow">Verified against your live store</div>
-  <h2>What we already found in your data</h2>
+  <div class="eyebrow">Your store · August 2025 to July 2026</div>
+  <h2>Twelve months, measured</h2>
   <div class="rule"></div>
-  <p class="note" style="max-width:70ch;">
-    These are not projections. They were computed from your WooCommerce store
-    during development, over <b>20,490 orders</b> and <b>11,286 customers</b>.
+  <p class="note" style="max-width:78ch;">
+    Every figure on the next five slides was computed from naturesjoystore.com
+    during development. Nothing here is an estimate or an illustration.
   </p>
-  <div class="grid g4" style="margin-top:34px;">
-    <div class="card">
-      <div class="num warn">₹93,703</div>
-      <div class="num-label">Revenue at risk from products about to run out of stock</div>
-    </div>
-    <div class="card">
-      <div class="num warn">7 days</div>
-      <div class="num-label">Cover left on Manjistha Soap, which carries 31.7% of product revenue</div>
-    </div>
-    <div class="card">
-      <div class="num accent">₹3,91,288</div>
-      <div class="num-label">Lifetime value sitting in 817 lapsed customers</div>
-    </div>
-    <div class="card">
-      <div class="num">2,673</div>
-      <div class="num-label">Customers who have bought more than once</div>
-    </div>
+  <div class="grid g4" style="margin-top:28px;">
+    <div class="card"><div class="num sm">₹70.7L</div><div class="num-label">Net revenue across twelve months</div></div>
+    <div class="card"><div class="num sm">20,444</div><div class="num-label">Orders placed, 16,317 of them revenue-generating</div></div>
+    <div class="card"><div class="num sm">11,224</div><div class="num-label">Distinct customers</div></div>
+    <div class="card"><div class="num sm">40,602</div><div class="num-label">Units sold</div></div>
   </div>
-  <div class="spacer"></div>
-  <p class="tiny" style="max-width:80ch;">
-    The single-product concentration is the finding worth acting on first. Nearly
-    a third of product revenue depends on one item with a week of stock left.
-  </p>
-  <div class="foot"><span>PulseCommerce</span><span>03</span></div>
+  <div class="grid g4" style="margin-top:14px;">
+    <div class="card"><div class="num sm">₹434</div><div class="num-label">Average order value</div></div>
+    <div class="card"><div class="num sm">₹632</div><div class="num-label">Revenue per customer, lifetime</div></div>
+    <div class="card"><div class="num sm accent">23.8%</div><div class="num-label">Customers who ordered more than once</div></div>
+    <div class="card"><div class="num sm warn">18.1%</div><div class="num-label">Orders cancelled — 3,709 of them</div></div>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Your data</span></div>
 </section>
 
-<!-- 4 — Scope ---------------------------------------------------------- -->
+<!-- Revenue trend ----------------------------------------------------- -->
+<section class="slide">
+  <div class="eyebrow">Revenue · monthly net</div>
+  <h2>A business that has found its level</h2>
+  <div class="rule"></div>
+  <div class="chart"><svg viewBox="0 0 1060 300" width="100%" style="display:block">
+<line x1="0" y1="260" x2="1060" y2="260" stroke="#e4e8f0" stroke-width="1.5"/>
+<rect x="20.3" y="212.3" width="63.1" height="47.7" rx="3" fill="#4d86f7"/><rect x="107.9" y="123.8" width="63.1" height="136.2" rx="3" fill="#4d86f7"/><rect x="195.6" y="52.5" width="63.1" height="207.5" rx="3" fill="#4d86f7"/><rect x="283.3" y="20.0" width="63.1" height="240.0" rx="3" fill="#4d86f7"/><rect x="370.9" y="53.7" width="63.1" height="206.3" rx="3" fill="#4d86f7"/><rect x="458.6" y="41.6" width="63.1" height="218.4" rx="3" fill="#4d86f7"/><rect x="546.3" y="68.7" width="63.1" height="191.3" rx="3" fill="#4d86f7"/><rect x="633.9" y="33.1" width="63.1" height="226.9" rx="3" fill="#4d86f7"/><rect x="721.6" y="55.3" width="63.1" height="204.7" rx="3" fill="#4d86f7"/><rect x="809.3" y="33.0" width="63.1" height="227.0" rx="3" fill="#4d86f7"/><rect x="896.9" y="42.8" width="63.1" height="217.2" rx="3" fill="#4d86f7"/><rect x="984.6" y="28.6" width="63.1" height="231.4" rx="3" fill="#4d86f7"/>
+<text x="51.8" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Aug</text><text x="139.5" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Sep</text><text x="227.2" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Oct</text><text x="314.8" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Nov</text><text x="314.8" y="12.0" text-anchor="middle" font-size="12" font-weight="700" fill="#0a0b0f">₹721k</text><text x="402.5" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Dec</text><text x="490.2" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Jan</text><text x="577.8" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Feb</text><text x="665.5" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Mar</text><text x="753.2" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Apr</text><text x="840.8" y="282" text-anchor="middle" font-size="12" fill="#5b6472">May</text><text x="928.5" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Jun</text><text x="1016.2" y="282" text-anchor="middle" font-size="12" fill="#5b6472">Jul</text>
+</svg></div>
+  <div class="callout">
+    <p>Revenue climbed steeply to November 2025, then settled into a band between
+    ₹5.7L and ₹7.0L a month and stayed there for eight months. Growth from here
+    comes from the customers you already have, not from the trend continuing on
+    its own.</p>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Revenue</span></div>
+</section>
+
+<!-- Product concentration --------------------------------------------- -->
+<section class="slide">
+  <div class="eyebrow">Products · share of revenue</div>
+  <h2>One product carries a third of the business</h2>
+  <div class="rule"></div>
+  <div class="chart"><svg viewBox="0 0 1060 58" width="100%" style="display:block"><rect x="0.0" y="0" width="350.5" height="58" rx="3" fill="#2551d1"/><text x="176.2" y="34.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">33.3%</text><rect x="352.5" y="0" width="180.0" height="58" rx="3" fill="#2f66e8"/><text x="443.5" y="34.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">17.2%</text><rect x="534.5" y="0" width="67.0" height="58" rx="3" fill="#4d86f7"/><text x="569.0" y="34.0" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">6.5%</text><rect x="603.5" y="0" width="46.8" height="58" rx="3" fill="#6d99fb"/><rect x="652.3" y="0" width="37.6" height="58" rx="3" fill="#94b4ff"/><rect x="691.9" y="0" width="366.1" height="58" rx="3" fill="#dbe6ff"/><text x="876.0" y="34.0" text-anchor="middle" font-size="14" font-weight="700" fill="#0a0b0f">34.7%</text></svg><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 20px;margin-top:15px"><div style="display:flex;gap:8px;align-items:center"><span style="width:11px;height:11px;border-radius:3px;background:#2551d1;flex:none"></span><span style="font-size:12.5px;color:#5b6472">Manjistha Soap</span></div><div style="display:flex;gap:8px;align-items:center"><span style="width:11px;height:11px;border-radius:3px;background:#2f66e8;flex:none"></span><span style="font-size:12.5px;color:#5b6472">Manjistha With Goat Milk Soap</span></div><div style="display:flex;gap:8px;align-items:center"><span style="width:11px;height:11px;border-radius:3px;background:#4d86f7;flex:none"></span><span style="font-size:12.5px;color:#5b6472">Nalangu Maavu Soap (Women)</span></div><div style="display:flex;gap:8px;align-items:center"><span style="width:11px;height:11px;border-radius:3px;background:#6d99fb;flex:none"></span><span style="font-size:12.5px;color:#5b6472">Nalangu Maavu With Goat Milk</span></div><div style="display:flex;gap:8px;align-items:center"><span style="width:11px;height:11px;border-radius:3px;background:#94b4ff;flex:none"></span><span style="font-size:12.5px;color:#5b6472">Goat Milk Soap</span></div><div style="display:flex;gap:8px;align-items:center"><span style="width:11px;height:11px;border-radius:3px;background:#dbe6ff;flex:none"></span><span style="font-size:12.5px;color:#5b6472">All other products</span></div></div></div>
+  <div class="grid g3" style="margin-top:26px;">
+    <div class="card"><div class="num sm warn">33.3%</div><div class="num-label">Manjistha Soap alone — ₹23.6L across 13,334 units</div></div>
+    <div class="card"><div class="num sm warn">56.9%</div><div class="num-label">Your top three products combined</div></div>
+    <div class="card"><div class="num sm">50.5%</div><div class="num-label">The two Manjistha variants together</div></div>
+  </div>
+  <div class="callout">
+    <p>This is the single largest risk in the data. A stock-out, a supply problem
+    or a formulation change on one product would take a third of revenue with it.
+    Inventory planning and reorder alerts exist for exactly this.</p>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Products</span></div>
+</section>
+
+<!-- Geography ---------------------------------------------------------- -->
+<section class="slide">
+  <div class="eyebrow">Geography · net revenue by state</div>
+  <h2>Tamil Nadu is the business</h2>
+  <div class="rule"></div>
+  <div class="chart" style="margin-top:26px;"><div style="display:grid;grid-template-columns:120px 1fr 96px;gap:12px;align-items:center;margin-bottom:11px"><span style="font-size:14px;color:#0a0b0f;font-weight:600">Tamil Nadu</span><span style="display:block;height:22px;background:#e4e8f0;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:100.0%;background:#4d86f7;border-radius:4px"></span></span><span style="font-size:13px;color:#5b6472;text-align:right;font-variant-numeric:tabular-nums">₹61.3L · 86.5%</span></div><div style="display:grid;grid-template-columns:120px 1fr 96px;gap:12px;align-items:center;margin-bottom:11px"><span style="font-size:14px;color:#0a0b0f;font-weight:600">Karnataka</span><span style="display:block;height:22px;background:#e4e8f0;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:8.4%;background:#4d86f7;border-radius:4px"></span></span><span style="font-size:13px;color:#5b6472;text-align:right;font-variant-numeric:tabular-nums">₹5.1L · 7.2%</span></div><div style="display:grid;grid-template-columns:120px 1fr 96px;gap:12px;align-items:center;margin-bottom:11px"><span style="font-size:14px;color:#0a0b0f;font-weight:600">Puducherry</span><span style="display:block;height:22px;background:#e4e8f0;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:2.2%;background:#4d86f7;border-radius:4px"></span></span><span style="font-size:13px;color:#5b6472;text-align:right;font-variant-numeric:tabular-nums">₹1.4L · 1.9%</span></div><div style="display:grid;grid-template-columns:120px 1fr 96px;gap:12px;align-items:center;margin-bottom:11px"><span style="font-size:14px;color:#0a0b0f;font-weight:600">Kerala</span><span style="display:block;height:22px;background:#e4e8f0;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:1.5%;background:#4d86f7;border-radius:4px"></span></span><span style="font-size:13px;color:#5b6472;text-align:right;font-variant-numeric:tabular-nums">₹0.9L · 1.3%</span></div><div style="display:grid;grid-template-columns:120px 1fr 96px;gap:12px;align-items:center;margin-bottom:11px"><span style="font-size:14px;color:#0a0b0f;font-weight:600">Andhra Pradesh</span><span style="display:block;height:22px;background:#e4e8f0;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:1.1%;background:#4d86f7;border-radius:4px"></span></span><span style="font-size:13px;color:#5b6472;text-align:right;font-variant-numeric:tabular-nums">₹0.7L · 0.9%</span></div></div>
+  <div class="grid g3" style="margin-top:22px;">
+    <div class="card"><div class="num sm">86.5%</div><div class="num-label">Of revenue comes from Tamil Nadu</div></div>
+    <div class="card"><div class="num sm">₹19.1L</div><div class="num-label">From Chennai alone — 27% of everything</div></div>
+    <div class="card"><div class="num sm accent">₹5.1L</div><div class="num-label">Karnataka, the clearest expansion signal</div></div>
+  </div>
+  <div class="callout">
+    <p>Concentration this high is a strength for logistics and a risk for growth.
+    Karnataka is already buying without being targeted, which makes it the
+    cheapest market to test a campaign in.</p>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Geography</span></div>
+</section>
+
+<!-- Retention opportunity ---------------------------------------------- -->
+<section class="slide dark">
+  <div class="eyebrow">The opportunity</div>
+  <h2>8,551 people bought once and never came back</h2>
+  <div class="rule"></div>
+  <div class="grid g4" style="margin-top:24px;">
+    <div class="card"><div class="num sm">11,224</div><div class="num-label">Customers in twelve months</div></div>
+    <div class="card"><div class="num sm">2,673</div><div class="num-label">Ordered more than once</div></div>
+    <div class="card"><div class="num sm" style="color:#f87171">8,551</div><div class="num-label">Ordered exactly once</div></div>
+    <div class="card"><div class="num sm accent">76.2%</div><div class="num-label">Of your customer base, never reactivated</div></div>
+  </div>
+  <table style="margin-top:30px;">
+    <tr><th>If a win-back campaign converts</th><th class="n">Customers returning</th><th class="n">Revenue at ₹434 AOV</th></tr>
+    <tr><td>2%</td><td class="n">171</td><td class="n">₹74,213</td></tr>
+    <tr><td>5%</td><td class="n">428</td><td class="n">₹1,85,768</td></tr>
+    <tr><td>10%</td><td class="n">855</td><td class="n">₹3,71,537</td></tr>
+  </table>
+  <div class="callout">
+    <p>At a 2% conversion — deliberately pessimistic for customers who have
+    already bought from you once — a single win-back campaign returns more than
+    three times the cost of building this platform.</p>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Opportunity</span></div>
+</section>
+
+<!-- Scope ------------------------------------------------------------ -->
 <section class="slide">
   <div class="eyebrow">What is delivered</div>
   <h2>Thirteen modules</h2>
   <div class="rule"></div>
-  <div class="grid g3" style="margin-top:8px; gap:14px;">
-    <div class="card"><h3>1 · Revenue &amp; performance</h3><p>Every KPI against the equal-length prior period.</p></div>
-    <div class="card"><h3>2 · Customer analytics</h3><p>RFM, ten segments, value tiers, lifetime value, churn risk.</p></div>
-    <div class="card"><h3>3 · Customer profiles</h3><p>Full history, channel, device, what they buy.</p></div>
-    <div class="card"><h3>4 · Acquisition &amp; retention</h3><p>Channels, devices, cohorts, time to second order.</p></div>
-    <div class="card"><h3>5 · Campaigns &amp; audiences</h3><p>Goal-driven audience builder with live reach.</p></div>
-    <div class="card"><h3>6 · WhatsApp campaigns</h3><p>Nine templates, personalisation, coupons, paced sending.</p></div>
-    <div class="card"><h3>7 · Shared WhatsApp inbox</h3><p>Replies, with the customer's history beside them.</p></div>
-    <div class="card"><h3>8 · Product analytics</h3><p>ABC classification, refund rate, market-basket affinity.</p></div>
-    <div class="card"><h3>9 · Inventory planning</h3><p>Days of cover, reorder points, revenue at risk.</p></div>
-    <div class="card"><h3>10 · Orders &amp; operations</h3><p>Register, payments, coupons, trading heatmap.</p></div>
-    <div class="card"><h3>11 · Forecasting</h3><p>Trend and seasonality with a 95% band.</p></div>
-    <div class="card"><h3>12 · Geography</h3><p>Revenue by country, region and city.</p></div>
-    <div class="card"><h3>13 · Reports &amp; exports</h3><p>Ten reports as Excel, PDF or CSV.</p></div>
+  <div class="modgrid">
+    <div class="mod"><span class="n">01</span><div><h3>Revenue &amp; performance</h3><p>Every KPI against the equal-length prior period</p></div></div>
+    <div class="mod"><span class="n">02</span><div><h3>Customer analytics</h3><p>RFM, ten segments, tiers, lifetime value, churn risk</p></div></div>
+    <div class="mod"><span class="n">03</span><div><h3>Customer profiles</h3><p>Full history, channel, device, what they buy</p></div></div>
+    <div class="mod"><span class="n">04</span><div><h3>Acquisition &amp; retention</h3><p>Channels, devices, cohorts, time to second order</p></div></div>
+    <div class="mod"><span class="n">05</span><div><h3>Campaigns &amp; audiences</h3><p>Goal-driven audience builder with live reach</p></div></div>
+    <div class="mod hi"><span class="n">06</span><div><h3>WhatsApp campaigns</h3><p>Nine templates, personalisation, coupons, pacing</p></div></div>
+    <div class="mod hi"><span class="n">07</span><div><h3>Shared WhatsApp inbox</h3><p>Replies, with the customer's history beside them</p></div></div>
+    <div class="mod"><span class="n">08</span><div><h3>Product analytics</h3><p>ABC classification, refund rate, basket affinity</p></div></div>
+    <div class="mod"><span class="n">09</span><div><h3>Inventory planning</h3><p>Days of cover, reorder points, revenue at risk</p></div></div>
+    <div class="mod"><span class="n">10</span><div><h3>Orders &amp; operations</h3><p>Register, payments, coupons, trading heatmap</p></div></div>
+    <div class="mod"><span class="n">11</span><div><h3>Forecasting</h3><p>Trend and seasonality with a 95% band</p></div></div>
+    <div class="mod"><span class="n">12</span><div><h3>Geography</h3><p>Revenue by state, city and region</p></div></div>
+    <div class="mod"><span class="n">13</span><div><h3>Reports &amp; exports</h3><p>Ten reports as Excel, PDF or CSV</p></div></div>
+    <div class="mod ghost"><div><h3>All included</h3><p>One price, no per-module charge</p></div></div>
   </div>
-  <div class="foot"><span>PulseCommerce</span><span>04</span></div>
+  <div class="foot"><span>PulseCommerce</span><span>Scope</span></div>
 </section>
 
 <!-- 5 — Customer intelligence ------------------------------------------ -->
