@@ -1,4 +1,4 @@
-import { ArrowRight, Globe, Lock, ShieldCheck, Store, TerminalSquare } from "lucide-react";
+import { ArrowRight, Lock, ShieldCheck, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -97,27 +97,6 @@ export default async function ConnectPage({
                   <ArrowRight className="size-4" />
                 </Button>
               </form>
-
-              <div className="space-y-2 rounded-lg border p-3">
-                <p className="flex items-center gap-1.5 text-xs font-medium">
-                  <Globe className="size-3.5 text-muted-foreground" />
-                  What this needs to work
-                </p>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  WooCommerce sends the issued key by POSTing from <em>your store&apos;s server</em> to this app, so
-                  this app has to be on a public HTTPS address. <code>localhost</code> can never receive the
-                  callback, however your browser reaches it.
-                </p>
-                <p className="flex items-center gap-1.5 pt-1 text-[11px] font-medium text-muted-foreground">
-                  <TerminalSquare className="size-3.5" />
-                  Running locally
-                </p>
-                <pre className="overflow-x-auto rounded bg-muted p-2 text-[11px] leading-relaxed">
-                  {`npm run dev:https
-cloudflared tunnel --url https://localhost:3000
-# put the public https:// address in APP_URL, then restart`}
-                </pre>
-              </div>
             </CardContent>
           </Card>
 

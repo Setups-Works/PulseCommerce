@@ -333,23 +333,6 @@ export default function SettingsPage() {
               <ArrowRight className="size-4" />
             </Button>
           </form>
-
-          <div className="mt-4 space-y-1.5 rounded-lg border p-3">
-            <p className="text-xs font-medium">What this needs to work</p>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              WooCommerce sends the issued key by POSTing from <em>your store&apos;s server</em> to this app. That
-              means this app must be on a public HTTPS address: <code>localhost</code> can never receive the
-              callback, however the browser reaches it.
-            </p>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              For local development, open a tunnel and point <code>APP_URL</code> at it:
-            </p>
-            <pre className="overflow-x-auto rounded bg-muted p-2 text-[11px] leading-relaxed">
-{`npm run dev:https                                  # serve over local HTTPS
-cloudflared tunnel --url https://localhost:3000    # or: ngrok http https://localhost:3000
-# then set APP_URL to the public https:// address it prints, and restart`}
-            </pre>
-          </div>
         </CardContent>
       </Card>
 
