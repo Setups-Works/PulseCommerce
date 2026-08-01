@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { AudienceFilter } from "@/lib/audience";
+import { MESSAGE_TEMPLATES, VARIABLE_HELP } from "@/lib/whatsapp/templates";
 
 interface Preview {
   matched: number;
@@ -69,6 +70,8 @@ export function WhatsAppSendPanel({
   const [type, setType] = useState<"text" | "image" | "video">("text");
   const [text, setText] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
+  const [useProductImage, setUseProductImage] = useState(false);
+  const [templateId, setTemplateId] = useState<string | null>(null);
 
   const [previewState, setPreviewState] = useState<{ sig: string; data: Preview } | null>(null);
   const [confirmValue, setConfirmValue] = useState("");
@@ -113,7 +116,11 @@ export function WhatsAppSendPanel({
     };
   }, []);
 
-  const message = { type, text, ...(type === "text" ? {} : { mediaUrl }) };
+  const message = {
+    type,
+    text,
+    ...(type === "text" ? {} : useProductImage ? { useProductImage } : { mediaUrl }),
+  };
 
   /*
    * Any change to the audience or the message invalidates the preview, because
@@ -121,9 +128,27 @@ export function WhatsAppSendPanel({
    * is derived rather than reset in an effect, so there is no render where a
    * stale count is on screen next to a live send button.
    */
-  const signature = JSON.stringify({ filter, range, type, text, mediaUrl });
+  const signature = JSON.stringify({ filter, range, type, text, mediaUrl, useProductImage });
   const preview = previewState?.sig === signature ? previewState.data : null;
-  const composed = text.trim().length > 0 && (type === "text" || mediaUrl.trim().length > 0);
+  const composed =
+    text.trim().length > 0 &&
+    (type === "text" || useProductImage || mediaUrl.trim().length > 0);
+
+  const applyTemplate = (id: string) => {
+    const template = MESSAGE_TEMPLATES.find((t) => t.id === id);
+    if (!template) return;
+    setTemplateId(id);
+    setText(template.body);
+    if (template.withImage) {
+      setType("image");
+      setUseProductImage(true);
+    } else {
+      setType("text");
+      setUseProductImage(false);
+    }
+  };
+
+  const activeTemplate = MESSAGE_TEMPLATES.find((t) => t.id === templateId) ?? null;
 
   const runPreview = async () => {
     setBusy("preview");
@@ -278,6 +303,32 @@ export function WhatsAppSendPanel({
         ) : null}
 
         <div className="space-y-3">
+          {/* Templates first: choosing the intent is the decision, and the
+              message type and photo setting follow from it. */}
+          <div className="space-y-1.5">
+            <Label>Start from a template</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {MESSAGE_TEMPLATES.map((t) => (
+                <Button
+                  key={t.id}
+                  type="button"
+                  size="sm"
+                  variant={templateId === t.id ? "default" : "outline"}
+                  onClick={() => applyTemplate(t.id)}
+                  disabled={running}
+                >
+                  {t.name}
+                </Button>
+              ))}
+            </div>
+            {activeTemplate ? (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {activeTemplate.purpose}{" "}
+                <span className="text-foreground">Best paired with: {activeTemplate.suggestedAudience}.</span>
+              </p>
+            ) : null}
+          </div>
+
           <div className="flex gap-1.5">
             {(["text", "image", "video"] as const).map((t) => (
               <Button
@@ -295,18 +346,41 @@ export function WhatsAppSendPanel({
           </div>
 
           {type !== "text" ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="wa-media">Media URL</Label>
-              <Input
-                id="wa-media"
-                value={mediaUrl}
-                onChange={(e) => setMediaUrl(e.target.value)}
-                placeholder="https://naturesjoystore.com/wp-content/uploads/offer.jpg"
-                disabled={running}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                The gateway fetches this itself, so it has to be publicly reachable.
-              </p>
+            <div className="space-y-2">
+              {type === "image" ? (
+                <label className="flex items-start gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={useProductImage}
+                    onChange={(e) => setUseProductImage(e.target.checked)}
+                    disabled={running}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    Send each customer their own product photo
+                    <span className="block text-[11px] text-muted-foreground">
+                      Uses the photo of whatever they have spent the most on. Anyone whose
+                      product has no photo still gets the message, as text.
+                    </span>
+                  </span>
+                </label>
+              ) : null}
+
+              {!useProductImage ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-media">Media URL</Label>
+                  <Input
+                    id="wa-media"
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder="https://naturesjoystore.com/wp-content/uploads/offer.jpg"
+                    disabled={running}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    The gateway fetches this itself, so it has to be publicly reachable.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -320,10 +394,22 @@ export function WhatsAppSendPanel({
               placeholder={"Hi {{name}}, we saved your favourite Manjistha soap for you..."}
               disabled={running}
             />
-            <p className="text-[11px] text-muted-foreground">
-              <code>{"{{name}}"}</code> becomes the customer&apos;s first name. Guest checkouts
-              without a usable name get a greeting that reads correctly without one.
-            </p>
+            <details className="text-[11px] text-muted-foreground">
+              <summary className="cursor-pointer">Variables you can use</summary>
+              <ul className="mt-1.5 space-y-1">
+                {VARIABLE_HELP.map((v) => (
+                  <li key={v.token} className="flex gap-2">
+                    <code className="shrink-0">{v.token}</code>
+                    <span>{v.describes}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5">
+                Each resolves from that customer&apos;s own orders. A variable with no value
+                for someone is removed and the sentence tidied, so nobody receives a literal{" "}
+                <code>{"{{product}}"}</code> or a dangling comma.
+              </p>
+            </details>
           </div>
         </div>
 

@@ -38,6 +38,16 @@ const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<StoreSnapshot>>();
 
 /**
+ * Bumped whenever the shape of a cached snapshot changes, so a deploy that
+ * reads a new field can never be served an old snapshot that lacks it. The cost
+ * is one cold pull after the deploy; silently missing data would be worse.
+ *
+ * 2 — billing phone retained, for WhatsApp sending.
+ * 3 — one product image retained, for WhatsApp product messages.
+ */
+const SNAPSHOT_SCHEMA_VERSION = 3;
+
+/**
  * Identifies the cached data, not the credential that fetched it.
  *
  * The consumer key deliberately plays no part here. WooCommerce issues a fresh
@@ -47,15 +57,6 @@ const inflight = new Map<string, Promise<StoreSnapshot>>();
  * serverless request. The same store over the same window holds the same
  * orders whichever key read them.
  */
-/**
- * Bumped whenever the shape of a cached snapshot changes, so a deploy that
- * reads a new field can never be served an old snapshot that lacks it. The cost
- * is one cold pull after the deploy; silently missing data would be worse.
- *
- * 2 — billing phone retained, for WhatsApp sending.
- */
-const SNAPSHOT_SCHEMA_VERSION = 2;
-
 function cacheKey(config: StoreConfig): string {
   return createHash("sha256")
     .update(

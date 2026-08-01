@@ -268,7 +268,7 @@ const CUSTOMER_FIELDS = [
 const PRODUCT_FIELDS = [
   "id", "name", "slug", "permalink", "date_created", "type", "status", "sku", "price",
   "regular_price", "sale_price", "total_sales", "stock_quantity", "stock_status", "categories",
-  "tags", "average_rating", "rating_count",
+  "tags", "images", "average_rating", "rating_count",
 ].join(",");
 
 function describeStatus(status: number, endpoint: string): string {

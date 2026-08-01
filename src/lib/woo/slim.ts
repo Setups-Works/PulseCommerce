@@ -15,7 +15,11 @@ export function slimSnapshot(snapshot: StoreSnapshot): StoreSnapshot {
 
   // Products are few, but the same reasoning applies to their heaviest fields.
   for (const product of snapshot.products) {
-    product.images = [];
+    // One image is kept, not the gallery: a WhatsApp message shows a single
+    // picture, and the rest is weight in a snapshot that gets cached whole.
+    product.images = product.images?.length
+      ? [{ id: 0, src: product.images[0].src, alt: "" }]
+      : [];
   }
 
   return snapshot;

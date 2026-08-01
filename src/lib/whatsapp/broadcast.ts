@@ -3,6 +3,7 @@ import { getStore } from "@/lib/store/kv";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { MAX_BATCH_SIZE, type WhatsAppConfig } from "./config";
 import { maskPhone, normalisePhone } from "./phone";
+import { renderTemplate, type TemplateVariables } from "./templates";
 
 /**
  * Broadcast jobs.
@@ -29,12 +30,20 @@ export interface BroadcastMessage {
   text: string;
   /** Publicly reachable URL — OpenWA fetches the media itself. */
   mediaUrl?: string;
+  /**
+   * Attach each recipient's own product photo instead of one shared image.
+   * Recipients with no photo fall back to a text message rather than being
+   * dropped, so the send never silently shrinks.
+   */
+  useProductImage?: boolean;
 }
 
 export interface BroadcastRecipient {
   chatId: string;
   /** First name, for {{name}} substitution. */
   name: string;
+  /** Everything a template can reference, resolved from this customer's orders. */
+  vars: Partial<TemplateVariables>;
 }
 
 /** Why recipients were dropped, so the number sent is always explainable. */
@@ -122,11 +131,20 @@ export interface ResolveResult {
  * number that is not genuinely a customer's, and the opt-out list cannot be
  * bypassed by a crafted payload.
  */
+/** What a template needs to know about the catalogue and the store. */
+export interface RecipientContext {
+  /** Lowercased product name to its buy link, photo and category. */
+  products: Map<string, { url: string; image: string; category: string }>;
+  storeName: string;
+  formatMoney: (value: number) => string;
+}
+
 export function resolveRecipients(
   audience: CustomerRecord[],
   phoneByKey: Map<string, string>,
   optedOut: Set<string>,
   config: Pick<WhatsAppConfig, "defaultDialCode">,
+  context: RecipientContext,
 ): ResolveResult {
   const recipients: BroadcastRecipient[] = [];
   const seen = new Set<string>();
@@ -165,7 +183,11 @@ export function resolveRecipients(
     }
     seen.add(normalised.e164);
 
-    recipients.push({ chatId: normalised.chatId, name: firstName(customer.name) });
+    recipients.push({
+      chatId: normalised.chatId,
+      name: firstName(customer.name),
+      vars: variablesFor(customer, context),
+    });
   }
 
   return {
@@ -173,6 +195,39 @@ export function resolveRecipients(
     skipped,
     matched: audience.length,
     sample: recipients.slice(0, 5).map((r) => maskPhone(r.chatId.split("@")[0])),
+  };
+}
+
+/**
+ * What this customer's own history makes available to a template.
+ *
+ * The product chosen is the one they have spent the most on, not the most
+ * recent — a one-off small purchase should not become the thing a reorder
+ * message is built around. A product that is no longer in the catalogue yields
+ * no link or photo, and the template collapses those lines rather than linking
+ * somewhere broken.
+ */
+function variablesFor(
+  customer: CustomerRecord,
+  context: RecipientContext,
+): Partial<TemplateVariables> {
+  const top = [...(customer.topProducts ?? [])].sort((a, b) => b.revenue - a.revenue)[0];
+  const listed = top ? context.products.get(top.name.toLowerCase()) : undefined;
+
+  return {
+    product: top?.name ?? "",
+    product_url: listed?.url ?? "",
+    product_image: listed?.image ?? "",
+    category: listed?.category ?? "",
+    last_order: customer.lastOrderDate
+      ? new Date(customer.lastOrderDate).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+        })
+      : "",
+    orders: String(customer.orders),
+    spend: context.formatMoney(customer.netRevenue),
+    store: context.storeName,
   };
 }
 
@@ -213,12 +268,18 @@ export async function createBroadcast(input: {
   return job;
 }
 
-/** Substitutes {{name}} into the body for one recipient. */
+/** Substitutes every template variable for one recipient. */
 export function renderMessage(message: BroadcastMessage, recipient: BroadcastRecipient): string {
-  // An empty name would leave "Hi ," so the greeting collapses instead: the
-  // template is expected to read "Hi {{name}}," and degrade to "Hi,".
-  const withName = message.text.replace(/\{\{\s*name\s*\}\}/gi, recipient.name);
-  return recipient.name ? withName : withName.replace(/\s+([,!.])/g, "$1");
+  return renderTemplate(message.text, { ...recipient.vars, name: recipient.name });
+}
+
+/** The image to attach for one recipient, if any. */
+export function mediaFor(
+  message: BroadcastMessage,
+  recipient: BroadcastRecipient,
+): string | null {
+  if (message.useProductImage) return recipient.vars.product_image || null;
+  return message.mediaUrl || null;
 }
 
 /** The next slice to hand to OpenWA, capped at what it will accept. */

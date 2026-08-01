@@ -6,6 +6,7 @@ import {
   nextChunk,
   progressOf,
   readBroadcast,
+  mediaFor,
   renderMessage,
   writeBroadcast,
   type BroadcastJob,
@@ -86,14 +87,21 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }
 
   const chunk = nextChunk(job);
-  const messages: BulkMessageItem[] = chunk.map((recipient) => ({
-    chatId: recipient.chatId,
-    type: job.message.type,
-    content:
-      job.message.type === "text"
-        ? { text: renderMessage(job.message, recipient) }
-        : { url: job.message.mediaUrl, caption: renderMessage(job.message, recipient) },
-  }));
+  const messages: BulkMessageItem[] = chunk.map((recipient) => {
+    const body = renderMessage(job.message, recipient);
+    const media = mediaFor(job.message, recipient);
+
+    // A recipient whose product has no photo still gets the message, as text.
+    // Dropping them would shrink the audience for a cosmetic reason.
+    if (job.message.type === "text" || !media) {
+      return { chatId: recipient.chatId, type: "text" as const, content: { text: body } };
+    }
+    return {
+      chatId: recipient.chatId,
+      type: job.message.type,
+      content: { url: media, caption: body },
+    };
+  });
 
   try {
     const accepted = await client.sendBulk(messages, {

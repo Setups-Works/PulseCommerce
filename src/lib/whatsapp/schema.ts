@@ -47,8 +47,11 @@ export const messageSchema = z
     type: z.enum(["text", "image", "video"]),
     text: z.string().min(1, "A message body is required.").max(4000),
     mediaUrl: z.string().url().optional(),
+    /** Each recipient gets their own product photo instead of a shared one. */
+    useProductImage: z.boolean().optional(),
   })
-  .refine((m) => m.type === "text" || Boolean(m.mediaUrl), {
-    message: "An image or video message needs a publicly reachable media URL.",
+  .refine((m) => m.type === "text" || m.useProductImage || Boolean(m.mediaUrl), {
+    message:
+      "An image or video message needs either a media URL or the per-customer product photo.",
     path: ["mediaUrl"],
   });

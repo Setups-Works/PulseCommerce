@@ -6,7 +6,7 @@ import { loadSnapshot } from "@/lib/store/snapshot";
 import type { StoreSnapshot } from "@/lib/woo/types";
 import { readWhatsAppConfig, type WhatsAppConfig } from "./config";
 import { readOptOutSet } from "./opt-out";
-import { resolveRecipients, type ResolveResult } from "./broadcast";
+import { resolveRecipients, type RecipientContext, type ResolveResult } from "./broadcast";
 
 /**
  * Server-side audience resolution.
@@ -54,10 +54,41 @@ export async function resolveAudience(request: AudienceRequest): Promise<Resolve
   const [phoneByKey, optedOut] = [phoneMapFromSnapshot(snapshot), await readOptOutSet()];
 
   return {
-    ...resolveRecipients(audience, phoneByKey, optedOut, config),
+    ...resolveRecipients(audience, phoneByKey, optedOut, config, contextFrom(snapshot, analytics.meta.currency)),
     config,
     audience,
     currency: analytics.meta.currency,
+  };
+}
+
+/**
+ * Catalogue lookup for template variables.
+ *
+ * Keyed on the lowercased product name, because that is what an order line item
+ * carries — the line item's product_id is unreliable once a product has been
+ * replaced or a variation renamed.
+ */
+function contextFrom(snapshot: StoreSnapshot, currency: string): RecipientContext {
+  const products = new Map<string, { url: string; image: string; category: string }>();
+  for (const product of snapshot.products) {
+    if (!product.name) continue;
+    products.set(product.name.toLowerCase(), {
+      url: product.permalink ?? "",
+      image: product.images?.[0]?.src ?? "",
+      category: product.categories?.[0]?.name ?? "",
+    });
+  }
+
+  const money = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: currency || "INR",
+    maximumFractionDigits: 0,
+  });
+
+  return {
+    products,
+    storeName: snapshot.storeName,
+    formatMoney: (value) => money.format(value),
   };
 }
 

@@ -5,6 +5,7 @@ import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import { normalisePhone } from "@/lib/whatsapp/phone";
 import { readOptOutSet } from "@/lib/whatsapp/opt-out";
 import { messageSchema } from "@/lib/whatsapp/schema";
+import { renderTemplate } from "@/lib/whatsapp/templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,12 +91,33 @@ export async function POST(request: Request) {
     const chatId = check.whatsappId ?? normalised.chatId;
     const { message } = parsed.data;
 
+    /*
+     * A test has no customer behind it, so template variables are filled with
+     * obvious stand-ins rather than left to collapse. Seeing "Sample Product"
+     * in the right place is what proves the template is wired up; an empty gap
+     * would look identical to a variable that silently does not resolve.
+     */
+    const body = renderTemplate(message.text, {
+      name: "there",
+      product: "Sample Product",
+      product_url: "https://example.com/product",
+      category: "Sample Category",
+      last_order: "1 January",
+      orders: "3",
+      spend: "1,500",
+      store: "your store",
+    });
+
+    // useProductImage has no product to draw on here, so a test falls back to
+    // any explicit media URL, and otherwise to text.
+    const media = message.mediaUrl ?? null;
+
     const sent =
-      message.type === "image"
-        ? await client.sendImage(chatId, message.mediaUrl!, message.text)
-        : message.type === "video"
-          ? await client.sendVideo(chatId, message.mediaUrl!, message.text)
-          : await client.sendText(chatId, message.text);
+      message.type === "image" && media
+        ? await client.sendImage(chatId, media, body)
+        : message.type === "video" && media
+          ? await client.sendVideo(chatId, media, body)
+          : await client.sendText(chatId, body);
 
     return NextResponse.json({ sent: true, ...sent });
   } catch (error) {
