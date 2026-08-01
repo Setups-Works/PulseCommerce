@@ -47,6 +47,7 @@ never reach a third-party messaging service.
 - [Feature list](#feature-list)
 - [Feature tour](#feature-tour)
 - [Keyboard shortcuts](#keyboard-shortcuts)
+- [Small things](#small-things)
 - [Architecture](#architecture)
 - [Data pipeline](#data-pipeline)
 - [Broadcast pipeline](#broadcast-pipeline)
@@ -361,37 +362,151 @@ payment and coupon performance; a projection with a 95% band.
 All shortcuts are ignored while you are typing into a field.
 
 ---
+## Small things
+
+The details that do not fit a feature list but decide whether the thing is
+pleasant to use.
+
+**Interface**
+
+- Date range and granularity persist across reloads, read through an external
+  store rather than restored in an effect — so there is no flash of the wrong
+  range on first paint
+- Tables sort, search, paginate, keep a sticky first column, and expand rows in
+  place rather than navigating away
+- Tabular figures in every column that has to align; proportional elsewhere
+- Empty states explain *why* a section is empty rather than showing zero
+- Partial-history and truncated-pull warnings are surfaced, never hidden
+- Sidebar collapses; the layout is usable from 375px up
+- Light and dark are both designed, not auto-inverted
+
+**Search and keyboard**
+
+- The command palette filters data *before* rendering, so 11,000 customers do
+  not mount 11,000 nodes to hide most of them
+- Shortcuts are ignored inside inputs, textareas, selects and open comboboxes,
+  so typing a search query never triggers navigation
+- `g` chords lapse after 1.2 seconds, so a stray `g` does not arm forever
+- `?` and `shift+/` both open the help sheet, because keyboard layouts disagree
+
+**Exports**
+
+- CSV is BOM-prefixed so Excel opens UTF-8 correctly
+- Formula injection is guarded on text only — an earlier version turned every
+  negative number into a string because `-` matched the guard
+- Dates export as `yyyy-mm-dd`, parseable by every spreadsheet
+- PDFs embed Geist, because the standard PDF encoding has no `₹` glyph and
+  silently substituted a superscript one
+- Exports follow the on-screen date range, so a download can never disagree with
+  the dashboard it came from
+
+**Correctness**
+
+- Cohort cells that have not elapsed are blank, not zero
+- New and returning customer lists deliberately overlap; the alternative made
+  the returning list empty on any full-history range
+- Product names, categories and customer names are HTML-decoded once at ingest,
+  so no chart, table, PDF or CSV has to think about it
+- Money is formatted from the store's own currency, not a hard-coded symbol
+
+**Safety**
+
+- Secrets are masked everywhere they are displayed and never returned to the
+  browser after being saved
+- The WhatsApp test send cannot reach a customer — it only accepts a typed number
+- Generated coupon codes omit `O`, `0`, `I` and `1`
+- Duplicate phone numbers across customer records collapse to one recipient
+- Every skipped recipient is counted and categorised, so "sent 9,800 of 11,286"
+  always has an explanation
+
+---
 
 ## Architecture
 
-Three processes, and only one of them is this app.
+Three systems, each on infrastructure you control, and one of them is this app.
+
+```mermaid
+graph TB
+    subgraph store["WordPress host"]
+        WC["WooCommerce<br/>REST API v3"]
+        DB[("Store database<br/>orders · products<br/>customers · coupons")]
+        WC --- DB
+    end
+
+    subgraph vps["Always-on server (VPS)"]
+        OWA["OpenWA gateway<br/>NestJS"]
+        ENGINE["Engine<br/>whatsapp-web.js / baileys"]
+        AUTH[("Session credentials<br/>./data")]
+        OWA --- ENGINE
+        ENGINE --- AUTH
+    end
+
+    subgraph pulse["PulseCommerce (Vercel or Node)"]
+        ROUTES["API routes"]
+        LIB["lib/ — woo · analytics<br/>whatsapp · export · auth"]
+        SSR["React pages"]
+        ROUTES --- LIB
+        LIB --- SSR
+    end
+
+    KV[("Redis or disk<br/>snapshot chunks<br/>store config · gateway config<br/>broadcast jobs · opt-outs")]
+
+    BROWSER["Browser"]
+    WA(["WhatsApp"])
+    CUST(["Customer phones"])
+
+    WC -->|"GET orders, products,<br/>customers, coupons"| ROUTES
+    ROUTES -->|"POST coupons<br/>the only write"| WC
+    ROUTES <-->|"read + write"| KV
+    ROUTES -->|"X-API-Key over HTTPS"| OWA
+    ENGINE <-->|"persistent socket"| WA
+    WA --> CUST
+    SSR --> BROWSER
+    BROWSER -->|"filters, never numbers"| ROUTES
+```
+
+Two properties hold by construction rather than by care:
+
+- **The app never speaks to WhatsApp.** It speaks to your gateway, which holds
+  the socket. Move the gateway and nothing here changes but a URL.
+- **The browser never receives a phone number.** The analytics payload carries a
+  `hasPhone` boolean. Numbers are resolved server-side at send time.
+
+### Inside the app
 
 ```mermaid
 graph LR
-    subgraph yours["Your infrastructure"]
-        WOO[("WooCommerce<br/>store")]
-        GW["WhatsApp gateway<br/>(OpenWA)"]
+    subgraph routes["app/api"]
+        R1["analytics"]
+        R2["customers/[key]"]
+        R3["reports/export"]
+        R4["auth/woo"]
+        R5["settings"]
+        R6["whatsapp/*"]
     end
 
-    subgraph app["PulseCommerce"]
-        API["API routes<br/>analytics · whatsapp"]
-        ENG["Analytics engine<br/>pure functions"]
-        UI["Browser<br/>React"]
+    subgraph libs["lib"]
+        W["woo/<br/>client · slim<br/>attribution · entities"]
+        S["store/<br/>config · kv<br/>snapshot · snapshot-cache"]
+        A["analytics/<br/>engine · customers · cohorts<br/>acquisition · products<br/>inventory · operations"]
+        M["whatsapp/<br/>client · phone · templates<br/>recipients · broadcast<br/>opt-out · config"]
+        E["export/<br/>csv · xlsx · pdf"]
+        AU["auth/<br/>session · pending"]
     end
 
-    KV[("Redis / disk<br/>snapshot · config · jobs")]
-
-    WOO -->|"REST, read<br/>+ coupon writes"| API
-    API <--> KV
-    API --> ENG
-    ENG --> UI
-    UI -->|"filter, never numbers"| API
-    API -->|"X-API-Key"| GW
-    GW -->|"WhatsApp"| PHONE(["Customers"])
+    R1 --> S --> W
+    R1 --> A
+    R2 --> A
+    R3 --> E --> A
+    R4 --> AU
+    R5 --> S
+    R6 --> M --> S
+    M --> A
 ```
 
-The app never connects to WhatsApp itself, and the browser never receives a
-phone number. Both facts are load-bearing rather than incidental.
+`analytics/` is pure: functions from a snapshot to numbers, with no I/O. That is
+what makes a date-range change cost milliseconds and makes every figure
+reproducible from the same input.
 
 ### Layout
 
@@ -431,8 +546,8 @@ src/
 ├── lib/
 │   ├── woo/                  REST client, field trimming, slimming, attribution
 │   ├── store/                Config, KV abstraction, snapshot cache
-│   ├── analytics/            KPIs, customers, cohorts, acquisition, products,
-│   │                         inventory, operations, forecast
+│   ├── analytics/            Pure engine: KPIs, customers, cohorts, acquisition,
+│   │                         products, inventory, operations, forecast
 │   ├── whatsapp/             Gateway client, phone normalisation, templates,
 │   │                         recipient resolution, broadcast jobs, opt-outs
 │   ├── export/               CSV, Excel and PDF builders, embedded fonts
@@ -459,36 +574,56 @@ generated coupons; every other feature is unaffected.
 
 ## Data pipeline
 
-One pull, cached, then everything derived from it.
+One pull, cached three ways, then everything derived from it.
 
 ```mermaid
 flowchart TD
-    A["WooCommerce REST"] -->|"_fields trims<br/>900KB to 160KB per page"| B["Paginated pull<br/>3 wide, paced"]
-    B --> C["slim()<br/>drop unread fields, 81% smaller"]
-    C --> D["decode entities<br/>parse attribution"]
-    D --> E["Snapshot"]
-    E --> F["gzip + chunk<br/>shared cache"]
-    E --> G["memory, 10 min"]
-    E --> H["disk or tmp, 60 min"]
-    F --> I["computeAnalytics()<br/>pure, per request"]
-    G --> I
-    H --> I
-    I --> J["Range and granularity applied"]
-    J --> K["Payload to browser<br/>no phone numbers"]
+    A["WooCommerce REST"] -->|"_fields trims<br/>900KB to 160KB per page"| B["Paginated pull<br/>3 connections, paced 120ms"]
+    B -->|"retry with backoff<br/>on 0, 408, 429, 5xx"| B
+    B --> C["slim()<br/>drop tax arrays, meta_data,<br/>image galleries — 81% smaller"]
+    C --> D["decodeEntities()<br/>+ attachAttribution()"]
+    D --> E["Snapshot<br/>orders · customers · products"]
+    E --> F["gzip + 300KB chunks<br/>behind a manifest"]
+    F --> G[("Shared cache<br/>Redis")]
+    E --> H[("Disk / tmp<br/>60 min")]
+    E --> I[("Memory<br/>10 min")]
+    G --> J["computeAnalytics()<br/>pure, per request"]
+    H --> J
+    I --> J
+    J --> K["Range + granularity"]
+    K --> L["Payload<br/>hasPhone, never the number"]
+```
+
+### Cache lookup order
+
+```mermaid
+flowchart LR
+    REQ["Request"] --> M{"Memory<br/>fresh?"}
+    M -->|yes| OUT["Serve"]
+    M -->|no| INF{"Already<br/>in flight?"}
+    INF -->|yes| JOIN["Await it"] --> OUT
+    INF -->|no| D{"Disk<br/>fresh?"}
+    D -->|yes| WARM1["Warm memory"] --> OUT
+    D -->|no| S{"Shared<br/>fresh?"}
+    S -->|yes| WARM2["Warm memory + disk"] --> OUT
+    S -->|no| PULL["Pull from WooCommerce"] --> WRITE["Write all three"] --> OUT
 ```
 
 **Why a snapshot.** Every metric — RFM, cohorts, affinity, forecast — needs the
 whole order history, not a page of it. Computing from one cached snapshot means
 a filter change costs milliseconds instead of a re-pull.
 
+**Why in-flight collapsing.** A single page load fires several requests. Without
+it, a cold start would begin several identical multi-minute pulls at once.
+
 **Cache key.** Hashed from the schema version, store URL and data window.
 Deliberately *not* the consumer key: WooCommerce issues a fresh one on every
 re-authorization, and keying on it once orphaned every cached copy at a stroke
 and forced a full re-pull that outlived a serverless request.
 
-**Schema version.** Bumped whenever the snapshot shape changes, so a deploy that
-reads a new field can never be served an old snapshot lacking it. The cost is
-one cold pull; silently missing data would be worse.
+**Chunks before manifest.** The shared cache writes its chunks first and the
+manifest last, so a reader can never find a manifest pointing at chunks that do
+not exist yet.
 
 ---
 
@@ -500,21 +635,64 @@ A broadcast is a resumable job, not a long request.
 sequenceDiagram
     participant B as Browser
     participant P as PulseCommerce
+    participant K as Storage
     participant W as Gateway
     participant C as Customers
 
     B->>P: filter + message (never numbers)
     P->>P: recompute audience from snapshot
-    P->>P: resolve phones, drop unreachable,<br/>remove opt-outs and duplicates
+    P->>P: resolve phones · drop unreachable<br/>remove opt-outs and duplicates
     P-->>B: dry run — counts, reasons, masked sample
     B->>P: confirm the exact deliverable count
     P->>P: re-resolve; refuse if it changed
+    P->>K: create job (recipients, cursor 0)
     loop one batch per tick
         B->>P: tick
-        P->>W: ensure engine live, then 100 recipients
+        P->>K: read cursor
+        P->>W: ensure engine live
+        P->>W: send-bulk, up to 100
         W-->>C: paced sends with jitter
+        P->>K: advance cursor, record batch
         P-->>B: progress
     end
+```
+
+### Job states
+
+```mermaid
+stateDiagram-v2
+    [*] --> sending: confirmed
+    sending --> sending: tick hands over a batch
+    sending --> completed: cursor reaches the end
+    sending --> cancelled: stopped by the operator
+    sending --> failed: gateway unrecoverable
+    cancelled --> [*]
+    completed --> [*]
+    failed --> [*]
+    note right of cancelled
+        Batches already accepted
+        by the gateway still go out.
+    end note
+```
+
+### Gateway session states
+
+```mermaid
+stateDiagram-v2
+    [*] --> created
+    created --> initializing: start
+    initializing --> qr_ready: no stored pairing
+    qr_ready --> ready: QR scanned
+    initializing --> ready: pairing restored from disk
+    ready --> stale: gateway process restarts
+    stale --> ready: engine restarted automatically
+    ready --> disconnected: stopped or logged out
+    disconnected --> ready: start, pairing still on disk
+    note right of stale
+        Row says "ready", engineLoaded is false.
+        Sends fail until the engine is restarted,
+        which the app does by itself.
+    end note
 ```
 
 **Why ticks.** The gateway paces its own batches — a hundred recipients at four
@@ -528,13 +706,12 @@ Numbers are derived from the snapshot at send time, so no crafted request can
 address someone who is not a customer of the connected store, and the opt-out
 list cannot be routed around by the UI.
 
-**Recovery.** If the gateway's process restarts, its session row still says
-`ready` while the engine is gone, and every send fails. The pairing lives on
-disk, so the engine is restarted and reconnects in seconds without a QR. A
-restart costs one batch of delay instead of the rest of the audience.
+**Why both readiness signals are checked.** `status` is a persisted database
+value and `engineLoaded` is the live one. After a gateway restart the row still
+says `ready` while the engine is gone, and a send in that state fails for every
+recipient. Both must agree before anything is dispatched.
 
 ---
-
 ## Quick start
 
 ```bash
