@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAnalytics } from "@/components/providers/analytics-provider";
+import { WhatsAppLinkQr } from "@/components/whatsapp/whatsapp-link-qr";
 import { dialCodeForCurrency } from "@/lib/whatsapp/phone";
 import { formatDateTime } from "@/lib/format";
 
@@ -163,6 +164,7 @@ export function WhatsAppSettingsCard() {
         ) : null}
 
         {state?.connected && state.config ? (
+          <div className="space-y-4">
           <dl className="grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
             <Row label="Gateway" value={state.config.baseUrl} />
             <Row label="API key" value={state.config.apiKey} mono />
@@ -184,6 +186,9 @@ export function WhatsAppSettingsCard() {
               <Row label="Connected" value={formatDateTime(state.config.updatedAt)} />
             ) : null}
           </dl>
+
+          {!ready ? <WhatsAppLinkQr onLinked={load} /> : null}
+          </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">

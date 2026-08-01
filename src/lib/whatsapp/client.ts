@@ -143,6 +143,39 @@ export class WhatsAppClient {
   }
 
   /**
+   * Boots the engine so it starts producing a QR. Safe to call on a session
+   * that is already running — the gateway returns its current state rather
+   * than restarting it.
+   */
+  startSession(): Promise<WhatsAppSession> {
+    return this.request<WhatsAppSession>(`/api/sessions/${this.sessionId}/start`, {
+      method: "POST",
+      timeoutMs: 60_000,
+    });
+  }
+
+  /**
+   * The pairing QR as a data URL, while one is being offered.
+   *
+   * The gateway answers 400 once a session is already authenticated, which is
+   * a normal outcome here rather than a failure, so it is reported as "no QR"
+   * instead of thrown.
+   */
+  async getQr(): Promise<{ qrCode: string | null; status: string | null }> {
+    try {
+      const body = await this.request<{ qrCode?: string; status?: string }>(
+        `/api/sessions/${this.sessionId}/qr`,
+      );
+      return { qrCode: body?.qrCode ?? null, status: body?.status ?? null };
+    } catch (error) {
+      if (error instanceof WhatsAppApiError && error.status === 400) {
+        return { qrCode: null, status: null };
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Whether a number is registered on WhatsApp, and its canonical chat id.
    * Worth doing before a broadcast: sending to numbers that were never on
    * WhatsApp is both wasted and a pattern that attracts restrictions.
