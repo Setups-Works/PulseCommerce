@@ -18,6 +18,41 @@ export interface Sheet {
   rows: Record<string, unknown>[];
 }
 
+/**
+ * Columns worth printing, per report.
+ *
+ * A PDF page is a fixed width, so an eighteen-column ledger squeezed onto it
+ * wraps headers mid-word and truncates values: the page becomes unreadable
+ * while pretending to be complete. PDF is the reading format, so it shows the
+ * columns that carry the argument; Excel and CSV still carry every column.
+ */
+const PDF_COLUMNS: Partial<Record<ReportId, string[]>> = {
+  customers: [
+    "name", "email", "tier", "segment", "orders", "netRevenue",
+    "averageOrderValue", "predictedClv", "recencyDays", "churnRisk",
+  ],
+  orders: [
+    "number", "date", "statusLabel", "customerName", "units", "total",
+    "discount", "tax", "paymentMethod", "customerType",
+  ],
+  products: [
+    "name", "sku", "category", "abcClass", "revenue", "units", "orders",
+    "averagePrice", "revenueShare", "daysOfCover",
+  ],
+  segments: ["grouping", "label", "customers", "revenue", "share", "averageOrderValue"],
+  geography: ["level", "name", "revenue", "orders", "customers", "averageOrderValue", "share"],
+};
+
+/** Narrows a sheet to the columns that fit a printed page. */
+export function toPrintable(sheet: Sheet): Sheet {
+  const keep = PDF_COLUMNS[sheet.id as ReportId];
+  if (!keep) return sheet;
+  const columns = keep
+    .map((key) => sheet.columns.find((c) => c.key === key))
+    .filter((c): c is Column => Boolean(c));
+  return columns.length ? { ...sheet, columns } : sheet;
+}
+
 export const REPORT_IDS = [
   "executive",
   "customers",
