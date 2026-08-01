@@ -266,10 +266,12 @@
     built on your own infrastructure, with no per-message fees.
   </p>
   <div class="spacer"></div>
-  <div style="display:flex; gap:44px; align-items:baseline;">
-    <div><div class="num">₹25,000</div><div class="num-label">One-time, from</div></div>
-    <div><div class="num">₹0</div><div class="num-label">Per message, forever</div></div>
-    <div><div class="num">13</div><div class="num-label">Modules delivered</div></div>
+  <!-- The figures have to agree: ₹0 per message is only true of the private
+       gateway, so the headline price is that route's, not the cheaper one. -->
+  <div style="display:flex; gap:56px; align-items:flex-start;">
+    <div style="min-width:190px"><div class="num">₹35,000</div><div class="num-label">One-time, private gateway</div></div>
+    <div style="min-width:170px"><div class="num">₹0</div><div class="num-label">Per message, forever</div></div>
+    <div style="min-width:150px"><div class="num">13</div><div class="num-label">Modules delivered</div></div>
   </div>
   <div class="foot"><span>Setups Works · The Digital Agency</span><span>setups.works</span></div>
 </section>
@@ -399,14 +401,13 @@
   </div>
   <table style="margin-top:30px;">
     <tr><th>If a win-back campaign converts</th><th class="n">Customers returning</th><th class="n">Revenue at ₹434 AOV<sup class="fn">*</sup></th></tr>
-    <tr><td>2%</td><td class="n">171</td><td class="n">₹74,213</td></tr>
-    <tr><td>5%</td><td class="n">428</td><td class="n">₹1,85,768</td></tr>
-    <tr><td>10%</td><td class="n">855</td><td class="n">₹3,71,537</td></tr>
+    <tr><td>2%</td><td class="n">171</td><td class="n">₹74,214</td></tr>
+    <tr><td>5%</td><td class="n">428</td><td class="n">₹1,85,752</td></tr>
+    <tr><td>10%</td><td class="n">855</td><td class="n">₹3,71,070</td></tr>
   </table>
   <div class="callout">
     <p>At a 2% conversion — deliberately pessimistic for customers who have
-    already bought from you once — a single win-back campaign returns more than
-    three times the cost of building this platform.</p>
+    already bought from you once — a single win-back campaign returns roughly twice the cost of the Cloud API build.</p>
   </div>
   <div class="terms">* · Illustrative only. Conversion rates are assumptions, not forecasts or guarantees, and assume the average order value observed over the period holds.</div>
   <div class="foot"><span>PulseCommerce</span><span>Opportunity</span></div>
@@ -904,20 +905,20 @@
   <div class="eyebrow">Three years, your numbers</div>
   <h2>What each route actually costs</h2>
   <div class="rule"></div>
-  <p class="note">Twelve campaigns a year to your 11,224 customers, with Meta
-  conversations at ₹0.75.<sup class="fn">*</sup></p>
+  <p class="note">One campaign a month to your 11,224 customers, with Meta charging
+  approximately ₹10,000 a month for them.<sup class="fn">*</sup></p>
   <table style="margin-top:18px;">
     <tr><th>Route</th><th class="n">Subscription</th><th class="n">Meta charges</th><th class="n">Three-year total</th></tr>
-    <tr><td>AiSensy</td><td class="n">₹54,000</td><td class="n">₹3,03,048</td><td class="n">₹3,57,048</td></tr>
-    <tr><td>Gallabox</td><td class="n">₹86,364</td><td class="n">₹3,03,048</td><td class="n">₹3,89,412</td></tr>
-    <tr><td>Interakt</td><td class="n">₹1,00,764</td><td class="n">₹3,03,048</td><td class="n">₹4,03,812</td></tr>
-    <tr><td>WATI</td><td class="n">₹1,18,800</td><td class="n">₹3,03,048</td><td class="n">₹4,21,848</td></tr>
-    <tr><td>PulseCommerce + Cloud API</td><td class="n">₹25,000 once</td><td class="n">₹3,03,048</td><td class="n">₹3,28,048</td></tr>
+    <tr><td>AiSensy</td><td class="n">₹54,000</td><td class="n">₹3,60,000</td><td class="n">₹4,14,000</td></tr>
+    <tr><td>Gallabox</td><td class="n">₹86,364</td><td class="n">₹3,60,000</td><td class="n">₹4,46,364</td></tr>
+    <tr><td>Interakt</td><td class="n">₹1,00,764</td><td class="n">₹3,60,000</td><td class="n">₹4,60,764</td></tr>
+    <tr><td>WATI</td><td class="n">₹1,18,800</td><td class="n">₹3,60,000</td><td class="n">₹4,78,800</td></tr>
+    <tr><td>PulseCommerce + Cloud API</td><td class="n">₹25,000 once</td><td class="n">₹3,60,000</td><td class="n">₹3,85,000</td></tr>
     <tr class="total"><td>PulseCommerce + private gateway</td><td class="n">₹35,000 once</td><td class="n">₹0</td><td class="n">₹53,000</td></tr>
   </table>
   <div class="callout">
     <p>Against the cheapest subscription platform, the private gateway saves
-    <b>₹3,04,048 over three years</b> — roughly nine times what the build costs.
+    <b>₹3,61,000 over three years</b> — more than ten times what the build costs.
     The saving is almost entirely the per-message fee that disappears.</p>
   </div>
   <div class="terms">* Meta's rates vary by country and category and change without notice. Volume assumption is illustrative. See the terms slides.</div>
@@ -1089,40 +1090,43 @@
 
 <section class="slide cover">
   <div class="eyebrow">Investment</div>
-  <h2>Two ways to buy it</h2>
+  <h2>Pay once, or pay every month</h2>
   <div class="rule"></div>
   <div class="grid g2" style="margin-top:22px;">
-    <div class="card">
-      <div class="num">₹25,000</div>
-      <div class="num-label" style="margin-bottom:14px;">PulseCommerce + WhatsApp Cloud API</div>
-      <ul style="margin-top:10px;">
-        <li>All thirteen modules</li>
-        <li>Meta's official API — guaranteed delivery</li>
-        <li>Tappable buttons available</li>
-        <li>No server to run</li>
-        <li>You pay Meta per conversation</li>
-        <li>Templates need Meta approval</li>
-      </ul>
-    </div>
     <div class="card" style="border-color:rgba(255,255,255,0.55); border-width:2px;">
       <div class="num">₹35,000</div>
-      <div class="num-label" style="margin-bottom:14px;">PulseCommerce + private WhatsApp gateway</div>
-      <ul style="margin-top:10px;">
+      <div class="num-label" style="margin-bottom:4px;">once, then nothing</div>
+      <p style="font-size:13.5px; line-height:1.55; margin:10px 0 12px; color:rgba(255,255,255,0.86);">
+        PulseCommerce + your own private WhatsApp gateway
+      </p>
+      <ul style="margin-top:6px;">
         <li>All thirteen modules</li>
-        <li>Dedicated messaging server, yours</li>
-        <li><b>No per-message fee, ever</b></li>
-        <li>No template approval, send immediately</li>
+        <li><b>No cost per message, ever</b></li>
+        <li>No template approval — write and send</li>
         <li>≈ ₹500/month server, billed by your host</li>
-        <li>Delivery not guaranteed; dedicated number required</li>
+        <li>Delivery not guaranteed; dedicated number needed</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="num">₹25,000</div>
+      <div class="num-label" style="margin-bottom:4px;">once, then ≈ ₹10,000 every month<sup class="fn">*</sup></div>
+      <p style="font-size:13.5px; line-height:1.55; margin:10px 0 12px; color:rgba(255,255,255,0.86);">
+        PulseCommerce + Meta's official WhatsApp Cloud API
+      </p>
+      <ul style="margin-top:6px;">
+        <li>All thirteen modules</li>
+        <li>Meta charges per conversation, forever</li>
+        <li>Templates need Meta's approval</li>
+        <li>Guaranteed delivery, tappable buttons</li>
+        <li>No server to run</li>
       </ul>
     </div>
   </div>
   <div class="callout">
-    <p>Both are one-time. Both include deployment, configuration, documentation,
-    handover and the source code in a repository you own. Over three years at
-    twelve campaigns a year, the private gateway costs ₹53,000 against
-    ₹3,57,048 for the cheapest subscription platform.</p>
+    <p>Over three years that is <b>₹53,000</b> against <b>₹3,85,000</b>. The
+    difference is not the build — it is the per-message fee, which never stops.</p>
   </div>
+  <div class="terms">* One campaign a month to your 11,224 customers, at roughly ₹0.89 per marketing conversation. Meta sets these rates and changes them without notice.</div>
   <div class="foot"><span>Setups Works</span><span>Investment</span></div>
 </section>
 

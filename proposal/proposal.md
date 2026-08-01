@@ -25,7 +25,10 @@ an audience identified in the platform can be messaged on WhatsApp from the
 same screen, through a gateway Nature's Joy owns.
 
 This document sets out the proposed scope, how the platform connects to your
-store, what is delivered, and commercial terms.
+store, what is delivered, and commercial terms. Two routes are offered: ₹35,000
+once with a private WhatsApp gateway and no per-message cost, or ₹25,000 once
+with Meta's official Cloud API and roughly ₹10,000 a month in message charges
+thereafter.
 
 ---
 
@@ -518,59 +521,58 @@ most catalogue sizes.
 ---
 
 # Commercial terms
-Two routes, differing only in how WhatsApp messages are sent. Both are one-time
-fees and both include the same thirteen modules, deployment, configuration,
-documentation, handover and the source code in a repository Nature's Joy owns.
 
-| | PulseCommerce + WhatsApp Cloud API | PulseCommerce + private WhatsApp gateway |
+Two routes. They deliver the same thirteen modules, the same deployment,
+documentation, handover and source code. They differ in one thing: whether you
+keep paying to send messages.
+
+| | Private WhatsApp gateway | WhatsApp Cloud API |
 |---|---|---|
-| **One-time fee** | **₹25,000** | **₹35,000** |
-| Messaging route | Meta's official WhatsApp Business API | A dedicated gateway on your own server |
-| Cost per message | Charged by Meta, per conversation | None |
-| Message templates | Require Meta's approval before use | Written and sent immediately |
-| Delivery | Guaranteed by Meta | Not guaranteed |
-| Tappable buttons | Available | Not available |
-| Running cost | Meta's per-conversation charges | Server hosting, approximately ₹500 per month |
-| Setup | Meta Business verification | Scan a QR code |
+| **One-time fee** | **₹35,000** | **₹25,000** |
+| **Then** | **Nothing** | **≈ ₹10,000 every month** |
+| Cost per message | None | Charged by Meta, per conversation |
+| Message templates | Written and sent immediately | Require Meta's approval first |
+| Delivery | Not guaranteed | Guaranteed by Meta |
+| Tappable buttons | Not available | Available |
+| Running cost | Server hosting, ≈ ₹500 per month | Meta's per-conversation charges |
+| Setup | Scan a QR code | Meta Business verification |
 
-## What the Cloud API route costs to run
+## What "≈ ₹10,000 every month" means
 
-The ₹25,000 fee covers the platform. Messages themselves are billed by Meta,
-per conversation, at rates that vary by country and message category and change
-without notice. At an illustrative ₹0.75 per marketing conversation, one
-campaign to 11,224 customers costs approximately ₹8,418, and twelve campaigns a
-year approximately ₹1,01,016 — paid to Meta, not to Setups Works.
+The ₹25,000 fee covers the platform. The messages themselves are billed by Meta,
+per conversation, and that charge never stops.
 
-This route suits a business that values guaranteed delivery and tappable buttons
-more than it minds a per-message cost.
+One campaign a month to your 11,224 customers costs roughly ₹10,000 at current
+marketing rates — approximately ₹1,20,000 a year, paid to Meta rather than to
+Setups Works. Send more often and it rises proportionally.
 
-## What the private gateway route costs to run
+Meta sets these rates, varies them by country and message category, and changes
+them without notice. The figure above is an illustration at roughly ₹0.89 per
+marketing conversation and should be confirmed against Meta's published pricing.
 
-The ₹35,000 fee covers the platform and a dedicated WhatsApp messaging server
-running on infrastructure Nature's Joy controls. There is no per-message charge
-of any kind. The only running cost is the server itself, approximately ₹500 per
-month, billed by your hosting provider.
+## What the private gateway costs to run
 
-This route suits a business messaging its own past customers at volume, where
-the per-message fee would dominate the total cost.
+Nothing per message. The ₹35,000 covers the platform and a dedicated WhatsApp
+messaging server on infrastructure Nature's Joy controls. The only running cost
+is that server, approximately ₹500 a month, billed by your hosting provider.
 
 ## Three years, compared
 
-Twelve campaigns a year to 11,224 customers, with Meta conversations at an
-illustrative ₹0.75:
+One campaign a month to 11,224 customers, with Meta charges at approximately
+₹10,000 a month for every route that pays them:
 
-| Route | Subscription or fee | Meta charges | Three-year total |
+| Route | Fee or subscription | Meta charges | Three-year total |
 |---|---|---|---|
-| AiSensy | ₹54,000 | ₹3,03,048 | ₹3,57,048 |
-| Gallabox | ₹86,364 | ₹3,03,048 | ₹3,89,412 |
-| Interakt | ₹1,00,764 | ₹3,03,048 | ₹4,03,812 |
-| WATI | ₹1,18,800 | ₹3,03,048 | ₹4,21,848 |
-| PulseCommerce + Cloud API | ₹25,000 once | ₹3,03,048 | ₹3,28,048 |
+| AiSensy | ₹54,000 | ₹3,60,000 | ₹4,14,000 |
+| Gallabox | ₹86,364 | ₹3,60,000 | ₹4,46,364 |
+| Interakt | ₹1,00,764 | ₹3,60,000 | ₹4,60,764 |
+| WATI | ₹1,18,800 | ₹3,60,000 | ₹4,78,800 |
+| PulseCommerce + Cloud API | ₹25,000 once | ₹3,60,000 | ₹3,85,000 |
 | **PulseCommerce + private gateway** | **₹35,000 once** | **₹0** | **₹53,000** |
 
-Against the cheapest subscription platform, the private gateway route saves
-approximately ₹3,04,048 over three years. Almost all of that saving is the
-per-conversation fee ceasing to apply.
+Against the cheapest subscription platform, the private gateway saves
+approximately ₹3,61,000 over three years. The saving is not the build fee. It is
+the per-message charge ceasing to apply.
 
 **Payment schedule:** to be agreed in writing before work commences.
 
