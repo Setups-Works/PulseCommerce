@@ -51,10 +51,20 @@ export interface AnalyticsOptions {
   /** Caps the raw order list returned to the client; exports bypass this. */
   maxOrderRows?: number;
   maxCustomerRows?: number;
+  /**
+   * Keep per-customer order history on the records. Off for the dashboard
+   * payload, on for exports and the single-customer lookup.
+   */
+  includeHistory?: boolean;
 }
 
 const DEFAULT_ORDER_ROWS = 1500;
-const DEFAULT_CUSTOMER_ROWS = 2000;
+/**
+ * Safety valve rather than a display limit: with history stripped, a record is
+ * light enough that every customer of a normal store fits comfortably, and the
+ * UI reports the total whenever this does bite.
+ */
+const DEFAULT_CUSTOMER_ROWS = 50_000;
 
 export function computeAnalytics(snapshot: StoreSnapshot, opts: AnalyticsOptions = {}): AnalyticsResult {
   const bounds = dataBounds(snapshot.orders);
@@ -92,7 +102,10 @@ export function computeAnalytics(snapshot: StoreSnapshot, opts: AnalyticsOptions
   const allRecords = buildCustomerRecords(inRange, ctx).sort((a, b) => b.netRevenue - a.netRevenue);
   const customerRows = opts.maxCustomerRows ?? DEFAULT_CUSTOMER_ROWS;
   const customers = buildCustomerAnalytics(allRecords, inRange, ctx);
-  customers.records = allRecords.slice(0, customerRows);
+  const listed = allRecords.slice(0, customerRows);
+  customers.records = opts.includeHistory
+    ? listed
+    : listed.map(({ history: _history, ...rest }) => rest);
   customers.totalCustomers = allRecords.length;
 
   const rangeDays = daysBetween(new Date(range.from), new Date(range.to)) + 1;

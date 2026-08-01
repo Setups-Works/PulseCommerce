@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       // Exports are the complete record — the UI row caps don't apply.
       maxOrderRows: Number.MAX_SAFE_INTEGER,
       maxCustomerRows: Number.MAX_SAFE_INTEGER,
+      includeHistory: true,
     });
 
     const sheets: Sheet[] = (reports as ReportId[]).map((id) => buildSheet(id, result));

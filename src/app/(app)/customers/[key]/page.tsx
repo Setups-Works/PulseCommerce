@@ -37,6 +37,7 @@ import { STATUS_LABELS } from "@/lib/analytics/helpers";
 import type { AnalyticsResult, CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDateTime, formatDays, initials } from "@/lib/format";
 import { useFormatters } from "@/lib/use-currency";
+import { useCustomerHistory } from "@/lib/use-customer-history";
 
 export default function CustomerProfilePage() {
   return <AnalyticsPage>{(data) => <ProfileContent data={data} />}</AnalyticsPage>;
@@ -51,6 +52,7 @@ function ProfileContent({ data }: { data: AnalyticsResult }) {
     () => data.customers.records.find((c) => c.key === key) ?? null,
     [data.customers.records, key],
   );
+  const { history, loading: loadingHistory } = useCustomerHistory(customer);
 
   if (!customer) {
     return (
@@ -215,13 +217,13 @@ function ProfileContent({ data }: { data: AnalyticsResult }) {
       </div>
 
       {/* --- Spend over time ---------------------------------------------- */}
-      {customer.history.length > 1 ? (
+      {history && history.length > 1 ? (
         <ChartCard
           title="Order value over time"
           description="Every order this customer placed in the selected period"
         >
           <TrendChart
-            data={[...customer.history]
+            data={[...history]
               .reverse()
               .map((o) => ({ label: formatDate(o.date), net: o.net, units: o.units }))}
             xKey="label"
@@ -238,8 +240,9 @@ function ProfileContent({ data }: { data: AnalyticsResult }) {
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Order history</CardTitle>
           <CardDescription className="text-xs">
-            {customer.history.length} order{customer.history.length === 1 ? "" : "s"} inside the selected range,
-            newest first.
+            {loadingHistory
+              ? "Loading orders…"
+              : `${history?.length ?? 0} order${(history?.length ?? 0) === 1 ? "" : "s"} inside the selected range, newest first.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -257,7 +260,7 @@ function ProfileContent({ data }: { data: AnalyticsResult }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customer.history.map((order) => (
+                {(history ?? []).map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="py-2 font-mono text-xs font-medium">#{order.number}</TableCell>
                     <TableCell className="py-2 text-xs whitespace-nowrap">

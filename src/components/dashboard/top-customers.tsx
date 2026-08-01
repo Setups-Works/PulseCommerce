@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { STATUS_LABELS } from "@/lib/analytics/helpers";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDays, initials } from "@/lib/format";
+import { useCustomerHistory } from "@/lib/use-customer-history";
 import type { Formatters } from "@/lib/use-currency";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export function TopCustomers({
   currencyShare: number;
 }) {
   const [first, ...rest] = customers.slice(0, 3);
+  const { history } = useCustomerHistory(first ?? null);
   if (!first) return null;
 
   return (
@@ -71,11 +73,11 @@ export function TopCustomers({
           <Metric icon={Crown} label="Predicted CLV" value={fmt.currency(first.predictedClv)} />
         </dl>
 
-        {first.history.length > 0 ? (
+        {history && history.length > 0 ? (
           <div className="mt-4 space-y-1.5 border-t pt-4">
             <p className="text-xs font-medium text-muted-foreground">Their orders</p>
             <ul className="divide-y">
-              {first.history.slice(0, 4).map((order) => (
+              {history.slice(0, 4).map((order) => (
                 <li key={order.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-xs">
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="font-mono font-medium">#{order.number}</span>
@@ -92,12 +94,12 @@ export function TopCustomers({
                 </li>
               ))}
             </ul>
-            {first.history.length > 4 ? (
+            {history.length > 4 ? (
               <Link
                 href={`/customers/${encodeURIComponent(first.key)}`}
                 className="inline-block pt-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
               >
-                View all {first.history.length} orders →
+                View all {history.length} orders →
               </Link>
             ) : null}
           </div>
@@ -161,14 +163,18 @@ function Metric({
 
 /** The order list shown when a ledger row is expanded. */
 export function CustomerOrders({ customer, fmt }: { customer: CustomerRecord; fmt: Formatters }) {
-  if (customer.history.length === 0) {
+  const { history, loading, error } = useCustomerHistory(customer);
+
+  if (loading) return <p className="text-xs text-muted-foreground">Loading orders…</p>;
+  if (error) return <p className="text-xs text-muted-foreground">{error}</p>;
+  if (!history || history.length === 0) {
     return <p className="text-xs text-muted-foreground">No orders recorded in this period.</p>;
   }
 
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium">
-        {customer.history.length} order{customer.history.length === 1 ? "" : "s"} in this period
+        {history.length} order{history.length === 1 ? "" : "s"} in this period
       </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[42rem] text-xs">
@@ -184,7 +190,7 @@ export function CustomerOrders({ customer, fmt }: { customer: CustomerRecord; fm
             </tr>
           </thead>
           <tbody>
-            {customer.history.map((order) => (
+            {history.map((order) => (
               <tr key={order.id} className="border-b last:border-0">
                 <td className="py-1.5 font-mono font-medium">#{order.number}</td>
                 <td className="py-1.5 whitespace-nowrap">{formatDate(order.date)}</td>

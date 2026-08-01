@@ -119,8 +119,15 @@ export interface CustomerRecord {
    * the store's full history, since nobody predates it.
    */
   isReturningCustomer: boolean;
-  /** Their orders in this period, newest first — powers the profile view. */
-  history: {
+  /**
+   * Their orders in this period, newest first.
+   *
+   * Omitted from the ledger payload: order history is half the weight of a
+   * customer record, and carrying it for every customer is what forced the
+   * list to be capped. It is fetched per customer when a profile or an
+   * expanded row actually needs it, and included in exports.
+   */
+  history?: {
     id: number;
     number: string;
     date: string;
