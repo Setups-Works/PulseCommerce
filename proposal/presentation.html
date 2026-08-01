@@ -74,6 +74,35 @@
   .slide.cover .num { color: #ffffff; }
   .slide.cover .num-label { color: rgba(255,255,255,0.72); }
   .slide.cover .foot { color: rgba(255,255,255,0.6); }
+  .slide.cover .rule { background: rgba(255,255,255,0.9); }
+  .slide.cover .note, .slide.cover li { color: rgba(255,255,255,0.86); }
+  .slide.cover li b { color: #ffffff; }
+  .slide.cover li::before { background: rgba(255,255,255,0.85); }
+  .slide.cover .card {
+    background: rgba(255,255,255,0.11);
+    border-color: rgba(255,255,255,0.22);
+  }
+  .slide.cover .card h3 { color: #ffffff; }
+  .slide.cover .card p { color: rgba(255,255,255,0.84); }
+  .slide.cover th { border-bottom-color: rgba(255,255,255,0.65); color: #ffffff; }
+  .slide.cover td { border-bottom-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.88); }
+  .slide.cover tr.total td { border-top-color: rgba(255,255,255,0.65); color: #ffffff; }
+  .slide.cover .callout {
+    background: rgba(255,255,255,0.12);
+    border-left-color: #ffffff;
+  }
+  .slide.cover .callout p { color: #ffffff; }
+  .slide.cover .num.accent, .slide.cover .num.good, .slide.cover .num.warn { color: #ffffff; }
+  .slide.cover .pill { color: #ffffff; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+
+  /* Footnote marker and the line it refers to. */
+  sup.fn { font-size: 0.58em; font-weight: 700; color: var(--brand-500); margin-left: 1px; }
+  .slide.cover sup.fn { color: rgba(255,255,255,0.9); }
+  .terms {
+    position: absolute; left: 72px; right: 72px; bottom: 52px;
+    font-size: 10.5px; line-height: 1.5; color: #9aa2b1;
+  }
+  .slide.cover .terms { color: rgba(255,255,255,0.62); }
   .slide.dark .eyebrow { color: var(--brand-300); }
   .slide.dark .lede, .slide.dark .note, .slide.dark li { color: var(--d-muted); }
   .slide.dark .rule { background: var(--brand-500); }
@@ -180,6 +209,31 @@
   .slide.dark .callout { background: var(--d-panel); border-left-color: var(--brand-500); }
   .slide.dark .callout p { color: var(--d-ink); }
 
+  kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 30px; padding: 0 9px;
+    font-family: var(--body); font-size: 13px; font-weight: 600;
+    background: #ffffff; border: 1px solid var(--hair);
+    border-bottom-width: 2.5px; border-radius: 6px; color: var(--ink);
+  }
+  .keyrow { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .keyrow .lbl { font-size: 13.5px; color: var(--muted); }
+
+  .arch { display: grid; grid-template-columns: 1fr 44px 1fr 44px 1fr; align-items: center; margin-top: 26px; }
+  .box {
+    border: 2px solid var(--hair); border-radius: 11px; padding: 18px 18px 16px;
+    background: var(--panel); text-align: center;
+  }
+  .box.mid { border-color: var(--brand-500); background: var(--brand-50); }
+  .box h3 { font-size: 15px; margin-bottom: 5px; }
+  .box p { font-size: 12px; line-height: 1.45; color: var(--muted); }
+  .box .tag {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--brand-600); margin-bottom: 7px;
+  }
+  .arrow { text-align: center; color: var(--brand-500); font-size: 22px; font-weight: 700; }
+  .arrow small { display: block; font-size: 9.5px; color: var(--muted); letter-spacing: 0.04em; margin-top: 2px; text-transform: uppercase; }
+
   @media print {
     body { background: none; }
     .slide { margin: 0; }
@@ -248,7 +302,7 @@
     during development. Nothing here is an estimate or an illustration.
   </p>
   <div class="grid g4" style="margin-top:28px;">
-    <div class="card"><div class="num sm">₹70.7L</div><div class="num-label">Net revenue across twelve months</div></div>
+    <div class="card"><div class="num sm">₹70.7L</div><div class="num-label">Net revenue across twelve months<sup class="fn">1</sup></div></div>
     <div class="card"><div class="num sm">20,444</div><div class="num-label">Orders placed, 16,317 of them revenue-generating</div></div>
     <div class="card"><div class="num sm">11,224</div><div class="num-label">Distinct customers</div></div>
     <div class="card"><div class="num sm">40,602</div><div class="num-label">Units sold</div></div>
@@ -257,8 +311,9 @@
     <div class="card"><div class="num sm">₹434</div><div class="num-label">Average order value</div></div>
     <div class="card"><div class="num sm">₹632</div><div class="num-label">Revenue per customer, lifetime</div></div>
     <div class="card"><div class="num sm accent">23.8%</div><div class="num-label">Customers who ordered more than once</div></div>
-    <div class="card"><div class="num sm warn">18.1%</div><div class="num-label">Orders cancelled — 3,709 of them</div></div>
+    <div class="card"><div class="num sm warn">18.1%</div><div class="num-label">Orders cancelled — 3,709 of them<sup class="fn">2</sup></div></div>
   </div>
+  <div class="terms">1 · Net revenue excludes tax, shipping and refunds, and counts only completed, processing and on-hold orders. 2 · Cancellation rate is cancelled orders as a share of all orders placed, including failed and pending.</div>
   <div class="foot"><span>PulseCommerce</span><span>Your data</span></div>
 </section>
 
@@ -320,18 +375,18 @@
 </section>
 
 <!-- Retention opportunity ---------------------------------------------- -->
-<section class="slide dark">
+<section class="slide cover">
   <div class="eyebrow">The opportunity</div>
   <h2>8,551 people bought once and never came back</h2>
   <div class="rule"></div>
   <div class="grid g4" style="margin-top:24px;">
     <div class="card"><div class="num sm">11,224</div><div class="num-label">Customers in twelve months</div></div>
     <div class="card"><div class="num sm">2,673</div><div class="num-label">Ordered more than once</div></div>
-    <div class="card"><div class="num sm" style="color:#f87171">8,551</div><div class="num-label">Ordered exactly once</div></div>
+    <div class="card"><div class="num sm" style="color:#ffffff">8,551</div><div class="num-label">Ordered exactly once</div></div>
     <div class="card"><div class="num sm accent">76.2%</div><div class="num-label">Of your customer base, never reactivated</div></div>
   </div>
   <table style="margin-top:30px;">
-    <tr><th>If a win-back campaign converts</th><th class="n">Customers returning</th><th class="n">Revenue at ₹434 AOV</th></tr>
+    <tr><th>If a win-back campaign converts</th><th class="n">Customers returning</th><th class="n">Revenue at ₹434 AOV<sup class="fn">3</sup></th></tr>
     <tr><td>2%</td><td class="n">171</td><td class="n">₹74,213</td></tr>
     <tr><td>5%</td><td class="n">428</td><td class="n">₹1,85,768</td></tr>
     <tr><td>10%</td><td class="n">855</td><td class="n">₹3,71,537</td></tr>
@@ -341,6 +396,7 @@
     already bought from you once — a single win-back campaign returns more than
     three times the cost of building this platform.</p>
   </div>
+  <div class="terms">3 · Illustrative only. Conversion rates are assumptions, not forecasts or guarantees, and assume the average order value observed over the period holds.</div>
   <div class="foot"><span>PulseCommerce</span><span>Opportunity</span></div>
 </section>
 
@@ -368,136 +424,265 @@
   <div class="foot"><span>PulseCommerce</span><span>Scope</span></div>
 </section>
 
-<!-- 5 — Customer intelligence ------------------------------------------ -->
 <section class="slide">
-  <div class="eyebrow">Module 2 &amp; 3</div>
-  <h2>Every customer, scored and explained</h2>
+  <div class="eyebrow">Module 1 of 13</div>
+  <h2>Revenue &amp; performance</h2>
   <div class="rule"></div>
-  <div class="grid g2" style="margin-top:6px;">
-    <div>
-      <ul>
-        <li><b>RFM segmentation</b> across the ten standard segments, from Champions to Lost, scored within your own base so it stays meaningful as you grow.</li>
-        <li><b>Predicted lifetime value</b> per customer, discounted by their churn risk.</li>
-        <li><b>Churn risk</b> judged against each person's own reorder rhythm — a monthly buyer and a seasonal buyer are assessed correctly.</li>
-        <li><b>Revenue concentration</b> with a Gini coefficient, quantifying exposure if the best customers leave.</li>
-        <li><b>All 11,286 customers listed</b>, never a capped sample, with orders expandable in place.</li>
-      </ul>
-    </div>
-    <div class="card" style="align-self:start;">
-      <h3 style="margin-bottom:14px;">Segments, from your data</h3>
-      <table>
-        <tr><td>Champions</td><td class="n">Highest value, active</td></tr>
-        <tr><td>Loyal</td><td class="n">Frequent, reliable</td></tr>
-        <tr><td>At Risk</td><td class="n">Valuable, going quiet</td></tr>
-        <tr><td>Cannot Lose Them</td><td class="n">Top spend, lapsed</td></tr>
-        <tr><td>Hibernating</td><td class="n">Low value, lapsed</td></tr>
-        <tr class="total"><td>817 lapsed</td><td class="n">₹3,91,288</td></tr>
-      </table>
-      <p class="tiny" style="margin-top:14px;">
-        Each segment maps directly to a campaign audience — one click from
-        "who" to "message them".
-      </p>
-    </div>
-  </div>
-  <div class="foot"><span>PulseCommerce</span><span>05</span></div>
+  <p class="lede">What did the business actually do, and is it better or worse than the period before?</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm">₹70.7L</div><div class="num-label">Net revenue, twelve months<sup class="fn">1</sup></div></div><div class="card"><div class="num sm">₹434</div><div class="num-label">Average order value</div></div><div class="card"><div class="num sm">₹7.21L</div><div class="num-label">Best month — November 2025</div></div><div class="card"><div class="num sm">40,602</div><div class="num-label">Units sold</div></div></div>
+  <div class="callout"><p>Every figure is shown against the equal-length previous period, so "good month" is a comparison rather than a feeling. Revenue and orders share one axis, because two axes on one chart can be drawn to say anything.</p></div>
+  <div class="terms">1 · Net revenue excludes tax, shipping and refunds, and counts only orders in completed, processing or on-hold status. Window: 1 August 2025 to 31 July 2026.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Module 1</span></div>
 </section>
 
-<!-- 6 — WhatsApp ------------------------------------------------------- -->
-<section class="slide dark">
-  <div class="eyebrow">Module 6</div>
-  <h2>Messages that know what they bought</h2>
-  <div class="rule" style="background:var(--brand-500)"></div>
-  <div class="grid g2" style="margin-top:6px;">
-    <div>
-      <ul>
-        <li><b>Nine templates</b> — reorder their product, new in a category they shop, win back a lapsed customer, convert a one-time buyer, thank a VIP, request a review, coupon offers, announcements.</li>
-        <li><b>Personalised per customer</b> — their name, the product they spend most on, a link to it, its photo, when they last ordered, what they have spent.</li>
-        <li><b>Discount coupons</b> created from the campaign screen, limited to one use each and restricted to the product being promoted.</li>
-        <li><b>Paced delivery</b> that recovers by itself if the gateway restarts mid-campaign.</li>
-      </ul>
-    </div>
+<section class="slide">
+  <div class="eyebrow">Module 2 of 13</div>
+  <h2>Customer analytics</h2>
+  <div class="rule"></div>
+  <p class="lede">Who is worth keeping, who is slipping away, and how exposed are you if the best ones leave?</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm">11,224</div><div class="num-label">Customers scored</div></div><div class="card"><div class="num sm accent">9.1%</div><div class="num-label">Of revenue from your top 1%</div></div><div class="card"><div class="num sm">₹17,314</div><div class="num-label">Your single largest customer, across 17 orders</div></div><div class="card"><div class="num sm">2,673</div><div class="num-label">Customers who ordered more than once</div></div></div>
+  <div class="callout"><p>Every customer gets an RFM score, a value tier, a predicted lifetime value and a churn risk judged against their own reorder rhythm — so a seasonal buyer is not flagged as lost for behaving normally.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 2</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 3 of 13</div>
+  <h2>Customer profiles</h2>
+  <div class="rule"></div>
+  <p class="lede">Everything about one person, on one screen, before you speak to them.</p>
+  <table style="margin-top:22px;"><tr><th>Your top customer</th><th class="n">Value</th></tr><tr><td>Orders placed</td><td class="n">17</td></tr><tr><td>Lifetime spend</td><td class="n">₹17,314</td></tr><tr><td>Average order</td><td class="n">₹1,018</td></tr><tr><td>Segment</td><td class="n">Champion</td></tr><tr><td>Churn risk</td><td class="n">Low</td></tr><tr><td>Buys most</td><td class="n">Manjistha Soap</td></tr></table>
+  <div class="callout"><p>Identity, location, how they found you, what device they used, what they buy, their revenue percentile, and every order they have placed — reachable from any table in the product.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 3</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 4 of 13</div>
+  <h2>Acquisition &amp; retention</h2>
+  <div class="rule"></div>
+  <p class="lede">Where do new customers come from, and how long before they come back?</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm warn">8,551</div><div class="num-label">Customers who ordered exactly once</div></div><div class="card"><div class="num sm accent">39 days</div><div class="num-label">Median gap before a second order</div></div><div class="card"><div class="num sm">23.8%</div><div class="num-label">Repeat rate across the base</div></div><div class="card"><div class="num sm">12</div><div class="num-label">Monthly cohorts tracked</div></div></div>
+  <div class="callout"><p>The 39-day median is the number to act on: it defines the window a follow-up should land in. Cohorts are tracked monthly, so you can see whether customers acquired in March behave differently from those acquired in June.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 4</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 5 of 13</div>
+  <h2>Campaigns &amp; audiences</h2>
+  <div class="rule"></div>
+  <p class="lede">Turn a finding into a list of people, with the value at stake shown before you send.</p>
+  <table style="margin-top:22px;"><tr><th>Audience</th><th class="n">Customers</th><th class="n">Revenue represented</th></tr><tr><td>Bought once, still recent</td><td class="n">8,551</td><td class="n">₹37.1L potential<sup class="fn">2</sup></td></tr><tr><td>Ordered 2+ times</td><td class="n">2,673</td><td class="n">₹33.6L historic</td></tr><tr><td>Top 1% by spend</td><td class="n">113</td><td class="n">₹6.4L historic</td></tr><tr><td>Karnataka customers</td><td class="n">~840</td><td class="n">₹5.1L historic</td></tr></table>
+  <div class="callout"><p>Six goal-driven presets, or build your own from segment, tier, spend, recency, churn risk, location and product bought. Reach and revenue update as you filter.</p></div>
+  <div class="terms">2 · Potential revenue is the count multiplied by the average order value. It is an illustration of scale, not a forecast, and assumes nothing about conversion.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Module 5</span></div>
+</section>
+
+<section class="slide cover">
+  <div class="eyebrow">Module 6 of 13</div>
+  <h2>WhatsApp campaigns</h2>
+  <div class="rule"></div>
+  <p class="lede">Message that audience directly, with each person seeing what they actually buy.</p>
+  <div class="grid g2" style="margin-top:22px;">
     <div class="card">
-      <div class="tiny" style="color:var(--d-muted); margin-bottom:10px;">As a customer receives it</div>
-      <p style="font-size:15px; line-height:1.6; color:var(--d-ink);">
-        Hi Priya, it has been a while since your last <b style="color:#fff">Manjistha Herbal Soap</b>.<br><br>
-        Here is 10% off with code <b style="color:#fff">SAVE10NOW</b>:<br>
-        <span style="color:var(--brand-300)">naturesjoystore.com/product/manjistha-soap</span><br><br>
+      <h3 style="margin-bottom:10px;">As one customer receives it</h3>
+      <p style="font-size:14px; line-height:1.6;">
+        Hi Priya, it has been a while since your last <b>Manjistha Soap</b>.<br><br>
+        Here is 10% off with code <b>SAVE10NOW</b>:<br>
+        naturesjoystore.com/product/manjistha-soap<br><br>
         — Nature's Joy
       </p>
-      <p class="tiny" style="margin-top:14px; color:var(--d-muted);">
-        Product name, link, photo and discount all resolved from that customer's
-        own order history.
-      </p>
+    </div>
+    <div>
+      <ul>
+        <li><b>Nine templates</b> for reorder, win-back, second order, review requests and offers</li>
+        <li><b>Ten variables</b> resolved per person from their own orders</li>
+        <li><b>Coupons created</b> in WooCommerce, limited to one use each</li>
+        <li><b>Paced sending</b> that survives a gateway restart<sup class="fn">3</sup></li>
+      </ul>
     </div>
   </div>
-  <div class="foot"><span>PulseCommerce</span><span>06</span></div>
+  
+  <div class="terms">3 · Sending uses a self-hosted gateway rather than Meta's official API. Delivery is not guaranteed and the linked number carries a risk of restriction by WhatsApp. A dedicated number should be used.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Module 6</span></div>
 </section>
 
+<section class="slide">
+  <div class="eyebrow">Module 7 of 13</div>
+  <h2>Shared WhatsApp inbox</h2>
+  <div class="rule"></div>
+  <p class="lede">Replies land where the business can see them, next to who sent them.</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm">Live</div><div class="num-label">Replies arrive without a refresh</div></div><div class="card"><div class="num sm">Full</div><div class="num-label">Order history beside every conversation</div></div><div class="card"><div class="num sm">Any</div><div class="num-label">Text, media or a catalogue product</div></div><div class="card"><div class="num sm">Search</div><div class="num-label">Across names and numbers</div></div></div>
+  <div class="callout"><p>Answering "is this back in stock?" is a different conversation when you can see the person asking has ordered eleven times. The opt-out list applies here too.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 8 of 13</div>
+  <h2>Product &amp; catalogue analytics</h2>
+  <div class="rule"></div>
+  <p class="lede">Which products carry the business, which are dead weight, and what sells together?</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm">74</div><div class="num-label">Distinct products sold</div></div><div class="card"><div class="num sm accent">10</div><div class="num-label">Class A — the first 80% of revenue</div></div><div class="card"><div class="num sm">18</div><div class="num-label">Class B — the next 15%</div></div><div class="card"><div class="num sm">46</div><div class="num-label">Class C — the last 5%</div></div></div>
+  <div class="callout"><p>Ten products out of 74 produce four-fifths of your revenue. The other 46 together account for less than a twentieth — worth knowing before deciding what to restock, discount or discontinue.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 8</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 9 of 13</div>
+  <h2>Inventory &amp; restock planning</h2>
+  <div class="rule"></div>
+  <p class="lede">What runs out next, and what is it worth if it does?</p>
+  <table style="margin-top:22px;"><tr><th>Manjistha Soap</th><th class="n">Value</th></tr><tr><td>Units sold, twelve months</td><td class="n">13,334</td></tr><tr><td>Average daily velocity</td><td class="n">~37 units</td></tr><tr><td>Share of product revenue</td><td class="n">33.3%</td></tr><tr><td>Revenue exposed per week out of stock</td><td class="n">≈ ₹45,000<sup class="fn">4</sup></td></tr></table>
+  <div class="callout"><p>Days of cover, reorder points from your supplier lead time, suggested order quantities, and a CSV shaped as a draft purchase order.</p></div>
+  <div class="terms">4 · Calculated from observed sales velocity over the period. Actual exposure depends on substitution, seasonality and stock levels at the time.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Module 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 10 of 13</div>
+  <h2>Orders &amp; operations</h2>
+  <div class="rule"></div>
+  <p class="lede">What is happening to orders after they are placed?</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm warn">18.1%</div><div class="num-label">Orders cancelled — 3,709 of them</div></div><div class="card"><div class="num sm">15,998</div><div class="num-label">Orders completed</div></div><div class="card"><div class="num sm">Sunday</div><div class="num-label">Your busiest trading day</div></div><div class="card"><div class="num sm">3pm</div><div class="num-label">Your busiest hour</div></div></div>
+  <div class="callout"><p>The cancellation rate is the finding worth investigating first. Whether it is genuine cancellations or a checkout problem changes what you do about it — and the order register makes the difference visible.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 11 of 13</div>
+  <h2>Forecasting</h2>
+  <div class="rule"></div>
+  <p class="lede">What does next month look like, and is the store pacing ahead or behind?</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm">₹6.5L</div><div class="num-label">Recent monthly run rate</div></div><div class="card"><div class="num sm accent">95%</div><div class="num-label">Confidence band on the projection</div></div><div class="card"><div class="num sm">Weekly</div><div class="num-label">Seasonality shown explicitly</div></div><div class="card"><div class="num sm">30 days</div><div class="num-label">Default forecast horizon</div></div></div>
+  <div class="callout"><p>A least-squares trend multiplied by day-of-week seasonality. It answers whether you are pacing ahead of or behind your own recent trend. It knows nothing about planned promotions or stock-outs, and says so.</p></div>
+  <div class="terms">5 · Forecasts are statistical projections from historic data, not commitments. They exclude planned campaigns, stock availability and seasonality outside the period analysed.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Module 11</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 12 of 13</div>
+  <h2>Geography</h2>
+  <div class="rule"></div>
+  <p class="lede">Where is the revenue, and where is the next market?</p>
+  <table style="margin-top:22px;"><tr><th>Location</th><th class="n">Net revenue</th><th class="n">Share</th></tr><tr><td>Tamil Nadu</td><td class="n">₹61.3L</td><td class="n">86.5%</td></tr><tr><td>Chennai alone</td><td class="n">₹19.1L</td><td class="n">27.0%</td></tr><tr><td>Karnataka</td><td class="n">₹5.1L</td><td class="n">7.2%</td></tr><tr><td>Puducherry</td><td class="n">₹1.4L</td><td class="n">1.9%</td></tr></table>
+  <div class="callout"><p>Karnataka is already buying ₹5.1L a year without being targeted. That makes it the cheapest market to test a campaign in, and the clearest expansion signal in the data.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 12</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Module 13 of 13</div>
+  <h2>Reports &amp; exports</h2>
+  <div class="rule"></div>
+  <p class="lede">Take any of it out, in the format the person asking for it uses.</p>
+  <div class="grid g4" style="margin-top:24px;"><div class="card"><div class="num sm">10</div><div class="num-label">Report types</div></div><div class="card"><div class="num sm">Excel</div><div class="num-label">Formatted sheets with filters</div></div><div class="card"><div class="num sm">PDF</div><div class="num-label">Board-ready with a cover</div></div><div class="card"><div class="num sm">CSV</div><div class="num-label">For spreadsheets and pipelines</div></div></div>
+  <div class="callout"><p>Executive summary, customer ledger, segmentation, products, categories, order register, cohorts, geography, operations and forecast — with presets for a board pack, a CRM upload, a merchandising review or a finance reconciliation.</p></div>
+  
+  <div class="foot"><span>PulseCommerce</span><span>Module 13</span></div>
+</section>
+
+<!-- 5 — Customer intelligence ------------------------------------------ -->
+<!-- 6 — WhatsApp ------------------------------------------------------- -->
 <!-- 7 — Inbox ---------------------------------------------------------- -->
 <section class="slide">
-  <div class="eyebrow">Module 7</div>
-  <h2>Replies land somewhere useful</h2>
+  <div class="eyebrow">Architecture</div>
+  <h2>How the three pieces connect</h2>
   <div class="rule"></div>
-  <p class="lede">
-    Answering "is this back in stock?" is a different conversation when you can
-    see the person asking has ordered eleven times and spent ₹14,200.
-  </p>
-  <div class="grid g3">
-    <div class="card"><h3>The customer, not a number</h3><p>Every conversation shows who it is, how often they have ordered and what they have spent — with one click to their full profile.</p></div>
-    <div class="card"><h3>Reply with anything</h3><p>Text, an image or video, or a product pulled straight from your catalogue with its photo and buy link.</p></div>
-    <div class="card"><h3>Start the conversation</h3><p>Message any customer directly by number, without waiting for them to write first.</p></div>
+
+  <div class="arch">
+    <div class="box">
+      <span class="tag">Yours</span>
+      <h3>WooCommerce store</h3>
+      <p>Orders, products, customers and coupons, over the official REST API</p>
+    </div>
+    <div class="arrow">→<small>read</small></div>
+    <div class="box mid">
+      <span class="tag">The platform</span>
+      <h3>PulseCommerce</h3>
+      <p>Pulls once, caches, computes every metric from that cache</p>
+    </div>
+    <div class="arrow">→<small>send</small></div>
+    <div class="box">
+      <span class="tag">Yours</span>
+      <h3>WhatsApp gateway</h3>
+      <p>Holds the WhatsApp connection on your own server</p>
+    </div>
   </div>
-  <div class="spacer"></div>
-  <p class="tiny">
-    The opt-out list applies here too. Someone who asks the business to stop is
-    not messaged again, by a campaign or by hand.
-  </p>
-  <div class="foot"><span>PulseCommerce</span><span>07</span></div>
+
+  <div class="grid g3" style="margin-top:26px;">
+    <div class="card">
+      <h3>One pull, then everything</h3>
+      <p>Cohorts and lifetime value need the whole order history. It is fetched
+      once and cached, so changing a date range is instant rather than another
+      wait on your store.</p>
+    </div>
+    <div class="card">
+      <h3>Your storefront is never in the path</h3>
+      <p>Analysis runs against the cached copy. No customer ever waits on a
+      query the business is running.</p>
+    </div>
+    <div class="card">
+      <h3>Numbers stay on the server</h3>
+      <p>The browser receives names and counts. Phone numbers are resolved only
+      at the moment a message is sent.</p>
+    </div>
+  </div>
+
+  <div class="terms">Store access is read-only, with one exception: creating the discount coupons you ask for. Nothing modifies an order, a product or a store setting.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Architecture</span></div>
 </section>
 
-<!-- 8 — Architecture --------------------------------------------------- -->
 <section class="slide">
-  <div class="eyebrow">How it is built</div>
-  <h2>Three pieces, all yours</h2>
+  <div class="eyebrow">Built for daily use</div>
+  <h2>Keyboard-first, for people who live in it</h2>
   <div class="rule"></div>
-  <div class="grid g3" style="margin-top:10px;">
-    <div class="card" style="border-width:2px; border-color:var(--ink);">
-      <h3>Your WooCommerce store</h3>
-      <p>Read for orders, products and customers. The storefront is never in the
-      query path, so no customer waits on your analysis.</p>
-    </div>
-    <div class="card" style="border-width:2px; border-color:var(--brand-500);">
-      <h3>PulseCommerce</h3>
-      <p>Pulls your history once, caches it, and computes every figure from that
-      cache. Changing a date range is instant.</p>
-    </div>
-    <div class="card" style="border-width:2px; border-color:var(--ink);">
-      <h3>Your WhatsApp gateway</h3>
-      <p>Holds the WhatsApp connection on a server you own. Numbers never reach a
-      third-party messaging service.</p>
-    </div>
-  </div>
-  <div class="grid g2" style="margin-top:26px;">
+  <p class="lede">Every screen is one or two keystrokes away. Shortcuts are
+  ignored while you are typing, so they never eat a search query.</p>
+
+  <div class="grid g3" style="margin-top:24px;">
     <div>
-      <h3 style="margin-bottom:9px;">Nothing leaves your control</h3>
-      <p class="note">Customer names, numbers and order history stay on your own
-      infrastructure. No analytics vendor, no messaging vendor, no copy of your
-      customer list anywhere else.</p>
+      <h3 style="margin-bottom:12px;">Search &amp; actions</h3>
+      <div class="keyrow"><kbd>⌘</kbd><kbd>K</kbd><span class="lbl">Search everything</span></div>
+      <div class="keyrow"><kbd>/</kbd><span class="lbl">Jump to search</span></div>
+      <div class="keyrow"><kbd>?</kbd><span class="lbl">Show all shortcuts</span></div>
+      <div class="keyrow"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>R</kbd><span class="lbl">Re-sync store</span></div>
+      <div class="keyrow"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>L</kbd><span class="lbl">Light / dark</span></div>
     </div>
     <div>
-      <h3 style="margin-bottom:9px;">It reads; it writes one thing</h3>
-      <p class="note">The only change made to your store is creating a discount
-      coupon when you ask for one. Nothing modifies an order, a product or a
-      setting.</p>
+      <h3 style="margin-bottom:12px;">Go to — press <kbd>g</kbd> then</h3>
+      <div class="keyrow"><kbd>d</kbd><span class="lbl">Dashboard</span></div>
+      <div class="keyrow"><kbd>c</kbd><span class="lbl">Customers</span></div>
+      <div class="keyrow"><kbd>a</kbd><span class="lbl">Acquisition</span></div>
+      <div class="keyrow"><kbd>h</kbd><span class="lbl">Cohorts</span></div>
+      <div class="keyrow"><kbd>p</kbd><span class="lbl">Products</span></div>
+      <div class="keyrow"><kbd>i</kbd><span class="lbl">Inventory</span></div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:12px;">&nbsp;</h3>
+      <div class="keyrow"><kbd>o</kbd><span class="lbl">Orders</span></div>
+      <div class="keyrow"><kbd>m</kbd><span class="lbl">Campaigns</span></div>
+      <div class="keyrow"><kbd>w</kbd><span class="lbl">WhatsApp inbox</span></div>
+      <div class="keyrow"><kbd>f</kbd><span class="lbl">Forecast</span></div>
+      <div class="keyrow"><kbd>r</kbd><span class="lbl">Reports</span></div>
+      <div class="keyrow"><kbd>s</kbd><span class="lbl">Settings</span></div>
     </div>
   </div>
-  <div class="foot"><span>PulseCommerce</span><span>08</span></div>
+
+  <div class="callout">
+    <p>The command palette searches customers, products and orders together —
+    type a name, a phone number or an order number and go straight there.</p>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Interface</span></div>
 </section>
 
 <!-- 9 — Safety --------------------------------------------------------- -->
 <section class="slide">
   <div class="eyebrow">Before anything is sent</div>
-  <h2>Four gates between you and 11,286 people</h2>
+  <h2>Four gates between you and 11,224 people</h2>
   <div class="rule"></div>
   <div class="grid g4" style="margin-top:16px;">
     <div class="card"><h3>1 · Dry run</h3><p>Resolves the real recipient list and sends nothing. Shows who was excluded and why, plus the message as the first recipient would read it.</p></div>
@@ -509,7 +694,7 @@
   <p class="note" style="max-width:76ch;">
     Duplicate numbers across records are collapsed so a household is messaged
     once, and every excluded recipient is counted and categorised — so
-    "sent 9,800 of 11,286" always has an explanation.
+    "sent 9,800 of 11,224" always has an explanation.
   </p>
   <div class="foot"><span>PulseCommerce</span><span>09</span></div>
 </section>
@@ -540,33 +725,34 @@
     structural difference does not change: one bills per message, the other does
     not.
   </p>
-  <div class="foot"><span>PulseCommerce</span><span>10</span></div>
+  <div class="terms">4 · Meta's per-conversation rates vary by country and message category and change over time; confirm against their current published pricing. 5 · Hosting is an estimate, billed by your provider, not by Setups Works.</div>
+  <div class="foot"><span>PulseCommerce</span><span>Cost</span></div>
 </section>
 
 <!-- 11 — The numbers --------------------------------------------------- -->
-<section class="slide dark">
+<section class="slide cover">
   <div class="eyebrow">Cost at your scale</div>
   <h2>One campaign to your customer base</h2>
-  <div class="rule" style="background:var(--brand-500)"></div>
-  <p class="note" style="color:var(--d-muted); max-width:74ch;">
-    11,286 customers. Because the exact Meta rate varies, here is the cost across
+  <div class="rule" style="background:rgba(255,255,255,0.9)"></div>
+  <p class="note" style="color:rgba(255,255,255,0.8); max-width:74ch;">
+    11,224 customers. Because the exact Meta rate varies, here is the cost across
     the plausible range — and what it becomes at one campaign a month.
   </p>
   <table style="margin-top:22px;">
     <tr>
-      <th>If a marketing conversation costs</th>
+      <th>If a marketing conversation costs<sup class="fn">4</sup></th>
       <th class="n">One campaign</th>
       <th class="n">Monthly, for a year</th>
       <th class="n">PulseCommerce</th>
     </tr>
-    <tr><td>₹0.50</td><td class="n">₹5,643</td><td class="n">₹67,716</td><td class="n" style="color:#34d399">₹0</td></tr>
-    <tr><td>₹0.75</td><td class="n">₹8,465</td><td class="n">₹1,01,574</td><td class="n" style="color:#34d399">₹0</td></tr>
-    <tr><td>₹1.00</td><td class="n">₹11,286</td><td class="n">₹1,35,432</td><td class="n" style="color:#34d399">₹0</td></tr>
+    <tr><td>₹0.50</td><td class="n">₹5,643</td><td class="n">₹67,716</td><td class="n" style="color:#ffffff">₹0</td></tr>
+    <tr><td>₹0.75</td><td class="n">₹8,465</td><td class="n">₹1,01,574</td><td class="n" style="color:#ffffff">₹0</td></tr>
+    <tr><td>₹1.00</td><td class="n">₹11,224</td><td class="n">₹1,35,432</td><td class="n" style="color:#ffffff">₹0</td></tr>
   </table>
   <div class="spacer"></div>
   <div style="display:flex; gap:52px; align-items:baseline;">
-    <div><div class="num accent" style="color:var(--brand-300)">2 campaigns</div><div class="num-label" style="color:var(--d-muted);">Break-even against the ₹20,000 build, at the middle rate</div></div>
-    <div><div class="num good" style="color:#34d399">₹81,574</div><div class="num-label" style="color:var(--d-muted);">Saved in year one at one campaign a month, after paying for the build</div></div>
+    <div><div class="num accent" style="color:#ffffff">2 campaigns</div><div class="num-label" >Break-even against the ₹20,000 build, at the middle rate</div></div>
+    <div><div class="num good" style="color:#ffffff">₹81,574</div><div class="num-label" >Saved in year one at one campaign a month, after paying for the build</div></div>
   </div>
   <div class="foot"><span>PulseCommerce</span><span>11</span></div>
 </section>
@@ -578,8 +764,8 @@
   <div class="rule"></div>
   <p class="lede">Measured against your live store, not a test fixture.</p>
   <div class="grid g4" style="margin-top:26px;">
-    <div class="card"><div class="num sm">20,490</div><div class="num-label">Orders analysed</div></div>
-    <div class="card"><div class="num sm">11,286</div><div class="num-label">Customers scored</div></div>
+    <div class="card"><div class="num sm">20,444</div><div class="num-label">Orders analysed</div></div>
+    <div class="card"><div class="num sm">11,224</div><div class="num-label">Customers scored</div></div>
     <div class="card"><div class="num sm accent">0.7s</div><div class="num-label">Typical page load</div></div>
     <div class="card"><div class="num sm">81%</div><div class="num-label">Data transfer removed by trimming what is never read</div></div>
   </div>
@@ -635,10 +821,10 @@
 </section>
 
 <!-- 14 — Investment ---------------------------------------------------- -->
-<section class="slide dark">
+<section class="slide cover">
   <div class="eyebrow">Investment</div>
   <h2>₹20,000, one time</h2>
-  <div class="rule" style="background:var(--brand-500)"></div>
+  <div class="rule" style="background:rgba(255,255,255,0.9)"></div>
   <table style="margin-top:20px;">
     <tr><th>Item</th><th class="n">Cost</th></tr>
     <tr><td>Platform build, thirteen modules</td><td class="n">Included</td></tr>
@@ -646,15 +832,67 @@
     <tr><td>Deployment, configuration and verification</td><td class="n">Included</td></tr>
     <tr><td>Documentation and handover session</td><td class="n">Included</td></tr>
     <tr><td>Source code ownership</td><td class="n">Included</td></tr>
-    <tr class="total"><td>Total, one time</td><td class="n">₹20,000</td></tr>
+    <tr class="total"><td>Total, one time</td><td class="n">₹20,000<sup class="fn">6</sup></td></tr>
   </table>
   <div class="spacer"></div>
   <div style="display:flex; gap:52px; align-items:baseline;">
-    <div><div class="num">₹0</div><div class="num-label" style="color:var(--d-muted);">Per message sent, permanently</div></div>
-    <div><div class="num" style="color:#34d399">2 campaigns</div><div class="num-label" style="color:var(--d-muted);">Until the build has paid for itself</div></div>
-    <div><div class="num" style="color:var(--brand-300)">₹3,91,288</div><div class="num-label" style="color:var(--d-muted);">Lapsed customer value the first campaign targets</div></div>
+    <div><div class="num">₹0</div><div class="num-label" >Per message sent, permanently</div></div>
+    <div><div class="num" style="color:#ffffff">2 campaigns</div><div class="num-label" >Until the build has paid for itself</div></div>
+    <div><div class="num" style="color:#ffffff">₹37.1L</div><div class="num-label" >Lapsed customer value the first campaign targets</div></div>
   </div>
   <div class="foot"><span>Setups Works</span><span>14</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Terms &amp; conditions</div>
+  <h2>The small print, in full</h2>
+  <div class="rule"></div>
+  <div class="grid g2" style="margin-top:8px;">
+    <div>
+      <h3 style="margin-bottom:8px;">About the figures</h3>
+      <p class="note" style="margin-bottom:14px;">
+        All store figures were computed from naturesjoystore.com over 1 August 2025
+        to 31 July 2026, covering 20,444 orders. Net revenue excludes tax, shipping
+        and refunds and counts only completed, processing and on-hold orders.
+        Figures will change as the store trades.
+      </p>
+      <h3 style="margin-bottom:8px;">About the projections</h3>
+      <p class="note" style="margin-bottom:14px;">
+        Win-back revenue, campaign returns and forecasts are illustrations based on
+        stated assumptions. They are not forecasts, guarantees or commitments, and
+        actual results will differ.
+      </p>
+      <h3 style="margin-bottom:8px;">About third-party costs</h3>
+      <p class="note">
+        WhatsApp Cloud API rates are set by Meta, vary by country and category, and
+        change without notice. Server hosting is billed by your provider. Neither
+        is included in the quoted price.
+      </p>
+    </div>
+    <div>
+      <h3 style="margin-bottom:8px;">About WhatsApp delivery</h3>
+      <p class="note" style="margin-bottom:14px;">
+        Messaging uses a self-hosted gateway connecting through unofficial clients,
+        not Meta's official Business API. Delivery is not guaranteed. WhatsApp may
+        restrict any number used for automated messaging, and no appeal route exists
+        through this software. A dedicated number should be used, never the primary
+        business line. Setups Works accepts no liability for restriction of a number.
+      </p>
+      <h3 style="margin-bottom:8px;">About the quote</h3>
+      <p class="note" style="margin-bottom:14px;">
+        ₹20,000 covers the build, deployment, configuration, documentation and
+        handover described in this document. It is valid for 30 days from issue.
+        Work outside the thirteen modules is quoted separately.
+      </p>
+      <h3 style="margin-bottom:8px;">About your data</h3>
+      <p class="note">
+        All data remains the property of Nature's Joy and stays on infrastructure
+        you control. Store access is read-only except for creating discount coupons
+        you request, and can be revoked at any time from WordPress.
+      </p>
+    </div>
+  </div>
+  <div class="foot"><span>Setups Works · setups.works</span><span>Terms</span></div>
 </section>
 
 <!-- 15 — Next steps ---------------------------------------------------- -->
