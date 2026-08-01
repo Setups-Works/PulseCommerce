@@ -169,9 +169,18 @@ export function WhatsAppSettingsCard() {
             <Row label="Gateway" value={state.config.baseUrl} />
             <Row label="API key" value={state.config.apiKey} mono />
             <Row label="Session" value={state.config.sessionName ?? state.config.sessionId} />
+            {/*
+              The gateway keeps `phone` on the session after a connection
+              drops, so it is the last number paired rather than a live one.
+              Labelling that "Linked number" reads as connected when it is not.
+            */}
             <Row
-              label="Linked number"
-              value={session?.phone ?? state.config.phone ?? "not linked"}
+              label={ready ? "Linked number" : "Last linked"}
+              value={
+                session?.phone ?? state.config.phone
+                  ? `${session?.phone ?? state.config.phone}${ready ? "" : " · not connected"}`
+                  : "never linked"
+              }
               mono
             />
             <Row
