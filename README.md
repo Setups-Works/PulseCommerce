@@ -45,6 +45,7 @@ never reach a third-party messaging service.
 ## Table of contents
 
 - [Feature list](#feature-list)
+- [Complete feature list](#complete-feature-list)
 - [Feature tour](#feature-tour)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Small things](#small-things)
@@ -300,6 +301,95 @@ never reach a third-party messaging service.
 
 ---
 
+## Complete feature list
+
+Everything in the product, so nothing shipped is undocumented.
+
+<details>
+<summary><b>Analytics</b></summary>
+
+**Revenue** — net and gross revenue · orders · average order value · units ·
+discounts · shipping · tax · refunds · items per order · revenue per customer ·
+cancellation rate · period-on-period comparison · day, week and month views ·
+sparkline trends · generated findings ranked by urgency
+
+**Customers** — RFM scoring · ten segments · five value tiers · predicted
+lifetime value · churn risk · revenue deciles · Pareto curve · Gini coefficient ·
+recency-frequency plot · top-customer spotlight · high value, low value, at risk
+and rising cohorts · full ledger with expandable orders
+
+**Profiles** — contact details · location · acquisition channel and device · RFM
+pips · revenue percentile · refunds · discounts used · products ranked by revenue
+· order value over time · complete order history
+
+**Acquisition** — new versus returning revenue · full customer tables · channel
+attribution · first-time buyer analysis per channel · device breakdown · pages
+per session · time to second order with quartiles · monthly cohort retention ·
+cumulative LTV curve · attribution coverage
+
+**Products** — ABC classification · Pareto concentration · revenue, units, orders
+and distinct customers per product · price and velocity · refund rate per product
+· average rating · market-basket affinity by lift · category mix · best sellers
+by value and volume · slow movers · never-sold items
+
+**Inventory** — days of cover · reorder points from lead time · suggested order
+quantities · out of stock, critical, low, healthy and overstocked states · revenue
+at risk · capital tied up · restock planner · draft purchase order export
+
+**Operations** — full order register · status mix · basket-size distribution ·
+payment method performance · day-by-hour trading heatmap · weekday performance ·
+fulfilment timing
+
+**Forecast and geography** — daily revenue projection · 95% confidence band ·
+weekday seasonality shown explicitly · revenue, orders, customers and AOV by
+country, state and city
+
+</details>
+
+<details>
+<summary><b>Messaging</b></summary>
+
+**Campaigns** — audience builder with live reach · six goal presets · filters on
+segment, tier, recency, spend, orders, churn risk, country, account type, product
+bought and contactability · revenue and predicted value at stake · CSV export for
+email and ads platforms · campaign performance from UTM tags · coupon return on
+discount
+
+**WhatsApp** — text, image and video · nine templates · eleven personalisation
+variables · per-customer product photos · catalogue product picker · coupon
+creation and attachment · dry run · test send · typed confirmation · opt-out list
+· paced sending with jitter · resumable jobs · automatic gateway recovery · live
+progress and stop control
+
+**Inbox** — conversations matched to customers · order count and lifetime spend
+beside each · link to full profile · live reply polling · text, media and product
+replies · start a conversation from a number · unread counts · search across names
+and numbers · opt-out enforced
+
+</details>
+
+<details>
+<summary><b>Platform</b></summary>
+
+**Reports** — ten report types · Excel with formatted sheets, filters and currency
+formats · PDF with cover, KPIs and findings · CSV for pipelines · board pack, CRM
+upload, merchandising and finance presets · written report view · exports match
+the on-screen range and are never truncated
+
+**Interface** — multiple stores with instant switching · command palette across
+customers, products and orders · keyboard navigation throughout · light and dark
+themes · persisted date ranges · sortable, searchable, expandable tables ·
+optional password protection · honest empty states · partial-data warnings
+
+**Security** — approval inside your own WordPress admin · no consumer key ever
+typed into a form · verification before saving · keys shown masked · phone numbers
+never sent to the browser · opt-outs enforced server-side · one-click disconnect
+wipes the key and every cached order
+
+</details>
+
+---
+
 ## Feature tour
 
 ### Dashboard
@@ -416,7 +506,7 @@ pleasant to use.
 - The WhatsApp test send cannot reach a customer — it only accepts a typed number
 - Generated coupon codes omit `O`, `0`, `I` and `1`
 - Duplicate phone numbers across customer records collapse to one recipient
-- Every skipped recipient is counted and categorised, so "sent 9,800 of 11,286"
+- Every skipped recipient is counted and categorised, so "sent 9,800 of 11,000"
   always has an explanation
 
 ---
@@ -848,6 +938,68 @@ nobody receives a literal `{{product}}` or a dangling comma.
 A **campaign product** picked from the catalogue overrides that for everyone,
 and supplies the photo.
 
+### Templates
+
+Nine, each written for a specific job rather than as a blank box:
+
+| Template | What it says | When to send it |
+|---|---|---|
+| Reorder | Names the product they bought, links to it | Their usual reorder gap has passed |
+| Category arrivals | New items in the range they already shop | You add stock to a category |
+| Win back | References their product and last order date | At Risk or Hibernating segments |
+| Second order | Asks how they got on, invites a repeat | One-time buyers, still recent |
+| VIP thank you | Names their order count, invites a reply | Champions and top-tier customers |
+| Review request | Asks for feedback on what they buy | Repeat customers with a recent order |
+| Coupon + product | A discount tied to their own product | Lapsed customers worth converting |
+| Coupon only | A store-wide discount offer | Any audience, no clear favourite |
+| Announcement | Your own words, greeting still personal | Anything else |
+
+Templates are edited freely before sending. No approval process applies, unlike
+Meta's official API.
+
+### Variables
+
+Each resolves per recipient, at the moment of sending:
+
+| Variable | Resolves to |
+|---|---|
+| `{{name}}` | First name, or nothing for a guest checkout with no usable name |
+| `{{product}}` | The product they have **spent the most on** |
+| `{{product_url}}` | That product's permalink from WooCommerce |
+| `{{product_image}}` | That product's first image |
+| `{{category}}` | The category that product belongs to |
+| `{{last_order}}` | When they last ordered, e.g. "14 March" |
+| `{{orders}}` | How many orders they have placed |
+| `{{spend}}` | What they have spent in total, formatted in the store's currency |
+| `{{store}}` | Your store name |
+| `{{coupon}}` | The coupon code attached to the campaign |
+| `{{coupon_value}}` | What it is worth, e.g. "10% off" or "₹150 off" |
+
+**Spent-the-most-on, not most-recent.** A one-off small purchase should not
+become the thing a reorder message is built around.
+
+**Unresolved variables collapse.** A variable with no value for someone is
+removed and the sentence tidied afterwards — `[^\S\n]{2,}` to a single space,
+` ,` to `,`, a line left as a bare colon deleted — so nobody receives a literal
+`{{product}}`, a dangling comma, or a label with nothing under it.
+
+### Sending mechanics
+
+| | |
+|---|---|
+| Spacing | ~4s between messages, plus the gateway's own 0–2s jitter |
+| Batch size | 100 recipients per submission (the gateway's maximum) |
+| Duration | A full base runs for hours, deliberately |
+| Interruption | Closing the page pauses; reopening resumes from the cursor |
+| Gateway restart | Detected and recovered automatically, costing one batch of delay |
+
+Every excluded recipient is counted and categorised — no phone on file, an
+unreadable number, a duplicate shared with another record, or an opt-out — so
+"sent 9,800 of 11,000" always has an explanation.
+
+Pacing is the point. Sending thousands of messages in minutes is the single most
+reliable way to have a number restricted.
+
 ### Coupons
 
 Pick an existing WooCommerce coupon, or generate one: a code, percentage or
@@ -976,7 +1128,7 @@ and the coverage percentage is reported rather than hidden.
 
 ## Performance
 
-Against a live store with **20,490 orders and 11,286 customers**:
+Against a production store of roughly **20,000 orders and 11,000 customers**:
 
 | Measure | Result |
 |---|---|
