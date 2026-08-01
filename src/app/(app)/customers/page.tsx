@@ -11,7 +11,9 @@ import { SCATTER_BANDS, SegmentScatter } from "@/components/charts/segment-scatt
 import { seriesColor } from "@/components/charts/palette";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { RiskBadge, SegmentBadge, TierBadge } from "@/components/dashboard/badges";
+import { CustomerFilters } from "@/components/dashboard/customer-filters";
 import { DataTable } from "@/components/dashboard/data-table";
+import { CustomerOrders, TopCustomers } from "@/components/dashboard/top-customers";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AnalyticsResult, CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDays, initials } from "@/lib/format";
+import { applyAudience, EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { useFormatters, type Formatters } from "@/lib/use-currency";
 
 export default function CustomersPage() {
@@ -32,6 +35,9 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
   const { customers, kpis } = data;
   const [tab, setTab] = useState<CohortTab>("top");
   const router = useRouter();
+  // Contactability is off by default here: the ledger is for analysis, not a
+  // send list, so guest checkouts without an email still belong in it.
+  const [filter, setFilter] = useState<AudienceFilter>({ ...EMPTY_AUDIENCE, requireEmail: false });
 
   const columns = useMemo(() => buildColumns(fmt), [fmt]);
 
@@ -46,13 +52,25 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
     [customers.deciles],
   );
 
-  const rows: Record<CohortTab, CustomerRecord[]> = {
+  const baseRows: Record<CohortTab, CustomerRecord[]> = {
     top: customers.topCustomers,
     low: customers.lowValueCustomers,
     risk: customers.atRiskCustomers,
     rising: customers.risingCustomers,
     all: customers.records,
   };
+
+  // The advanced filter narrows whichever cohort tab is showing.
+  const rows = useMemo(
+    () => applyAudience(baseRows[tab], filter),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [customers, tab, filter],
+  );
+
+  const countries = useMemo(
+    () => [...new Set(customers.records.map((c) => c.country).filter(Boolean))].sort(),
+    [customers.records],
+  );
 
   const TAB_COPY: Record<CohortTab, string> = {
     top: "Your highest-spending customers this period. These are the accounts a retention programme should protect first.",
@@ -106,6 +124,13 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
           )}`}
         />
       </StatStrip>
+
+      {/* --- Top customer spotlight --------------------------------------- */}
+      <TopCustomers
+        customers={customers.topCustomers}
+        fmt={fmt}
+        currencyShare={customers.topCustomers[0]?.revenueShare ?? 0}
+      />
 
       <div className="grid gap-4 lg:grid-cols-5">
         <ChartCard
@@ -212,17 +237,26 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
             </Tabs>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <CustomerFilters
+            filter={filter}
+            onChange={setFilter}
+            countries={countries}
+            matched={rows.length}
+            total={baseRows[tab].length}
+          />
           <Tabs value={tab}>
             <TabsContent value={tab} forceMount>
               <DataTable
-                data={rows[tab]}
+                data={rows}
                 columns={columns}
                 searchAccessor={(c) => `${c.name} ${c.email} ${c.company} ${c.segment} ${c.tier}`}
                 searchPlaceholder="Search by name, email, company or segment…"
                 initialSorting={[{ id: "netRevenue", desc: true }]}
                 emptyMessage="No customers match this view for the selected period."
                 onRowClick={(c) => router.push(`/customers/${encodeURIComponent(c.key)}`)}
+                rowId={(c) => c.key}
+                renderSubRow={(c) => <CustomerOrders customer={c} fmt={fmt} />}
                 stickyFirstColumn
               />
             </TabsContent>

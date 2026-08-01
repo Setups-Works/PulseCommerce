@@ -10,8 +10,16 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown, Search } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  Search,
+} from "lucide-react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,6 +52,13 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
   stickyFirstColumn?: boolean;
+  /**
+   * Renders a panel beneath a row when it is expanded. Expansion is driven by
+   * its own chevron cell so it never competes with `onRowClick`.
+   */
+  renderSubRow?: (row: T) => ReactNode;
+  /** Stable identity for expansion state; defaults to the row index. */
+  rowId?: (row: T) => string;
 }
 
 export function DataTable<T>({
@@ -57,8 +72,11 @@ export function DataTable<T>({
   emptyMessage = "Nothing to show for this period.",
   onRowClick,
   stickyFirstColumn = false,
+  renderSubRow,
+  rowId,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState("");
   const [pageSize, setPageSize] = useState(initialPageSize);
 
@@ -105,6 +123,7 @@ export function DataTable<T>({
           <TableHeader className="bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {renderSubRow ? <TableHead className="h-9 w-8" /> : null}
                 {headerGroup.headers.map((header, i) => {
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
@@ -150,35 +169,77 @@ export function DataTable<T>({
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-28 text-center text-sm text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length + (renderSubRow ? 1 : 0)}
+                  className="h-28 text-center text-sm text-muted-foreground"
+                >
                   {query ? `No matches for “${query}”.` : emptyMessage}
                 </TableCell>
               </TableRow>
             ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-                  className={cn(onRowClick && "cursor-pointer")}
-                >
-                  {row.getVisibleCells().map((cell, i) => {
-                    const align = (cell.column.columnDef.meta as { align?: string } | undefined)?.align;
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          "py-2 text-sm",
-                          align === "right" && "text-right tabular",
-                          align === "center" && "text-center",
-                          stickyFirstColumn && i === 0 && "sticky left-0 z-10 bg-card",
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const id = rowId ? rowId(row.original) : row.id;
+                const isOpen = expanded.has(id);
+                return (
+                  <Fragment key={row.id}>
+                    <TableRow
+                      onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                      className={cn(onRowClick && "cursor-pointer", isOpen && "border-b-0 bg-muted/30")}
+                    >
+                      {renderSubRow ? (
+                        <TableCell className="py-2 pr-0 pl-2">
+                          <button
+                            type="button"
+                            aria-expanded={isOpen}
+                            aria-label={isOpen ? "Hide orders" : "Show orders"}
+                            onClick={(e) => {
+                              // Expanding must not also trigger the row's own click.
+                              e.stopPropagation();
+                              setExpanded((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(id)) next.delete(id);
+                                else next.add(id);
+                                return next;
+                              });
+                            }}
+                            className="flex size-6 items-center justify-center rounded transition-colors hover:bg-accent"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "size-4 text-muted-foreground transition-transform",
+                                isOpen && "rotate-180",
+                              )}
+                            />
+                          </button>
+                        </TableCell>
+                      ) : null}
+                      {row.getVisibleCells().map((cell, i) => {
+                        const align = (cell.column.columnDef.meta as { align?: string } | undefined)?.align;
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              "py-2 text-sm",
+                              align === "right" && "text-right tabular",
+                              align === "center" && "text-center",
+                              stickyFirstColumn && i === 0 && !renderSubRow && "sticky left-0 z-10 bg-card",
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                    {isOpen && renderSubRow ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={columns.length + 1} className="bg-muted/30 p-0">
+                          <div className="px-4 py-3">{renderSubRow(row.original)}</div>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
