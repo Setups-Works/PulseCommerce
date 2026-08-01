@@ -73,7 +73,10 @@ export function KeyboardShortcuts() {
       if (meta || event.altKey) return;
       if (isTypingTarget(event.target)) return;
 
-      if (event.key === "?") {
+      // Some layouts report "?" and some report "/" with shift held, so both
+      // are treated as the help key. This has to be checked before the plain
+      // "/" search shortcut or shift+/ would open search instead.
+      if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
         event.preventDefault();
         setHelpOpen((v) => !v);
         return;

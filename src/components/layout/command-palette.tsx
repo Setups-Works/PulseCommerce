@@ -13,8 +13,12 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ALL_NAV_ITEMS } from "@/components/layout/nav-items";
-import { RANGE_PRESETS, useAnalytics } from "@/components/providers/analytics-provider";
 import {
+  RANGE_PRESETS,
+  useAnalytics,
+} from "@/components/providers/analytics-provider";
+import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -66,7 +70,11 @@ export function CommandPalette({
       .slice(0, MAX_RESULTS);
 
     const products = data.products.products
-      .filter((p) => p.name.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle))
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(needle) ||
+          p.sku.toLowerCase().includes(needle),
+      )
       .slice(0, MAX_RESULTS);
 
     const orders = data.orders
@@ -89,7 +97,9 @@ export function CommandPalette({
 
   const currency = data?.meta.currency ?? "USD";
   const hasResults =
-    results.customers.length > 0 || results.products.length > 0 || results.orders.length > 0;
+    results.customers.length > 0 ||
+    results.products.length > 0 ||
+    results.orders.length > 0;
 
   return (
     <CommandDialog
@@ -102,134 +112,161 @@ export function CommandPalette({
       description="Search customers, products and orders, or jump to a page."
       className="max-w-2xl"
     >
-      {/* Our own filtering runs above; cmdk must not filter again. */}
-      <CommandInput
-        placeholder="Search customers, products, orders, or jump to a page…"
-        value={query}
-        onValueChange={setQuery}
-      />
-      <CommandList className="max-h-[60vh]">
-        {needle.length >= 2 && !hasResults ? (
-          <CommandEmpty>No customers, products or orders match “{query}”.</CommandEmpty>
-        ) : null}
+      {/*
+        This CommandDialog does not provide a cmdk root of its own, so the
+        input and list must be wrapped here or cmdk's store is undefined.
+        Filtering is ours (see above), so cmdk's matcher stays off.
+      */}
+      <Command shouldFilter={false}>
+        <CommandInput
+          placeholder="Search customers, products, orders, or jump to a page…"
+          value={query}
+          onValueChange={setQuery}
+        />
+        <CommandList className="max-h-[60vh]">
+          {needle.length >= 2 && !hasResults ? (
+            <CommandEmpty>
+              No customers, products or orders match “{query}”.
+            </CommandEmpty>
+          ) : null}
 
-        {results.customers.length > 0 ? (
-          <CommandGroup heading="Customers">
-            {results.customers.map((c) => (
+          {results.customers.length > 0 ? (
+            <CommandGroup heading="Customers">
+              {results.customers.map((c) => (
+                <CommandItem
+                  key={c.key}
+                  value={`customer-${c.key}`}
+                  onSelect={() =>
+                    run(() =>
+                      router.push(`/customers/${encodeURIComponent(c.key)}`),
+                    )
+                  }
+                >
+                  <UserRound />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate">{c.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {c.email || "guest checkout"} · {c.segment}
+                    </span>
+                  </span>
+                  <CommandShortcut>
+                    {formatCurrency(c.netRevenue, currency)}
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : null}
+
+          {results.products.length > 0 ? (
+            <CommandGroup heading="Products">
+              {results.products.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={`product-${p.id}`}
+                  onSelect={() => run(() => router.push("/products"))}
+                >
+                  <Package />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate">{p.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {p.sku || "no SKU"} · {p.category}
+                    </span>
+                  </span>
+                  <CommandShortcut>
+                    {formatCurrency(p.revenue, currency)}
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : null}
+
+          {results.orders.length > 0 ? (
+            <CommandGroup heading="Orders">
+              {results.orders.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={`order-${o.id}`}
+                  onSelect={() => run(() => router.push("/orders"))}
+                >
+                  <ReceiptText />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate">#{o.number}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {o.customerName}
+                    </span>
+                  </span>
+                  <CommandShortcut>
+                    {formatCurrency(o.total, currency)}
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : null}
+
+          {hasResults ? <CommandSeparator /> : null}
+
+          <CommandGroup heading="Go to">
+            {ALL_NAV_ITEMS.filter(
+              (item) =>
+                needle.length < 2 || item.label.toLowerCase().includes(needle),
+            ).map((item) => (
               <CommandItem
-                key={c.key}
-                value={`customer-${c.key}`}
-                onSelect={() => run(() => router.push(`/customers/${encodeURIComponent(c.key)}`))}
+                key={item.href}
+                value={`nav-${item.href}`}
+                onSelect={() => run(() => router.push(item.href))}
               >
-                <UserRound />
+                <item.icon />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{c.name}</span>
+                  <span>{item.label}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {c.email || "guest checkout"} · {c.segment}
+                    {item.description}
                   </span>
                 </span>
-                <CommandShortcut>{formatCurrency(c.netRevenue, currency)}</CommandShortcut>
+                {NAV_SHORTCUTS[item.href] ? (
+                  <CommandShortcut>
+                    g {NAV_SHORTCUTS[item.href]}
+                  </CommandShortcut>
+                ) : null}
               </CommandItem>
             ))}
           </CommandGroup>
-        ) : null}
 
-        {results.products.length > 0 ? (
-          <CommandGroup heading="Products">
-            {results.products.map((p) => (
+          <CommandSeparator />
+
+          <CommandGroup heading="Date range">
+            {RANGE_PRESETS.map((preset) => (
               <CommandItem
-                key={p.id}
-                value={`product-${p.id}`}
-                onSelect={() => run(() => router.push("/products"))}
+                key={preset.id}
+                value={`range-${preset.id}`}
+                onSelect={() => run(() => setPreset(preset.id))}
               >
-                <Package />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{p.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {p.sku || "no SKU"} · {p.category}
-                  </span>
-                </span>
-                <CommandShortcut>{formatCurrency(p.revenue, currency)}</CommandShortcut>
+                <Boxes />
+                {preset.label}
               </CommandItem>
             ))}
           </CommandGroup>
-        ) : null}
 
-        {results.orders.length > 0 ? (
-          <CommandGroup heading="Orders">
-            {results.orders.map((o) => (
-              <CommandItem
-                key={o.id}
-                value={`order-${o.id}`}
-                onSelect={() => run(() => router.push("/orders"))}
-              >
-                <ReceiptText />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">#{o.number}</span>
-                  <span className="truncate text-xs text-muted-foreground">{o.customerName}</span>
-                </span>
-                <CommandShortcut>{formatCurrency(o.total, currency)}</CommandShortcut>
-              </CommandItem>
-            ))}
+          <CommandSeparator />
+
+          <CommandGroup heading="Actions">
+            <CommandItem value="action-refresh" onSelect={() => run(refresh)}>
+              <RefreshCw />
+              Re-sync from WooCommerce
+              <CommandShortcut>⌘⇧R</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              value="action-theme"
+              onSelect={() =>
+                run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))
+              }
+            >
+              {resolvedTheme === "dark" ? <Sun /> : <Moon />}
+              Switch to {resolvedTheme === "dark" ? "light" : "dark"} theme
+              <CommandShortcut>⌘⇧L</CommandShortcut>
+            </CommandItem>
           </CommandGroup>
-        ) : null}
-
-        {hasResults ? <CommandSeparator /> : null}
-
-        <CommandGroup heading="Go to">
-          {ALL_NAV_ITEMS.filter(
-            (item) => needle.length < 2 || item.label.toLowerCase().includes(needle),
-          ).map((item) => (
-            <CommandItem
-              key={item.href}
-              value={`nav-${item.href}`}
-              onSelect={() => run(() => router.push(item.href))}
-            >
-              <item.icon />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span>{item.label}</span>
-                <span className="truncate text-xs text-muted-foreground">{item.description}</span>
-              </span>
-              {NAV_SHORTCUTS[item.href] ? (
-                <CommandShortcut>g {NAV_SHORTCUTS[item.href]}</CommandShortcut>
-              ) : null}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        <CommandGroup heading="Date range">
-          {RANGE_PRESETS.map((preset) => (
-            <CommandItem
-              key={preset.id}
-              value={`range-${preset.id}`}
-              onSelect={() => run(() => setPreset(preset.id))}
-            >
-              <Boxes />
-              {preset.label}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        <CommandGroup heading="Actions">
-          <CommandItem value="action-refresh" onSelect={() => run(refresh)}>
-            <RefreshCw />
-            Re-sync from WooCommerce
-            <CommandShortcut>⌘⇧R</CommandShortcut>
-          </CommandItem>
-          <CommandItem
-            value="action-theme"
-            onSelect={() => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))}
-          >
-            {resolvedTheme === "dark" ? <Sun /> : <Moon />}
-            Switch to {resolvedTheme === "dark" ? "light" : "dark"} theme
-            <CommandShortcut>⌘⇧L</CommandShortcut>
-          </CommandItem>
-        </CommandGroup>
-      </CommandList>
+        </CommandList>
+      </Command>
     </CommandDialog>
   );
 }
