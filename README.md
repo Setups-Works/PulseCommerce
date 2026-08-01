@@ -734,7 +734,7 @@ sequenceDiagram
     P->>P: resolve phones · drop unreachable<br/>remove opt-outs and duplicates
     P-->>B: dry run — counts, reasons, masked sample
     B->>P: confirm the exact deliverable count
-    P->>P: re-resolve; refuse if it changed
+    P->>P: re-resolve, refuse if it changed
     P->>K: create job (recipients, cursor 0)
     loop one batch per tick
         B->>P: tick
