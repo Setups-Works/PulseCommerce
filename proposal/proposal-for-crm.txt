@@ -64,9 +64,13 @@ A private analytics platform, running on infrastructure Nature's Joy controls, r
 
 Four principles shape it.
 
-Read-only, by construction
+It reads; it writes one thing
 
-The platform issues only GET requests, and only to orders, customers, and products. The access key carries read scope. There is no code path by which it can modify an order, a product, or any store setting.
+The platform reads orders, customers, and products, and nothing about that changes your store.
+
+There is exactly one exception, and it exists because it was asked for: creating discount coupons for WhatsApp campaigns. WooCommerce offers no permission narrower than "read and write", so the restriction is enforced in the software instead — one function in the codebase creates a coupon, and no path anywhere modifies an order, a product, a customer, or a store setting.
+
+If coupon creation is not wanted, the access can be reduced to read-only in a single line and re-approved; every other capability is unaffected.
 
 No secrets change hands
 
@@ -82,7 +86,7 @@ Where a figure is an estimate, the interface says so. Where a definition could b
 
 PROPOSED SCOPE
 
-Twelve modules.
+Thirteen modules.
 
 1. Revenue and performance
 
@@ -125,26 +129,42 @@ Every customer opens to a full profile: contact details, location, the channel a
 Reaching an audience directly, from the same place it is defined.
 
 - Send a text, image, or video message to any audience built above
-- Personalisation by first name, degrading gracefully where a guest checkout left no usable name
+- Nine ready-made templates, each written for a specific job: reorder the product they buy, announce arrivals in a category they shop, win back a lapsed customer, convert a one-time buyer, thank a high-value customer, request a review, offer a discount with or without a product, or a plain announcement
+- Personalisation from each customer's own history — their name, the product they have spent the most on, a link to it, its category, when they last ordered, how many times they have ordered, and what they have spent
+- Per-customer product photographs, so each recipient sees the item they actually buy rather than a generic image
+- Product search, to build a campaign around one specific item instead
+- Discount coupons: use an existing WooCommerce coupon, or create one from the campaign screen with an expiry date, a limit of one use per customer, and a restriction to the product being promoted. Codes that have expired or reached their limit cannot be selected, so a customer is never sent a code that will be refused at the checkout
 - A dry run that resolves the exact recipient list and sends nothing: how many are reachable, how many were excluded and for what reason, and the message exactly as the first recipient would receive it
 - A test send to a number entered by hand, which cannot reach a customer
 - Confirmation of the recipient count before a send begins, re-checked against the live audience at the moment it starts
 - An opt-out list applied after the audience is built, so a filtering mistake cannot route around it
-- Paced delivery with natural spacing between messages, run as a resumable job with live progress and a stop control
-- Numbers stored without a country code are resolved against a configured default; anything that cannot be read as a valid number is excluded and counted rather than guessed at
-- Duplicate numbers across customer records are collapsed, so a household receives one message
+- Paced delivery with natural spacing, run as a resumable job with live progress and a stop control, which recovers by itself if the gateway restarts part-way through
 
 How it connects. Messages are sent through a WhatsApp gateway running on infrastructure Nature's Joy controls. Customer numbers are never transmitted to a third-party messaging service, and never leave the server: the interface works with counts and reachability, and numbers are resolved only at the moment a message is sent.
 
 What this requires. The gateway is a continuously running service and needs a small server of its own — shared web hosting cannot keep a WhatsApp connection alive. Setups Works can provide and manage this, or deploy it on infrastructure Nature's Joy already has.
 
-A note on the risk. This uses a self-hosted gateway rather than Meta's official WhatsApp Business API. It avoids per-message fees and message template approval, but the number used carries a risk of restriction by WhatsApp, so a dedicated number should be used rather than the main business line. If guaranteed delivery matters more than cost, the official API is the alternative and can be quoted separately.
+A note on the risk. This uses a self-hosted gateway rather than Meta's official WhatsApp Business API. It avoids per-message fees and message template approval, but the number used carries a risk of restriction by WhatsApp, so a dedicated number should be used rather than the main business line. Tappable buttons and product cards are not available on this route; they are a feature of the official API. If guaranteed delivery or buttons matter more than cost, the official API is the alternative and can be quoted separately.
 
-7. Product and catalogue analytics
+7. Shared WhatsApp inbox
+
+Replies to a campaign land somewhere the business can see them, alongside who sent them.
+
+- Every conversation shown with the customer behind the number, not a bare phone number, together with how many times they have ordered and what they have spent
+- One click through to that customer's full profile and order history
+- Replies arrive without a page refresh
+- Send text, an image or video, or a product from the catalogue in reply
+- Start a conversation from a phone number, without waiting to be messaged first
+- Unread counts and search across names and numbers
+- The opt-out list applies here too: someone who asked the business to stop is not messaged, whether by a campaign or by hand
+
+The value is context. Answering "is this back in stock?" is a different conversation when the person asking has ordered eleven times.
+
+8. Product and catalogue analytics
 
 ABC classification identifying which products carry the revenue, Pareto concentration, revenue and units per SKU, refund rate per product, category mix, best sellers by both value and volume, slow movers, and market-basket analysis showing which products genuinely sell together.
 
-8. Inventory and restock planning
+9. Inventory and restock planning
 
 - Days of cover per product, from current stock and observed sales velocity
 - Reorder points calculated from your supplier lead time plus safety stock
@@ -154,19 +174,19 @@ ABC classification identifying which products carry the revenue, Pareto concentr
 - Exports as a draft purchase order
 - Every assumption shown on screen and adjustable to your actual supplier terms
 
-9. Orders and operations
+10. Orders and operations
 
 Full order register with totals, tax, shipping, discounts, refunds, payment method, and coupons. Order status mix, basket-size distribution, payment method performance, a day-by-hour trading heatmap for timing campaigns and staffing, weekday performance, and fulfilment timing.
 
-10. Forecasting
+11. Forecasting
 
 Daily revenue projection combining trend with day-of-week seasonality, presented with a 95% confidence band. The seasonality is shown explicitly so the projection can be sense-checked rather than accepted blindly.
 
-11. Geography
+12. Geography
 
 Revenue, orders, customers, and average order value by country, region, and city.
 
-12. Reports and exports
+13. Reports and exports
 
 - Ten report types covering every module
 - Excel workbooks with formatted sheets, filters, and correct currency formatting
@@ -179,6 +199,39 @@ Platform capabilities
 
 Support for connecting more than one store and switching between them, a search palette covering customers, products, and orders, keyboard navigation, light and dark themes, and optional password protection.
 
+HOW IT IS BUILT
+
+Three separate pieces, only one of which is the application.
+
+``` Your WooCommerce store Your WhatsApp gateway
+| ^
+| read (+ coupon writes) | send v | +--------------------------------------------------+----+
+
+pulls order history -> one cached snapshot
+
+v
+
+every metric computed from that snapshot
+
+v
+
+dashboards, reports, audiences
+
++--------------------------------------------------------+
+|
+v
+Your browser
+(counts and names; never phone numbers)
+```
+
+One pull, then everything. Metrics like cohort retention and lifetime value need the whole order history, not a page of it. The platform pulls once, caches the result, and computes every figure from that cache — which is why changing a date range is instant rather than another wait on the store.
+
+The storefront is never in the path. Analysis runs against the cached copy, so no customer ever waits on a query the business is running.
+
+Numbers stay on the server. The browser receives names and counts. Phone numbers are resolved only at the moment a message is sent, which means a mistake in the interface cannot expose the customer list.
+
+Sending is resumable. A campaign to a large audience takes hours at a safe pace. It runs as a job that records its position, so closing the page pauses it rather than losing it, and a restart of the gateway costs a short delay rather than the remainder of the audience.
+
 HOW ACCESS WORKS
 
 1. You enter your store address in the application.
@@ -190,7 +243,7 @@ No password is shared. No key is emailed. Access can be revoked at any time, eit
 
 DELIVERABLES
 
-1. The platform, covering the twelve modules above.
+1. The platform, covering the thirteen modules above.
 2. Source code, in a repository Nature's Joy owns.
 3. Deployment to the agreed hosting, configured and verified against the live store.
 4. Documentation covering setup, connection, configuration, architecture, and troubleshooting.

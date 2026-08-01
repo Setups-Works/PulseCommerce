@@ -76,10 +76,16 @@ serves the storefront, which is a reliable way to slow a shop down.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">A private analytics platform, running on infrastructure Nature&#39;s Joy controls,
 reading the store through WooCommerce&#39;s official REST API.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Four principles shape it.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">Read-only, by construction</h2>
-<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The platform issues only GET requests, and only to orders, customers, and
-products. The access key carries read scope. There is no code path by which it
-can modify an order, a product, or any store setting.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">It reads; it writes one thing</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The platform reads orders, customers, and products, and nothing about that
+changes your store.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">There is exactly one exception, and it exists because it was asked for: creating
+discount coupons for WhatsApp campaigns. WooCommerce offers no permission
+narrower than &quot;read and write&quot;, so the restriction is enforced in the software
+instead — one function in the codebase creates a coupon, and no path anywhere
+modifies an order, a product, a customer, or a store setting.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">If coupon creation is not wanted, the access can be reduced to read-only in a
+single line and re-approved; every other capability is unaffected.</p>
 <h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">No secrets change hands</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Access is approved inside your own WordPress admin. WooCommerce issues the key
 and delivers it directly to the application. There is deliberately no form in the
@@ -96,7 +102,7 @@ metric definition is documented so figures can be reconciled against WooCommerce
 rather than taken on trust.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
 <h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">Proposed scope</h1>
-<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Twelve modules.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Thirteen modules.</p>
 <h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">1. Revenue and performance</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Net revenue, gross revenue, orders, average order value, units sold, discounts
 given, shipping and tax collected, refunds, items per order, revenue per
@@ -149,23 +155,32 @@ is the number that matters for paid acquisition</li>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Reaching an audience directly, from the same place it is defined.</p>
 <ul style="margin:0 0 14px;padding-left:22px;">
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Send a <strong style="font-weight:600;color:#111;">text, image, or video</strong> message to any audience built above</li>
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Personalisation</strong> by first name, degrading gracefully where a guest checkout
-left no usable name</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Nine ready-made templates</strong>, each written for a specific job: reorder the
+product they buy, announce arrivals in a category they shop, win back a lapsed
+customer, convert a one-time buyer, thank a high-value customer, request a
+review, offer a discount with or without a product, or a plain announcement</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Personalisation from each customer&#39;s own history</strong> — their name, the product
+they have spent the most on, a link to it, its category, when they last
+ordered, how many times they have ordered, and what they have spent</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Per-customer product photographs</strong>, so each recipient sees the item they
+actually buy rather than a generic image</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Product search</strong>, to build a campaign around one specific item instead</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Discount coupons</strong>: use an existing WooCommerce coupon, or create one from
+the campaign screen with an expiry date, a limit of one use per customer, and
+a restriction to the product being promoted. Codes that have expired or reached
+their limit cannot be selected, so a customer is never sent a code that will be
+refused at the checkout</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">A <strong style="font-weight:600;color:#111;">dry run</strong> that resolves the exact recipient list and sends nothing: how
-many are reachable, how many were excluded and for what reason, and the
-message exactly as the first recipient would receive it</li>
+many are reachable, how many were excluded and for what reason, and the message
+exactly as the first recipient would receive it</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">A <strong style="font-weight:600;color:#111;">test send</strong> to a number entered by hand, which cannot reach a customer</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Confirmation of the recipient count</strong> before a send begins, re-checked
 against the live audience at the moment it starts</li>
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">An <strong style="font-weight:600;color:#111;">opt-out list</strong> applied after the audience is built, so a filtering
-mistake cannot route around it</li>
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Paced delivery</strong> with natural spacing between messages, run as a resumable
-job with live progress and a stop control</li>
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Numbers stored without a country code are resolved against a configured
-default; anything that cannot be read as a valid number is excluded and
-counted rather than guessed at</li>
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Duplicate numbers across customer records are collapsed, so a household
-receives one message</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">An <strong style="font-weight:600;color:#111;">opt-out list</strong> applied after the audience is built, so a filtering mistake
+cannot route around it</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Paced delivery</strong> with natural spacing, run as a resumable job with live
+progress and a stop control, which recovers by itself if the gateway restarts
+part-way through</li>
 </ul>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">How it connects.</strong> Messages are sent through a WhatsApp gateway running on
 infrastructure Nature&#39;s Joy controls. Customer numbers are never transmitted to
@@ -179,15 +194,34 @@ Nature&#39;s Joy already has.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">A note on the risk.</strong> This uses a self-hosted gateway rather than Meta&#39;s
 official WhatsApp Business API. It avoids per-message fees and message template
 approval, but the number used carries a risk of restriction by WhatsApp, so a
-dedicated number should be used rather than the main business line. If
-guaranteed delivery matters more than cost, the official API is the alternative
-and can be quoted separately.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">7. Product and catalogue analytics</h2>
+dedicated number should be used rather than the main business line. Tappable
+buttons and product cards are not available on this route; they are a feature of
+the official API. If guaranteed delivery or buttons matter more than cost, the
+official API is the alternative and can be quoted separately.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">7. Shared WhatsApp inbox</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Replies to a campaign land somewhere the business can see them, alongside who
+sent them.</p>
+<ul style="margin:0 0 14px;padding-left:22px;">
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Every conversation shown with <strong style="font-weight:600;color:#111;">the customer behind the number</strong>, not a bare
+phone number, together with how many times they have ordered and what they
+have spent</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">One click through to that customer&#39;s full profile and order history</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Replies arrive without a page refresh</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Send <strong style="font-weight:600;color:#111;">text, an image or video, or a product from the catalogue</strong> in reply</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Start a conversation from a phone number</strong>, without waiting to be messaged
+first</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Unread counts and search across names and numbers</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">The opt-out list applies here too: someone who asked the business to stop is
+not messaged, whether by a campaign or by hand</li>
+</ul>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">The value is context. Answering &quot;is this back in stock?&quot; is a different
+conversation when the person asking has ordered eleven times.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">8. Product and catalogue analytics</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">ABC classification identifying which products carry the revenue, Pareto
 concentration, revenue and units per SKU, refund rate per product, category mix,
 best sellers by both value and volume, slow movers, and market-basket analysis
 showing which products genuinely sell together.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">8. Inventory and restock planning</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">9. Inventory and restock planning</h2>
 <ul style="margin:0 0 14px;padding-left:22px;">
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Days of cover</strong> per product, from current stock and observed sales velocity</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Reorder points</strong> calculated from your supplier lead time plus safety stock</li>
@@ -197,18 +231,18 @@ showing which products genuinely sell together.</p>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Exports as a <strong style="font-weight:600;color:#111;">draft purchase order</strong></li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Every assumption shown on screen and adjustable to your actual supplier terms</li>
 </ul>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">9. Orders and operations</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">10. Orders and operations</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Full order register with totals, tax, shipping, discounts, refunds, payment
 method, and coupons. Order status mix, basket-size distribution, payment method
 performance, a day-by-hour trading heatmap for timing campaigns and staffing,
 weekday performance, and fulfilment timing.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">10. Forecasting</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">11. Forecasting</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Daily revenue projection combining trend with day-of-week seasonality, presented
 with a 95% confidence band. The seasonality is shown explicitly so the projection
 can be sense-checked rather than accepted blindly.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">11. Geography</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">12. Geography</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Revenue, orders, customers, and average order value by country, region, and city.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">12. Reports and exports</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">13. Reports and exports</h2>
 <ul style="margin:0 0 14px;padding-left:22px;">
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Ten report types covering every module</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Excel</strong> workbooks with formatted sheets, filters, and correct currency
@@ -225,6 +259,42 @@ evidence below, method and limits at the end</li>
 palette covering customers, products, and orders, keyboard navigation, light and
 dark themes, and optional password protection.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
+<h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">How it is built</h1>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Three separate pieces, only one of which is the application.</p>
+<pre><code style="font:400 12px/1.5 Menlo,Consolas,monospace;background:#f4f4f4;padding:1px 5px;border-radius:3px;">   Your WooCommerce store                    Your WhatsApp gateway
+            |                                          ^
+            | read (+ coupon writes)                   | send
+            v                                          |
+   +--------------------------------------------------+----+
+   |                    PulseCommerce                       |
+   |                                                        |
+   |   pulls order history  -&gt;  one cached snapshot         |
+   |                                |                       |
+   |                                v                       |
+   |            every metric computed from that snapshot    |
+   |                                |                       |
+   |                                v                       |
+   |               dashboards, reports, audiences           |
+   +--------------------------------------------------------+
+                                    |
+                                    v
+                            Your browser
+              (counts and names; never phone numbers)
+</code></pre>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">One pull, then everything.</strong> Metrics like cohort retention and lifetime value
+need the whole order history, not a page of it. The platform pulls once, caches
+the result, and computes every figure from that cache — which is why changing a
+date range is instant rather than another wait on the store.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">The storefront is never in the path.</strong> Analysis runs against the cached copy,
+so no customer ever waits on a query the business is running.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Numbers stay on the server.</strong> The browser receives names and counts. Phone
+numbers are resolved only at the moment a message is sent, which means a
+mistake in the interface cannot expose the customer list.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Sending is resumable.</strong> A campaign to a large audience takes hours at a safe
+pace. It runs as a job that records its position, so closing the page pauses it
+rather than losing it, and a restart of the gateway costs a short delay rather
+than the remainder of the audience.</p>
+<hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
 <h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">How access works</h1>
 <ol style="margin:0 0 14px;padding-left:22px;">
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">You enter your store address in the application.</li>
@@ -239,7 +309,7 @@ removes the stored key and every cached order.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
 <h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">Deliverables</h1>
 <ol style="margin:0 0 14px;padding-left:22px;">
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">The platform</strong>, covering the twelve modules above.</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">The platform</strong>, covering the thirteen modules above.</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Source code</strong>, in a repository Nature&#39;s Joy owns.</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Deployment</strong> to the agreed hosting, configured and verified against the live
 store.</li>

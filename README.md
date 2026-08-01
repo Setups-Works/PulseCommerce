@@ -7,12 +7,11 @@
 
 # PulseCommerce
 
-**Advanced analytics for WooCommerce.**
+**Analytics and WhatsApp campaigns for WooCommerce.**
 
-Customer segmentation, lifetime value, cohort retention, acquisition channels,
-campaign audiences, WhatsApp broadcasts, inventory planning and board-ready
-report exports, computed from your live store with read-only access you approve
-yourself.
+Know who your best customers are, which ones are about to leave, and what they
+buy — then message them on WhatsApp from the same screen, through a gateway you
+own.
 
 <p>
   <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000?logo=next.js&logoColor=white">
@@ -28,14 +27,15 @@ yourself.
 
 ## What this is
 
-WooCommerce tells you what sold. PulseCommerce tells you **who your best
-customers are, which ones are about to leave, where they came from, what they
-buy together, which products are about to run out, and what next month looks
-like**.
+WooCommerce tells you what sold. PulseCommerce tells you **who bought it, which
+of them is slipping away, what they buy together, which products are about to
+run out, and what next month looks like** — and then lets you act on it.
 
 It is a self-hosted Next.js app. You authorize a store through WooCommerce's own
 app-authorization endpoint, it pulls your orders over the REST API, caches a
-snapshot, and derives every metric from that snapshot at request time.
+snapshot, and derives every metric from that snapshot at request time. WhatsApp
+sending goes through a gateway on your own infrastructure, so customer numbers
+never reach a third-party messaging service.
 
 > **There is no sample data anywhere in this codebase.** Every number you see
 > came from your store. A figure can never be a placeholder you mistook for real.
@@ -47,6 +47,9 @@ snapshot, and derives every metric from that snapshot at request time.
 - [Feature list](#feature-list)
 - [Feature tour](#feature-tour)
 - [Keyboard shortcuts](#keyboard-shortcuts)
+- [Architecture](#architecture)
+- [Data pipeline](#data-pipeline)
+- [Broadcast pipeline](#broadcast-pipeline)
 - [Quick start](#quick-start)
 - [Connecting a store](#connecting-a-store)
 - [WhatsApp campaigns](#whatsapp-campaigns)
@@ -55,7 +58,6 @@ snapshot, and derives every metric from that snapshot at request time.
 - [Environment variables](#environment-variables)
 - [Reports and exports](#reports-and-exports)
 - [How the metrics are defined](#how-the-metrics-are-defined)
-- [Architecture](#architecture)
 - [Performance](#performance)
 - [Design system](#design-system)
 - [Deployment](#deployment)
@@ -77,7 +79,7 @@ snapshot, and derives every metric from that snapshot at request time.
 - Day / week / month bucketing, automatic or manual
 - Sparkline trend on each headline stat
 - Refund rate, cancellation rate and average fulfilment time
-- Generated findings, ranked by urgency, with plain-English explanations
+- Generated findings, ranked by urgency, in plain English
 
 </details>
 
@@ -92,14 +94,13 @@ snapshot, and derives every metric from that snapshot at request time.
 - **Predicted lifetime value** per customer, discounted by churn risk
 - **Churn risk score**, judged against each customer's own reorder cadence
 - **Revenue deciles** with a Pareto curve and cumulative share
-- **Gini concentration coefficient** plus top 1/5/10/20% and bottom 50% shares
+- **Gini concentration coefficient**, top 1/5/10/20% and bottom 50% shares
 - Recency-versus-frequency bubble chart, sized by spend
-- **Top customer spotlight** with their orders inline, and the runners-up beside it
+- **Top customer spotlight** with their orders inline
 - Ready-made cohorts: **high value, low value, at risk, rising**
-- **Advanced filter panel** — segment, tier, minimum spend, minimum orders, churn
-  risk, recency window, country, product bought, contactability
-- **Every customer listed**, not a capped slice, with rows that expand in place
-  to show that customer's orders
+- **Advanced filters** — segment, tier, spend, orders, churn risk, recency,
+  country, product bought, contactability
+- **Every customer listed**, not a capped slice, rows expand in place
 - Average days between orders, one-time buyer share, repeat rate
 
 </details>
@@ -107,11 +108,11 @@ snapshot, and derives every metric from that snapshot at request time.
 <details open>
 <summary><b>Customer profiles</b></summary>
 
-- Any customer row anywhere in the app drills through to their profile
-- Identity, location, payment method and how long they have been a customer
+- Any customer row anywhere drills through to their profile
+- Identity, location, payment method, how long they have been a customer
 - **Acquisition channel and device** they arrived on
-- RFM scores shown as filled pips as well as numbers, so never colour-only
-- Revenue percentile, refunds taken and discounts used
+- RFM scores as filled pips as well as numbers, so never colour-only
+- Revenue percentile, refunds taken, discounts used
 - What they buy, ranked by revenue
 - Order value over time
 - **Full order history** with status, line items, units, total and net
@@ -122,35 +123,29 @@ snapshot, and derives every metric from that snapshot at request time.
 <summary><b>Acquisition &amp; retention</b></summary>
 
 - **New vs returning revenue** by month, stacked
-- **Full new-customer and returning-customer tables**, sortable and searchable,
-  with first-order date, CLV, churn risk and first product bought
-- **Acquisition channels** from WooCommerce Order Attribution — organic, direct,
-  referral, paid/UTM, admin, mobile app
-- Which channels actually bring **first-time** buyers, not just orders
-- **Device breakdown** — mobile, desktop, tablet — by revenue and AOV
+- **Full new- and returning-customer tables**, sortable and searchable
+- **Acquisition channels** from WooCommerce Order Attribution
+- Which channels bring **first-time** buyers, not just orders
+- **Device breakdown** by revenue and AOV
 - Pages per session and revenue per customer, per channel
-- **Median time to second order**, with quartiles and a distribution histogram
-- **Cohort retention triangle** — monthly acquisition cohorts, retention or
-  revenue view, unelapsed cells left blank rather than shown as zero
+- **Median time to second order**, with quartiles and a histogram
+- **Cohort retention triangle**, unelapsed cells blank rather than zero
 - **Cumulative LTV curve** per acquired customer
-- Attribution coverage percentage, so partial history is never silently hidden
+- Attribution coverage percentage, so partial history is never hidden
 
 </details>
 
 <details open>
 <summary><b>Campaigns &amp; audiences</b></summary>
 
-- **Audience builder** with live reach, revenue represented, predicted CLV and
-  average churn risk
+- **Audience builder** with live reach, revenue, predicted CLV and churn risk
 - **Goal presets** — VIP appreciation, win-back lapsed, convert to second order,
-  rescue at-risk high value, loyal advocates, business accounts — each with a
-  stated rationale
-- Filter on segment, value tier, recency window, minimum spend, minimum orders,
-  churn risk, country, account type, product bought, contactability
-- Live audience preview table, exactly matching the export
+  rescue at-risk high value, loyal advocates, business accounts
+- Filter on segment, tier, recency, spend, orders, churn risk, country, account
+  type, product bought, contactability
+- Live audience preview, exactly matching the export
 - **CSV export** shaped for email and ads platforms, formula-injection guarded
-- **Campaign performance** from `utm_campaign` — orders, revenue, customers,
-  new-customer share, new-customer revenue, AOV, top device
+- **Campaign performance** from `utm_campaign`
 - **Coupon performance** — uses, discount given, revenue, return on discount
 
 </details>
@@ -158,43 +153,53 @@ snapshot, and derives every metric from that snapshot at request time.
 <details open>
 <summary><b>WhatsApp campaigns</b></summary>
 
-- Send an audience a **text, image or video** message through a **self-hosted
-  WhatsApp gateway** ([OpenWA](https://github.com/rmyndharis/OpenWA)) that you
-  run and control
-- `{{name}}` personalisation, degrading cleanly for guest checkouts with no
-  usable name
-- **Dry run** resolves the exact recipient list and sends nothing — how many are
-  reachable, how many were dropped and why, a masked sample, and the message as
-  the first real recipient would receive it
-- **Test send** to a number you type by hand; it cannot reach a customer
-- **Typed confirmation** of the deliverable count before anything goes out, and
-  the server re-resolves the audience and refuses if it changed since
-- **Opt-out list**, applied server-side after the audience is built, so no UI
-  mistake can route around it
-- **Paced sending** — the gateway spaces messages with jitter; a broadcast is a
-  resumable job, so closing the page pauses it rather than breaking it
-- Live progress, an estimate of time remaining, and a stop control
-- Numbers with no country code are resolved against a configurable default,
-  and anything that cannot be read as a real subscriber number is dropped and
-  counted rather than sent
-- Duplicate numbers across customer records are collapsed, so a household is
-  messaged once
-- Link a number by scanning a QR **inside Settings**, no terminal required
+- Send **text, image or video** through a **self-hosted gateway** you control
+- **Nine templates**: reorder their product, new in a category they buy, win
+  back a lapsed customer, nudge a one-time buyer, thank a VIP, ask for a review,
+  coupon + their product, coupon only, plain announcement
+- **Per-customer variables** — `{{name}}`, `{{product}}`, `{{product_url}}`,
+  `{{category}}`, `{{last_order}}`, `{{orders}}`, `{{spend}}`, `{{store}}`,
+  `{{coupon}}`, `{{coupon_value}}`
+- **Per-customer product photos** — each recipient sees what *they* buy
+- **Product picker** — search the catalogue by name, SKU or category and send
+  everyone one specific product instead
+- **Coupons** — pick an existing WooCommerce coupon, or generate one with an
+  expiry, one use per customer, and a restriction to the campaign product
+- **Dry run** resolving the real recipient list and sending nothing
+- **Test send** to a number you type; it cannot reach a customer
+- **Typed confirmation** of the deliverable count before anything goes out
+- **Opt-out list**, applied server-side after the audience is built
+- **Paced sending** with jitter, as a resumable job with live progress
+- **Automatic recovery** when the gateway restarts mid-broadcast
+- Link a number by scanning a **QR inside Settings**
+
+</details>
+
+<details open>
+<summary><b>WhatsApp inbox</b></summary>
+
+- Conversations with **the customer behind each number**, not raw identifiers
+- Orders and lifetime spend beside every conversation
+- Link straight through to that customer's full profile
+- Thread view that **polls for replies** while open
+- Composer for text, media, or a product from your catalogue
+- **Start a conversation from a typed number**, without waiting to be messaged
+- Unread counts, and search across names and numbers
+- Opt-out list applies to one-to-one replies too
 
 </details>
 
 <details open>
 <summary><b>Inventory &amp; restock planning</b></summary>
 
-- **Days of cover** per SKU from current stock and observed sales velocity
+- **Days of cover** per SKU from stock and observed velocity
 - **Reorder point** from a stated lead time plus safety stock
-- **Suggested order quantity** to reach a healthy cover level
+- **Suggested order quantity** to reach healthy cover
 - Status per SKU: out of stock, critical, low, healthy, overstocked, untracked
 - **Revenue at risk** if a critical SKU stays out for one lead time
-- **Capital tied up** per SKU at selling price, to surface overstock
+- **Capital tied up** per SKU, to surface overstock
 - Restock planner with reorder / all / overstocked views
 - **CSV export** shaped as a draft purchase order
-- Every assumption stated on the page rather than buried
 
 </details>
 
@@ -203,67 +208,57 @@ snapshot, and derives every metric from that snapshot at request time.
 
 - **ABC classification** — A carries the first 80% of revenue, B the next 15%
 - Pareto concentration chart with the 80% threshold marked
-- Revenue, units, orders, distinct customers and average price per SKU
+- Revenue, units, orders, distinct customers, average price per SKU
 - Units-per-day velocity, refund rate per SKU, average rating
-- **Market-basket affinity** — product pairs by support, confidence and lift
+- **Market-basket affinity** by support, confidence and lift
 - Category revenue and unit mix
-- Best sellers by value and by volume; slow movers and never-sold catalogue items
+- Best sellers by value and volume; slow movers and never-sold items
 
 </details>
 
 <details open>
 <summary><b>Orders &amp; operations</b></summary>
 
-- Full order register with status, customer, units, totals, discount, shipping,
-  tax, refunds, payment method and coupons
+- Full order register with totals, discount, shipping, tax, refunds, payment
+  method and coupons
 - New vs returning flag per order
 - **Order status mix** and basket-size distribution
 - **Payment method** performance by revenue, share and AOV
 - **Trading heatmap** — day of week × hour of day
 - Weekday revenue performance
-- Average fulfilment time, completion share, cancellation and refund rates
+- Fulfilment time, completion share, cancellation and refund rates
 
 </details>
 
 <details open>
-<summary><b>Forecasting</b></summary>
+<summary><b>Forecasting &amp; geography</b></summary>
 
-- Daily revenue projection from OLS trend × day-of-week seasonality factors
+- Daily revenue projection from OLS trend × day-of-week seasonality
 - **95% confidence band** from in-sample residuals
 - Implied pace versus the recent actual run rate
-- Weekday seasonality shown explicitly, so the sawtooth is explainable
-- Forecast horizon and projected total
-
-</details>
-
-<details open>
-<summary><b>Geography</b></summary>
-
-- Revenue, orders, customers and AOV by **country**, **region/state** and **city**
-- Share of revenue per location
+- Revenue, orders, customers and AOV by **country**, **region** and **city**
 
 </details>
 
 <details open>
 <summary><b>Search &amp; navigation</b></summary>
 
-- **Command palette** searching customers, products and orders in one place
-- Filtering runs before rendering, so tens of thousands of customers stay fast
-- Jump to any page, change the date range, re-sync or switch theme from the palette
-- **Keyboard shortcuts** throughout, with a discoverable `?` help sheet
-- Shortcuts are ignored while typing, so they never eat a search query
+- **Command palette** over customers, products and orders
+- Filtering runs before rendering, so tens of thousands stay fast
+- Jump to any page, change the date range, re-sync or switch theme from it
+- **Keyboard shortcuts** throughout, with a `?` help sheet
+- Shortcuts ignored while typing, so they never eat a search query
+- Collapsible sidebar; date range and granularity persisted across reloads
 
 </details>
 
 <details open>
 <summary><b>Multiple stores</b></summary>
 
-- Connect **several WooCommerce stores** and switch between them
+- Connect **several stores** and switch between them
 - Switcher in the sidebar; full management in Settings
-- Each store keeps its **own credentials, data window and snapshot cache**, so
-  switching reads a different cache rather than re-pulling anything
-- Re-authorizing a store you already have updates its key in place and keeps the
-  data window you chose, rather than adding a duplicate
+- Each keeps its **own credentials, data window and snapshot cache**
+- Re-authorizing updates a key in place rather than duplicating the store
 
 </details>
 
@@ -272,62 +267,33 @@ snapshot, and derives every metric from that snapshot at request time.
 
 - **Ten report types** — executive summary, customer ledger, segmentation,
   products, categories, order register, cohorts, geography, operations, forecast
-- **Excel** — one formatted sheet per report, cover page with findings,
-  auto-filters, frozen headers, per-cell currency formatting
-- **PDF** — branded cover with KPI cards and findings, then a table per report,
-  typeset in an embedded Unicode font so every currency symbol renders correctly
-- **CSV** — raw rows, BOM-prefixed, formula-injection guarded, spreadsheet-parseable
-  dates and bare numbers
-- **Report presets** — board pack, CRM upload, merchandising review, finance
+- **Excel** — one sheet per report, cover page, auto-filters, frozen headers,
+  per-cell currency formats
+- **PDF** — branded cover with KPI cards and findings, embedded Unicode font so
+  every currency symbol renders
+- **CSV** — BOM-prefixed, formula-injection guarded, spreadsheet-parseable
+- **Presets** — board pack, CRM upload, merchandising review, finance
   reconciliation, complete export
-- Exports always match the on-screen date range and are never row-capped
-- **Written report view** at `/reports/view` — conclusion first, evidence below,
-  method and limits at the end
-- One-click export of whatever page you are on
+- Exports match the on-screen date range and are never row-capped
+- **Written report view** at `/reports/view` — conclusion first, method last
 
 </details>
 
 <details open>
 <summary><b>Connection &amp; security</b></summary>
 
-- **WooCommerce app authorization** (`/wc-auth/v1/authorize`) — approve read-only
-  access in your own WordPress admin
-- **No form or environment variable anywhere accepts a consumer key**
+- **WooCommerce app authorization** — approve access in your own WordPress admin
+- **No form or environment variable accepts a WooCommerce consumer key**
 - HMAC-signed, self-contained state token binds the browser redirect to the
-  server-to-server callback, with no shared server state, so the two legs may
-  land on different serverless instances
+  server-to-server callback, so the two legs may land on different instances
 - Credentials verified against the store before being persisted
-- Pluggable durable storage — filesystem when self-hosted, Redis on serverless
-- Preflight rejects non-HTTPS and non-routable callback addresses **before** you
-  approve anything
-- Optional password login with HMAC-SHA256 signed session cookies, verified in
-  middleware via Web Crypto
+- Pluggable durable storage — filesystem self-hosted, Redis on serverless
+- Preflight rejects non-HTTPS and non-routable callbacks **before** you approve
+- Optional password login, HMAC-SHA256 cookies verified in middleware
 - One-click disconnect wipes the key and every cached order
-- The WhatsApp gateway key is stored the same way — never in an environment
-  variable, never in a browser bundle, and shown only masked once saved
-- Customer phone numbers never reach the browser: the analytics payload carries
-  only whether someone is reachable, and numbers are resolved server-side at the
-  moment a send runs
-
-</details>
-
-<details open>
-<summary><b>Interface</b></summary>
-
-- Light and dark themes, both deliberately designed rather than auto-inverted
-- Collapsible sidebar, global date-range picker with presets and custom ranges
-- Range and granularity persisted across reloads via an external store
-  (no flash of the wrong range on load)
-- Sortable, searchable, paginated tables with sticky first column and expandable rows
-- Charts: trend, Pareto, ranked bar, donut, heatmap, cohort matrix, scatter,
-  forecast band, sparkline
-- **CVD-validated eight-slot categorical palette**, checked for colour-vision
-  separation, normal-vision distinctness, lightness banding and contrast in both
-  modes
-- Hover tooltips everywhere; legends whenever two or more series are shown
-- Honest empty states that explain *why* a section is empty
-- Partial-data and truncated-history warnings surfaced, never hidden
-- Geist and Geist Mono, with tabular figures in aligned columns
+- **Customer phone numbers never reach the browser** — the payload carries only
+  whether someone is reachable
+- The gateway key is stored the same way and shown only masked
 
 </details>
 
@@ -336,58 +302,37 @@ snapshot, and derives every metric from that snapshot at request time.
 ## Feature tour
 
 ### Dashboard
-Headline KPIs against the equal-length previous window, a revenue-and-orders trend
-on a single shared axis, generated findings ordered by urgency, top products and
-customers, payment mix, geography, and a day × hour trading heatmap.
+Headline KPIs against the equal-length previous window, revenue and orders on a
+single shared axis, findings ordered by urgency, top products and customers,
+payment mix, geography, and a day × hour trading heatmap.
 
 ### Customers
-Full RFM scoring mapped to the ten standard segments. Value tiers, predicted
-lifetime value, churn risk, and a Pareto view of revenue deciles with a Gini
-coefficient. A top-customer spotlight, an advanced filter panel, and the complete
-ledger with orders expandable in place.
+RFM scoring mapped to ten segments, value tiers, predicted CLV, churn risk, and
+a Pareto view with a Gini coefficient. Top-customer spotlight, advanced filters,
+and the complete ledger with orders expandable in place.
 
-### Customer profiles
-Every customer table drills through to a profile: their orders, what they bought,
-how they were acquired, their RFM scores and full history.
-
-### Acquisition
-New versus returning revenue by month, with full sortable tables of each. Channel
-and device breakdowns from WooCommerce Order Attribution, which channels actually
-bring first-time buyers, and the median time to a second order.
+### Acquisition and cohorts
+New versus returning revenue by month with full tables of each. Channel and
+device breakdowns from Order Attribution, median time to a second order, a
+retention triangle and a cumulative LTV curve.
 
 ### Campaigns
-An audience builder with goal-driven presets. Filter on segment, tier, recency,
-spend, orders, churn risk, country and product bought; see reach and revenue at
-stake live; export a CSV shaped for an email or ads platform. Plus campaign
-performance from `utm_campaign` and coupon return-on-discount.
+Build an audience, choose a template, attach a coupon and a product, dry-run it,
+test it, then send. Plus campaign performance from `utm_campaign` and coupon
+return-on-discount.
 
-### WhatsApp campaigns
-Compose a text, image or video message and send it to the audience you just
-built. A dry run shows exactly who it would reach before anything is sent, a
-test send goes only to a number you type, and starting a broadcast needs the
-deliverable count typed in. Sending is paced by the gateway and runs as a
-resumable job with live progress.
+### Inbox
+WhatsApp conversations with the customer behind each number, their order count
+and spend alongside, and a composer that sends text, media or a catalogue
+product.
 
 ### Inventory
-Days of cover per SKU, reorder points from a stated lead time, suggested order
-quantities, revenue at risk from stockouts and capital tied up in overstock, with
-a CSV export shaped as a draft purchase order.
+Days of cover, reorder points, suggested quantities, revenue at risk and capital
+tied up, with a CSV export shaped as a draft purchase order.
 
-### Cohorts and retention
-Monthly acquisition cohorts with a full retention triangle and a cumulative LTV
-curve. Cells that have not elapsed yet stay blank rather than reading as zero.
-
-### Products
-ABC classification, refund rate per SKU, category mix, and market-basket affinity
-ranked by lift.
-
-### Forecast
-Ordinary least squares on the level, multiplied by day-of-week seasonality
-factors, with a 95% band from in-sample residuals.
-
-### Orders
-Full order register with status mix, basket-size distribution, payment methods,
-coupon performance and fulfilment timing.
+### Products, orders and forecast
+ABC classification and market-basket affinity; the full order register with
+payment and coupon performance; a projection with a 95% band.
 
 ---
 
@@ -409,10 +354,184 @@ coupon performance and fulfilment timing.
 | `g` `i` | Inventory |
 | `g` `o` | Orders |
 | `g` `m` | Campaigns |
+| `g` `w` | Inbox |
 | `g` `r` | Reports |
 | `g` `s` | Settings |
 
 All shortcuts are ignored while you are typing into a field.
+
+---
+
+## Architecture
+
+Three processes, and only one of them is this app.
+
+```mermaid
+graph LR
+    subgraph yours["Your infrastructure"]
+        WOO[("WooCommerce<br/>store")]
+        GW["WhatsApp gateway<br/>(OpenWA)"]
+    end
+
+    subgraph app["PulseCommerce"]
+        API["API routes<br/>analytics · whatsapp"]
+        ENG["Analytics engine<br/>pure functions"]
+        UI["Browser<br/>React"]
+    end
+
+    KV[("Redis / disk<br/>snapshot · config · jobs")]
+
+    WOO -->|"REST, read<br/>+ coupon writes"| API
+    API <--> KV
+    API --> ENG
+    ENG --> UI
+    UI -->|"filter, never numbers"| API
+    API -->|"X-API-Key"| GW
+    GW -->|"WhatsApp"| PHONE(["Customers"])
+```
+
+The app never connects to WhatsApp itself, and the browser never receives a
+phone number. Both facts are load-bearing rather than incidental.
+
+### Layout
+
+```
+src/
+├── app/
+│   ├── page.tsx              Authorization page (the root)
+│   ├── (app)/                Pages behind the sidebar shell
+│   │   ├── dashboard/        Headline KPIs, trend, findings
+│   │   ├── customers/        RFM, tiers, CLV, churn, [key] profiles
+│   │   ├── acquisition/      New vs returning, channels, devices
+│   │   ├── cohorts/          Retention triangle, LTV curve
+│   │   ├── campaigns/        Audience builder + WhatsApp send panel
+│   │   ├── inbox/            WhatsApp conversations
+│   │   ├── products/         ABC, refund rate, affinity
+│   │   ├── inventory/        Restock planner, reorder points
+│   │   ├── orders/           Register, payments, coupons
+│   │   ├── forecast/         Trend + seasonality projection
+│   │   ├── reports/          Report builder and written report
+│   │   └── settings/         Stores, WhatsApp gateway, data window
+│   └── api/
+│       ├── analytics/        Computes the full payload
+│       ├── customers/[key]/  One customer with order history, on demand
+│       ├── auth/woo/         start → callback → return
+│       ├── reports/          Export generation
+│       ├── settings/         Connection state, switching, data window
+│       └── whatsapp/
+│           ├── settings/     Gateway connection, verified before saving
+│           ├── session/      Session state and pairing QR
+│           ├── preview/      Dry run — resolves recipients, sends nothing
+│           ├── test/         One message to a typed number
+│           ├── broadcast/    Create, tick, cancel
+│           ├── chats/        Conversations and replies
+│           ├── products/     Catalogue search
+│           ├── coupons/      List, and the one write in the app
+│           └── opt-out/      Numbers excluded from every send
+├── lib/
+│   ├── woo/                  REST client, field trimming, slimming, attribution
+│   ├── store/                Config, KV abstraction, snapshot cache
+│   ├── analytics/            KPIs, customers, cohorts, acquisition, products,
+│   │                         inventory, operations, forecast
+│   ├── whatsapp/             Gateway client, phone normalisation, templates,
+│   │                         recipient resolution, broadcast jobs, opt-outs
+│   ├── export/               CSV, Excel and PDF builders, embedded fonts
+│   └── auth/                 Signed sessions, signed authorization state
+├── components/
+│   ├── charts/               Chart primitives on a CVD-validated palette
+│   ├── dashboard/            Stat strip, data table, filters, page states
+│   ├── layout/               Sidebar, topbar, store switcher, command palette
+│   ├── whatsapp/             Gateway settings, QR, send panel, product picker
+│   └── ui/                   shadcn/ui
+└── middleware.ts             Session gate
+```
+
+### Scope
+
+The store key is `read_write`, for exactly one reason: creating campaign
+coupons. WooCommerce offers no finer scope, so the narrowing is enforced in
+code — `WooClient` has one mutating method, `createCoupon`, reached by one
+endpoint. Nothing writes to orders, products, customers or settings. Set the
+scope back to `read` in `api/auth/woo/start` and re-authorize if you do not want
+generated coupons; every other feature is unaffected.
+
+---
+
+## Data pipeline
+
+One pull, cached, then everything derived from it.
+
+```mermaid
+flowchart TD
+    A["WooCommerce REST"] -->|"_fields trims<br/>900KB to 160KB per page"| B["Paginated pull<br/>3 wide, paced"]
+    B --> C["slim()<br/>drop unread fields, 81% smaller"]
+    C --> D["decode entities<br/>parse attribution"]
+    D --> E["Snapshot"]
+    E --> F["gzip + chunk<br/>shared cache"]
+    E --> G["memory, 10 min"]
+    E --> H["disk or tmp, 60 min"]
+    F --> I["computeAnalytics()<br/>pure, per request"]
+    G --> I
+    H --> I
+    I --> J["Range and granularity applied"]
+    J --> K["Payload to browser<br/>no phone numbers"]
+```
+
+**Why a snapshot.** Every metric — RFM, cohorts, affinity, forecast — needs the
+whole order history, not a page of it. Computing from one cached snapshot means
+a filter change costs milliseconds instead of a re-pull.
+
+**Cache key.** Hashed from the schema version, store URL and data window.
+Deliberately *not* the consumer key: WooCommerce issues a fresh one on every
+re-authorization, and keying on it once orphaned every cached copy at a stroke
+and forced a full re-pull that outlived a serverless request.
+
+**Schema version.** Bumped whenever the snapshot shape changes, so a deploy that
+reads a new field can never be served an old snapshot lacking it. The cost is
+one cold pull; silently missing data would be worse.
+
+---
+
+## Broadcast pipeline
+
+A broadcast is a resumable job, not a long request.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant P as PulseCommerce
+    participant W as Gateway
+    participant C as Customers
+
+    B->>P: filter + message (never numbers)
+    P->>P: recompute audience from snapshot
+    P->>P: resolve phones, drop unreachable,<br/>remove opt-outs and duplicates
+    P-->>B: dry run — counts, reasons, masked sample
+    B->>P: confirm the exact deliverable count
+    P->>P: re-resolve; refuse if it changed
+    loop one batch per tick
+        B->>P: tick
+        P->>W: ensure engine live, then 100 recipients
+        W-->>C: paced sends with jitter
+        P-->>B: progress
+    end
+```
+
+**Why ticks.** The gateway paces its own batches — a hundred recipients at four
+seconds apart occupies it for roughly seven minutes — which no serverless
+request can wait out. Each tick hands over at most one batch and returns, so
+closing the page pauses the job rather than breaking it, and whatever was
+already handed over still goes out.
+
+**Why recipients are resolved on the server.** The browser sends a *filter*.
+Numbers are derived from the snapshot at send time, so no crafted request can
+address someone who is not a customer of the connected store, and the opt-out
+list cannot be routed around by the UI.
+
+**Recovery.** If the gateway's process restarts, its session row still says
+`ready` while the engine is gone, and every send fails. The pairing lives on
+disk, so the engine is restarted and reconnects in seconds without a QR. A
+restart costs one batch of delay instead of the rest of the audience.
 
 ---
 
@@ -429,8 +548,8 @@ npm run dev
 Open <http://localhost:3000>. The app runs immediately, but every page shows
 **"Connect your WooCommerce store"** until one is authorized.
 
-**Requirements:** Node 20+ (developed on 22) and a WooCommerce store with the REST
-API enabled. WordPress permalinks must not be set to "Plain", or the REST API
+**Requirements:** Node 20+ (developed on 22) and a WooCommerce store with the
+REST API enabled. WordPress permalinks must not be "Plain", or the REST API
 returns 404.
 
 ---
@@ -438,66 +557,50 @@ returns 404.
 ## Connecting a store
 
 Connection uses **WooCommerce's own app authorization endpoint**
-(`/wc-auth/v1/authorize`). You approve read-only access inside your own WordPress
-admin; WooCommerce issues the key and delivers it to this app.
+(`/wc-auth/v1/authorize`). You approve access inside your own WordPress admin;
+WooCommerce issues the key and delivers it to this app.
 
-There is deliberately **no form anywhere in this app that accepts a consumer
-key**, and no environment variable for one. A merchant pasting a secret into a
-third-party form is exactly the failure mode that endpoint exists to remove.
+There is deliberately **no form that accepts a consumer key**, and no
+environment variable for one. A merchant pasting a secret into a third-party
+form is exactly the failure mode that endpoint exists to remove.
 
 ```mermaid
 sequenceDiagram
     participant B as Your browser
     participant A as PulseCommerce
-    participant W as Your WooCommerce store
+    participant W as Your store
 
-    B->>A: Settings → Authorize, enter store URL
+    B->>A: Settings, authorize, enter store URL
     A->>A: Create signed state token
-    A-->>B: Redirect to store's authorize page
-    B->>W: Log in to WP admin, approve read-only access
-    W->>A: POST consumer key + secret (server → server)
-    A->>A: Verify token, verify key against store, save
-    W-->>B: Redirect back to PulseCommerce
-    A-->>B: Connected → dashboard
+    A-->>B: Redirect to the store's authorize page
+    B->>W: Log in to WP admin, approve access
+    W->>A: POST consumer key + secret (server to server)
+    A->>A: Verify token, verify key, save
+    W-->>B: Redirect back
+    A-->>B: Connected, dashboard
 ```
 
 ### The one requirement
 
-Notice the **server-to-server POST**. WooCommerce delivers the key from *your
-store's server* to this app, which means this app must be on a **public HTTPS
+That **server-to-server POST** means this app must be on a **public HTTPS
 address**:
 
 | Requirement | Why |
 |---|---|
 | HTTPS | WooCommerce refuses to hand credentials to a plain-HTTP callback. |
-| Publicly resolvable | `localhost` points your store's server at itself, not at you — however your browser reaches it. |
+| Publicly resolvable | `localhost` points your store's server at itself, not at you. |
 
-The app validates both **before** redirecting you, so you can never get stuck
+Both are validated **before** you are redirected, so you can never get stuck
 approving an app that could not have received the result.
 
 ### Local development
-
-Serve over local HTTPS and expose it through a tunnel:
 
 ```bash
 npm run dev:https                                   # https://localhost:3000
 cloudflared tunnel --url https://localhost:3000     # or: ngrok http https://localhost:3000
 ```
 
-Put the public address the tunnel prints into `.env.local`, then restart:
-
-```bash
-APP_URL=https://your-subdomain.trycloudflare.com
-```
-
-Open the app **at that address**, go to **Settings → Authorize your store**, enter
-your store URL and approve.
-
-### Production
-
-```bash
-APP_URL=https://analytics.yourcompany.com
-```
+Put the public address into `.env.local` as `APP_URL` and restart.
 
 `APP_URL` is auto-detected on Vercel from `VERCEL_PROJECT_PRODUCTION_URL`.
 
@@ -505,37 +608,32 @@ APP_URL=https://analytics.yourcompany.com
 
 ## WhatsApp campaigns
 
-Broadcasts go out through a **self-hosted [OpenWA](https://github.com/rmyndharis/OpenWA)
-gateway** that you run. PulseCommerce is only a client of its REST API and never
-connects to WhatsApp itself, so your messages, your session and your number stay
-on your own infrastructure.
+Broadcasts go through a **self-hosted [OpenWA](https://github.com/rmyndharis/OpenWA)
+gateway** that you run. PulseCommerce is only a client of its REST API.
 
 ### What you need
 
-A host that can keep a process running continuously. This is the part worth
-getting right before anything else:
+A host that can keep a process running continuously:
 
 | | Works | Why |
 |---|:---:|---|
 | VPS or cloud server | **Yes** | Docker, persistent volumes, a process that stays up |
-| Shared hosting | No | The app is restarted or frozen, and the session's auth state does not survive it |
+| Shared hosting | No | Processes are recycled and the auth directory does not survive |
 | Vercel / serverless | No | No long-lived process at all |
 
-A WhatsApp session is a live connection. If the process dies or the auth
-directory is wiped, the number unlinks and the QR has to be scanned again — and
-a broadcast that runs for hours at a safe pace will never finish.
+A WhatsApp session is a live connection. If the process dies and its data
+directory is wiped, the number unlinks and a broadcast that runs for hours never
+finishes.
 
 ### Setting it up
 
-1. Deploy OpenWA on your server (Docker Compose is its supported path) behind
-   HTTPS.
+1. Deploy OpenWA behind HTTPS on your server (Docker Compose is its supported path).
 2. Create a session and link a **dedicated number** — see the warning below.
-3. In OpenWA, create an API key with the **operator** role. Sending is all this
-   needs; do not hand over your admin key.
-4. In PulseCommerce, go to **Settings → WhatsApp gateway**, enter the gateway
-   URL and that key, and confirm the country code it suggests.
+3. Create an API key with the **operator** role. Sending is all this needs.
+4. In **Settings → WhatsApp gateway**, enter the URL and key, and confirm the
+   country code.
 
-Alternatively, set it on the host instead of in the UI:
+Or set it on the host instead, which survives a redeploy and a cleared store:
 
 ```bash
 WHATSAPP_API_URL=https://wa.yourdomain.com
@@ -544,110 +642,97 @@ WHATSAPP_DIAL_CODE=91           # assumed when a number has no country code
 WHATSAPP_SESSION_ID=...         # optional; the only session is adopted if omitted
 ```
 
-When these are set they take precedence, and Settings shows the connection as
-read-only. That is the point: a connection held in the environment survives a
-redeploy, a cleared store, and a mis-click on Disconnect.
-
-If no number is linked yet, Settings shows the pairing **QR inline** — scan it
-there. The QR is proxied through this app, so the gateway key never reaches a
-browser page.
+If no number is linked, Settings shows the pairing **QR inline**. It is proxied
+through this app, so the gateway key never reaches a browser page.
 
 ### Sending
 
-On the **Campaigns** page, build an audience as usual, then compose below it.
-The order of the controls is the safety model:
+On **Campaigns**, build an audience, then compose below it. The order of the
+controls is the safety model:
 
-1. **Check who this would reach** — a dry run. Resolves the real recipient list
-   and sends nothing, reporting how many are reachable, how many were dropped
-   and why, a masked sample, and the message as the first real recipient would
-   see it.
+1. **Check who this would reach** — a dry run. Resolves the real list and sends
+   nothing, reporting how many were dropped and why, a masked sample, and the
+   message as the first real recipient would see it.
 2. **Test** — one message to a number you type. It cannot reach a customer.
 3. **Send broadcast** — requires typing the deliverable count. The server
-   re-resolves the audience and refuses if it has changed since you looked.
+   re-resolves the audience and refuses if it changed.
 
-Sending is paced by the gateway and runs as a resumable job. Closing the page
-pauses it; anything already handed over still goes out, and reopening resumes.
+### Templates and variables
+
+Nine templates, each resolving against the customer's own history. Variables:
+`{{name}}`, `{{product}}`, `{{product_url}}`, `{{category}}`, `{{last_order}}`,
+`{{orders}}`, `{{spend}}`, `{{store}}`, `{{coupon}}`, `{{coupon_value}}`.
+
+The product chosen is the one they have **spent the most on**, not the most
+recent — a one-off small purchase should not become the thing a reorder message
+is built around. A variable with no value is removed and the sentence tidied, so
+nobody receives a literal `{{product}}` or a dangling comma.
+
+A **campaign product** picked from the catalogue overrides that for everyone,
+and supplies the photo.
+
+### Coupons
+
+Pick an existing WooCommerce coupon, or generate one: a code, percentage or
+fixed amount, an expiry, one use per customer, and — when a campaign product is
+chosen — restricted to that product. Generated codes avoid `O`/`0` and `I`/`1`,
+because they get read off a phone screen and typed at a checkout.
+
+Codes that have expired or hit their usage limit are listed but cannot be
+selected. Sending a code that will be refused is worse than sending none.
 
 ### Phone numbers
 
-WooCommerce checkout fields are free text, so numbers arrive inconsistently, and
-often with no country code at all. The **default country code** in Settings
-decides what a bare national number becomes, which makes it the single setting
-most worth checking — a wrong value sends to the wrong country.
+Checkout fields are free text, and numbers often carry no country code. The
+**default country code** decides what a bare national number becomes, which
+makes it the single setting most worth checking — a wrong value sends to the
+wrong country.
 
-Numbers that cannot be read as a plausible subscriber number are **dropped and
-counted**, never guessed at. Duplicates across customer records are collapsed so
-a household is messaged once, and the opt-out list is applied on the server after
-the audience is built.
-
-Numbers themselves never reach the browser. The analytics payload carries only
-whether a customer is reachable; the number is resolved server-side at the moment
-a send runs.
+Anything unreadable as a subscriber number is **dropped and counted**, never
+guessed. Duplicates across customer records are collapsed so a household is
+messaged once. Numbers never reach the browser.
 
 ### Buttons, product cards and link previews
 
 A self-hosted gateway cannot send tappable **buttons** or **product cards**.
-Those are WhatsApp Business Platform features that require pre-approved message
-templates on Meta's Cloud API, and WhatsApp withdrew them from unofficial
-clients — OpenWA's own API marks its catalog endpoints "not supported by any
-engine", and a live gateway answers `501` for them.
+Those need pre-approved templates on Meta's Cloud API; WhatsApp withdrew them
+from unofficial clients. OpenWA marks its catalog endpoints "not supported by
+any engine", and a live gateway answers `501`.
 
-The closest thing available is WhatsApp's **link preview**: a message whose body
-contains a URL renders as a tappable card with the page's title, description and
-image. Two things affect whether you get one:
+The closest thing is WhatsApp's **link preview**, a tappable card built from the
+page itself. Two things affect it:
 
-- **Do not attach a photo.** Media suppresses the preview, so the buy link
-  appears as plain text under the picture. A text message with the link on its
-  own line previews properly.
-- **Your product pages need `og:image`.** Without it WhatsApp has no picture to
-  draw and the card comes out bare or not at all. Most WordPress SEO plugins
-  (Yoast, Rank Math) add these tags from the product image automatically.
-
-If tappable buttons are a hard requirement, the official WhatsApp Business Cloud
-API is the only route, at the cost of per-conversation fees and template
-approval.
+- **Do not attach a photo** — media suppresses the preview.
+- **Your product pages need `og:image`** — most WordPress SEO plugins add it.
 
 > **Use a dedicated number.** OpenWA connects through reverse-engineered clients
-> rather than Meta's official Cloud API, so there is a real risk of the number
-> being restricted, and no appeal path through OpenWA. Do not link the number
-> your business runs on. Messaging your own past customers is the safest
-> workload; cold-blasting strangers is what gets numbers banned.
+> rather than Meta's official API, so there is a real risk of restriction and no
+> appeal path. Do not link the number your business runs on. Messaging your own
+> past customers is the safest workload; cold-blasting strangers is what gets
+> numbers banned.
 
 ---
 
 ## Multiple stores
 
-Authorize as many stores as you like. Each keeps its own credentials, data window
-and snapshot cache.
-
-- **Switch** from the sidebar switcher, or from **Settings → Connected stores**
-- **Remove** a single store, or disconnect everything
-- Re-authorizing a store you already have **updates its key in place** and keeps
-  the data window you chose, rather than adding a duplicate
-
-Switching is a pointer change: the next request reads a different cache rather
-than re-pulling anything.
+Authorize as many as you like. Each keeps its own credentials, data window and
+snapshot cache. Switch from the sidebar or Settings; re-authorizing a store you
+already have updates its key in place rather than duplicating it. Switching is a
+pointer change — the next request reads a different cache rather than re-pulling.
 
 ---
 
 ## Optional password protection
-
-The app runs open by default, which is what makes "clone and run" work. Set both
-variables to require a sign-in:
 
 ```bash
 AUTH_SECRET=$(openssl rand -hex 32)   # signs the session cookie
 APP_PASSWORD=something-long
 ```
 
-With both set, every analytics route redirects to `/login`. Sessions are
-HMAC-SHA256 signed cookies verified in middleware via Web Crypto, so the same code
-path runs on Edge and Node.
-
-Completing the WooCommerce authorization also establishes a session — proving you
-can approve the store is proof of access. The WooCommerce callback endpoint stays
-reachable without a session, because that request is your store calling, not a
-browser.
+With both set, every route redirects to `/login`. Sessions are HMAC-SHA256
+cookies verified in middleware via Web Crypto, so the same code runs on Edge and
+Node. Completing the WooCommerce authorization also establishes a session —
+proving you can approve the store is proof of access.
 
 ---
 
@@ -656,146 +741,65 @@ browser.
 | Variable | Required | Purpose |
 |---|:---:|---|
 | `APP_URL` | to connect | Public HTTPS address WooCommerce delivers credentials to. Auto-detected on Vercel. |
-| `AUTH_SECRET` | **to connect** | Signs the authorization state token and the session cookie. `openssl rand -hex 32`. |
+| `AUTH_SECRET` | **to connect** | Signs the authorization state token and session cookie. |
 | `APP_PASSWORD` | for login | Set alongside `AUTH_SECRET` to require a password. |
 | `KV_REST_API_URL` | on serverless | Redis endpoint. Vercel KV and Upstash both provide it. |
-| `KV_REST_API_TOKEN` | on serverless | Token for the above. `UPSTASH_REDIS_REST_*` names work too. |
-| `WHATSAPP_API_URL` | no | OpenWA gateway base URL. Setting this and the key below takes the connection out of the UI entirely. |
+| `KV_REST_API_TOKEN` | on serverless | Token for the above. `UPSTASH_REDIS_REST_*` also accepted. |
+| `SNAPSHOT_CACHE_MINUTES` | no | How long a snapshot stays warm. Default `60`. |
+| `WHATSAPP_API_URL` | no | Gateway base URL. Takes the connection out of the UI. |
 | `WHATSAPP_API_KEY` | no | Gateway API key, operator role. |
-| `WHATSAPP_SESSION_ID` | no | Which session to send from. Omit it and the only session on the gateway is adopted and remembered. |
-| `WHATSAPP_DIAL_CODE` | no | Country code assumed for customer numbers stored without one, e.g. `91`. |
-| `WHATSAPP_SEND_DELAY_MS` | no | Pause between messages. Default `4000`; the gateway's own floor is `1000`. |
+| `WHATSAPP_SESSION_ID` | no | Which session to send from. Adopted automatically if omitted. |
+| `WHATSAPP_DIAL_CODE` | no | Country code for numbers stored without one, e.g. `91`. |
+| `WHATSAPP_SEND_DELAY_MS` | no | Pause between messages. Default `4000`; gateway floor `1000`. |
 
-Credentials are **never** environment variables. The issued key is written to
-`.data/store-config.json` when self-hosted, or to your Redis on serverless.
-`.data/` and `.env*` are gitignored.
+WooCommerce credentials are **never** environment variables — they arrive only
+through the authorization flow.
 
 ---
 
 ## Reports and exports
 
-Ten report types, downloadable as:
+Ten report types, as **Excel** (formatted sheets, cover page, auto-filters),
+**PDF** (branded cover, embedded font so `₹` renders), or **CSV** (bare numbers,
+parseable dates, BOM-prefixed, formula-injection guarded).
 
-| Format | What you get |
-|---|---|
-| **Excel** | One formatted sheet per report, cover page with findings, auto-filters, frozen headers, per-cell currency formats. |
-| **PDF** | Branded cover with headline KPI cards and findings, then a table per report. Geist is embedded so `₹`, `€` and friends render correctly. |
-| **CSV** | Raw rows for spreadsheets and pipelines: bare numbers, spreadsheet-parseable dates, BOM-prefixed, formula-injection guarded. |
-
-Exports always use the date range currently on screen, so a downloaded report can
-never silently disagree with the dashboard it came from. Unlike the on-screen
-tables they are **never row-capped**, except in PDF, which prints the columns that
-fit a page and says so.
-
-`/reports/view` renders the same period as a written document: conclusion first,
-evidence below, method and limits at the end.
+Exports use the date range on screen, so a downloaded report can never silently
+disagree with the dashboard it came from, and are never row-capped except in PDF,
+which prints the columns that fit a page and says so.
 
 ---
 
 ## How the metrics are defined
 
-Being explicit here matters more than being clever, because these definitions are
-where analytics tools quietly disagree with each other.
+**Net revenue** — order total less tax, shipping and refunds, for orders in
+`completed`, `processing` or `on-hold`. Cancelled, failed and pending are
+excluded from revenue but counted in cancellation rates.
 
-**Net revenue** — order total less tax, shipping and refunds, counted only for
-orders in `completed`, `processing` or `on-hold`. Cancelled, failed and pending
-orders are excluded from revenue but still counted in cancellation rates.
+**Customer identity** — guest checkouts carry no customer ID, so buyers are keyed
+on billing email. Someone using two addresses appears twice.
 
-**Customer identity** — guest checkouts carry no WooCommerce customer ID, so
-buyers are keyed on billing email. Someone checking out under two different
-addresses appears twice. On a typical store the large majority of orders are
-guest checkouts, so this matters.
+**Two different repeat rates**, reported separately: *returning customer rate*
+(active in the period, bought before it) and *repeat rate in period* (bought more
+than once inside it). On a 30-day window these differ by an order of magnitude.
 
-**Two different repeat rates**, reported separately and deliberately not
-conflated:
+**New and returning lists overlap by design.** A customer acquired in the period
+who buys again is genuinely both.
 
-- *Returning customer rate* — share of customers active in the period who had
-  already bought **before** it.
-- *Repeat rate in period* — share who bought more than once **inside** it.
+**RFM scores** are quintiles within your own base, not absolute thresholds.
 
-On a 30-day window these differ by an order of magnitude. Any tool showing you one
-number called "repeat rate" is hiding this from you.
+**Predicted CLV** projects the observed order rate twelve months forward,
+discounted by churn risk. It is an estimate, and the UI says so.
 
-**New and returning customer lists overlap by design.** A customer acquired in
-the period who then buys again is genuinely both: newly acquired, and returning.
-Treating them as exclusive made the returning list read as zero on any range
-covering the store's full history, since nobody predates it.
+**Days of cover** is stock divided by units sold per day over the range.
 
-**RFM scores** are quintiles within your own customer base, not absolute
-thresholds, so segments stay meaningful whatever your absolute numbers look like.
-
-**Predicted CLV** projects each customer's observed order rate forward twelve
-months, discounted by churn risk. It is an estimate, and the UI says so.
-
-**Days of cover** is current stock divided by units sold per day over the selected
-range. Reorder points assume a lead time plus safety stock, both stated on the
-page and adjustable.
-
-**Order Attribution** is core WooCommerce from 8.5. Orders placed before it was
-enabled carry none, and the Acquisition page reports the coverage percentage
-rather than showing an empty channel list.
-
-**Truncated history** is surfaced as a visible warning rather than silently
-skewing every metric.
-
----
-
-## Architecture
-
-```
-src/
-├── app/
-│   ├── page.tsx          Authorization page (the root)
-│   ├── (app)/            Dashboard pages behind the sidebar shell
-│   │   ├── dashboard/    Headline KPIs, trend, findings
-│   │   ├── customers/    RFM, tiers, CLV, churn, and [key] profiles
-│   │   ├── acquisition/  New vs returning, channels, devices
-│   │   ├── campaigns/    Audience builder + campaign performance
-│   │   ├── cohorts/      Retention triangle, LTV curve
-│   │   ├── products/     ABC, refund rate, affinity
-│   │   ├── inventory/    Restock planner and reorder points
-│   │   ├── orders/       Order register, payments, coupons
-│   │   ├── forecast/     Trend + seasonality projection
-│   │   ├── reports/      Report builder and written report
-│   │   └── settings/     Store connection, switching, data window
-│   ├── api/
-│   │   ├── analytics/    Computes the full payload
-│   │   ├── customers/    One customer with order history, on demand
-│   │   ├── whatsapp/     Gateway connection, session + QR, dry run,
-│   │   │                 test send, broadcast create/tick/cancel, opt-outs
-│   │   ├── auth/woo/     start → callback → return (Woo authorization)
-│   │   ├── auth/session/ Password login, sign-out
-│   │   ├── reports/      Export generation
-│   │   └── settings/     Connection state, switching, data window
-│   └── login/
-├── lib/
-│   ├── woo/              REST client, field trimming, entity decoding,
-│   │                     attribution parsing, payload slimming
-│   ├── store/            Config, KV abstraction, snapshot loading and caching
-│   ├── analytics/        The engine: KPIs, customers, cohorts, acquisition,
-│   │                     products, inventory, operations, forecast
-│   ├── whatsapp/         OpenWA client, phone normalisation, opt-out list,
-│   │                     server-side recipient resolution, broadcast jobs
-│   ├── export/           CSV, Excel and PDF builders, embedded fonts
-│   ├── auth/             Signed sessions, signed authorization state
-│   └── audience.ts       Campaign audience filtering and CSV shaping
-├── components/
-│   ├── charts/           Chart primitives on a CVD-validated palette
-│   ├── dashboard/        Stat strip, data table, badges, filters, page states
-│   ├── layout/           Sidebar, topbar, store switcher, command palette
-│   ├── whatsapp/         Gateway settings, QR linking, campaign send panel
-│   └── ui/               shadcn/ui
-└── middleware.ts         Session gate
-```
-
-A snapshot is fetched once and every metric is derived from it at request time.
-Nothing is precomputed, warehoused, or sent anywhere else.
+**Order Attribution** is core WooCommerce from 8.5; earlier orders carry none,
+and the coverage percentage is reported rather than hidden.
 
 ---
 
 ## Performance
 
-Tested against a live store with **20,490 orders and 11,286 customers**:
+Against a live store with **20,490 orders and 11,286 customers**:
 
 | Measure | Result |
 |---|---|
@@ -805,131 +809,98 @@ Tested against a live store with **20,490 orders and 11,286 customers**:
 | Full-year customer payload, on the wire | 911 KB |
 | Cached snapshot | 2.0 MB gzipped |
 
-### What made that possible
-
-**Payload trimming.** WooCommerce's `_fields` parameter does not reach into
-nested arrays, so every line item arrived carrying its tax breakdown, `meta_data`
-and a full image object. Removing what the engine never reads cut the payload
-**81%**, and the whole order history now gzips to 2 MB.
+**Payload trimming.** `_fields` does not reach nested arrays, so every line item
+arrived carrying its tax breakdown, `meta_data` and a full image object.
+Removing what the engine never reads cut the payload **81%**.
 
 **Shared caching.** The snapshot is cached where every instance can see it,
-gzipped and split into chunks behind a manifest, with the chunks written before
-the manifest so a reader never sees a partial set. An earlier per-instance cache
-meant each cold serverless start re-pulled the entire history, which was both slow
-and enough sustained traffic that the store's own security layer began refusing
-requests.
+gzipped and chunked behind a manifest, chunks written before the manifest so a
+reader never sees a partial set. A per-instance cache meant each cold start
+re-pulled the whole history — slow, and enough traffic that the store's security
+layer began refusing requests.
 
-**Order history fetched on demand.** Customer records ship without their order
-history, which is half a record's weight. That is what lets the ledger list every
-customer rather than a capped slice; a profile or an expanded row fetches the one
-customer's orders from the cached snapshot.
+**Order history on demand.** Customer records ship without their orders, which is
+half a record's weight. That is what lets the ledger list every customer.
 
-**Paced, bounded fetching.** Orders paginate three connections wide with a pause
-between batches, so a rare full pull reads as steady traffic. Transient failures
-retry with exponential backoff, because one dropped connection should not discard
-a multi-minute pull.
+**Paced fetching.** Orders paginate three connections wide with a pause between
+batches. Transient failures retry with exponential backoff.
 
 ---
 
 ## Design system
 
-Chrome is monochrome by intent, so colour is reserved for data series and genuine
-state. Charts use an eight-slot categorical palette validated for colour-vision
+Chrome is monochrome by intent, so colour is reserved for data and genuine state.
+Charts use an eight-slot categorical palette validated for colour-vision
 deficiency separation, a normal-vision distinctness floor, lightness banding and
-contrast — in **both** light and dark mode, with dark steps selected for the dark
-surface rather than flipped.
+contrast — in **both** modes, with dark steps selected for the dark surface
+rather than flipped.
 
-Some deliberate choices:
-
-- **No dual-axis charts.** Where two measures share a plot they share one scale,
-  and the tooltip reports true values.
-- **Sequential ramps are single-hue**, never rainbow. Diverging pairs use a
-  neutral midpoint.
-- **Legends are always present for two or more series**, so identity is never
-  carried by colour alone. Status colours ship with an icon and a written label.
+- **No dual-axis charts.** Two measures sharing a plot share one scale.
+- **Sequential ramps are single-hue**; diverging pairs use a neutral midpoint.
+- **Legends always present for two or more series**, so identity is never colour
+  alone. Status colours ship with an icon and a label.
 - **Unelapsed cohort cells are blank**, not zero.
-- Typography is Geist and Geist Mono, with tabular figures reserved for columns
-  that must align.
+- Geist and Geist Mono, tabular figures in columns that must align.
 
 ---
 
 ## Deployment
-
-Any Node host works.
 
 ```bash
 npm run build
 npm run start
 ```
 
-Set `APP_URL` to the public HTTPS address, and `AUTH_SECRET` + `APP_PASSWORD` if
-you want the dashboard gated.
+Set `APP_URL`, plus `AUTH_SECRET` and `APP_PASSWORD` to gate the dashboard.
 
-### Serverless (Vercel, Netlify, Lambda)
+### Serverless
 
-These platforms have a **read-only filesystem**, so the issued key cannot be
-written next to the app. Provision a Redis store and set:
+Read-only filesystem, so provision Redis:
 
 ```bash
 KV_REST_API_URL=https://your-store.upstash.io
 KV_REST_API_TOKEN=...
-AUTH_SECRET=...              # required: signs the authorization state token
+AUTH_SECRET=...
 ```
 
-Vercel KV and Upstash both expose exactly these variables; the
-`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` names are also accepted.
+Without it the app still runs and says the deployment cannot save a connection
+rather than failing mid-flow. The snapshot cache is shared through the same
+Redis, so cold starts read it rather than re-pulling.
 
-Without a Redis store the app still runs and reports honestly — the connect page
-says the deployment cannot save a connection rather than failing mid-flow.
-
-The **snapshot cache** is shared through the same Redis, so cold starts read it
-rather than re-pulling from WooCommerce.
+**The WhatsApp gateway cannot live here.** It needs a process that stays up.
 
 ---
 
 ## Troubleshooting
 
 **"Your store cannot reach this app"** — `APP_URL` points at localhost or a
-private network address. The callback is a server-to-server POST from your store.
-Use a tunnel and set `APP_URL` to the public address.
+private address. The callback is a server-to-server POST. Use a tunnel.
 
-**"This deployment cannot save a connection"** — serverless with no Redis
-configured. Set `KV_REST_API_URL` and `KV_REST_API_TOKEN`, then redeploy.
+**"This deployment cannot save a connection"** — serverless with no Redis. Set
+`KV_REST_API_URL` and `KV_REST_API_TOKEN`, then redeploy.
 
-**"AUTH_SECRET is not set"** — the authorization flow signs its state token with
-it. Generate one with `openssl rand -hex 32`.
+**"AUTH_SECRET is not set"** — generate one with `openssl rand -hex 32`.
 
-**"WooCommerce never delivered the key"** — the store approved the app but the
-callback did not arrive. Check `APP_URL` is reachable from the public internet and
-that nothing (WAF, firewall, basic auth) blocks the POST.
+**"WooCommerce never delivered the key"** — check `APP_URL` is publicly reachable
+and nothing (WAF, firewall, basic auth) blocks the POST.
 
-**"A valid URL was not provided."** — comes from WooCommerce, not this app. It
-means the callback or return URL failed validation, usually because `APP_URL` is
-unset or malformed.
+**REST API returns 404** — WordPress permalinks are "Plain".
 
-**REST API returns 404** — WordPress permalinks are set to "Plain". Change them in
-Settings → Permalinks.
+**"The store key is read-only"** on coupon creation — the key predates the scope
+change. Reconnect the store in Settings to re-approve it.
 
-**Customer records unavailable** — the issued key could not read `/customers`.
-Analytics fall back to order billing data and the app says so in a warning.
+**WhatsApp session keeps dropping / shows `qr_ready`** — the host cannot keep a
+process alive or is not persisting the gateway's data directory. Move it to a VPS.
+
+**"The session cannot send right now"** — status and engine disagree, which
+happens after a gateway restart. The app restarts the engine automatically; if it
+persists, the pairing itself is gone and the QR needs re-scanning.
+
+**Everyone dropped as "unreadable"** — the default country code is empty or wrong.
 
 **No attribution data** — WooCommerce below 8.5, or Order Attribution disabled.
-It populates for orders placed after you enable it.
 
-**WhatsApp session keeps dropping / shows "qr_ready"** — the host cannot keep a
-process alive, or is not persisting the gateway's data directory, so the auth
-state is lost and a fresh QR is offered. Shared hosting and serverless platforms
-both do this. Move the gateway to a VPS.
-
-**"The session is not ready"** — the gateway is connected but no number is
-linked. Settings shows the pairing QR inline; scan it there.
-
-**Everyone dropped as "unreadable"** — the default country code in Settings is
-empty or wrong for your customers' numbers.
-
-**Inventory page empty** — WooCommerce is not tracking stock quantities for the
-products that sold. Enable stock management per product, or globally under
-WooCommerce → Settings → Products → Inventory.
+**Inventory page empty** — stock management is not enabled on the products.
 
 ---
 
@@ -961,7 +932,7 @@ Built by
 
 [setups.works](https://setups.works)
 
-<sub>Read-only by design · self-hosted · your data never leaves your infrastructure</sub>
+<sub>Self-hosted · your data and your WhatsApp number stay on your infrastructure</sub>
 
 <sub>Licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a></sub>
 
