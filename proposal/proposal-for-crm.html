@@ -15,7 +15,9 @@ quietly stopped buying, where new customers actually come from, which products
 are about to run out, and what next month is likely to look like.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">PulseCommerce answers those questions from your existing order data, without
 adding load to the storefront, without copying customer records to a third
-party, and without anyone modelling a database first.</p>
+party, and without anyone modelling a database first. It also closes the loop:
+an audience identified in the platform can be messaged on WhatsApp from the
+same screen, through a gateway Nature&#39;s Joy owns.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">This document sets out the proposed scope, how the platform connects to your
 store, what is delivered, and commercial terms.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
@@ -37,6 +39,8 @@ business doing anything in that window?</li>
 </ul>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">On marketing</strong></p>
 <ul style="margin:0 0 14px;padding-left:22px;">
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Once a group worth contacting has been identified, how do you actually reach
+them without exporting a spreadsheet and hand-typing numbers?</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Which channel brings genuinely new customers, as opposed to capturing demand
 that already existed?</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">What does each channel actually return, per customer rather than per click?</li>
@@ -92,7 +96,7 @@ metric definition is documented so figures can be reconciled against WooCommerce
 rather than taken on trust.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
 <h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">Proposed scope</h1>
-<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Eleven modules.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Twelve modules.</p>
 <h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">1. Revenue and performance</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Net revenue, gross revenue, orders, average order value, units sold, discounts
 given, shipping and tax collected, refunds, items per order, revenue per
@@ -141,12 +145,49 @@ reward loyal advocates</li>
 is the number that matters for paid acquisition</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Coupon performance</strong>, reporting revenue returned per unit of discount given</li>
 </ul>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">6. Product and catalogue analytics</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">6. WhatsApp campaigns</h2>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Reaching an audience directly, from the same place it is defined.</p>
+<ul style="margin:0 0 14px;padding-left:22px;">
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Send a <strong style="font-weight:600;color:#111;">text, image, or video</strong> message to any audience built above</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Personalisation</strong> by first name, degrading gracefully where a guest checkout
+left no usable name</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">A <strong style="font-weight:600;color:#111;">dry run</strong> that resolves the exact recipient list and sends nothing: how
+many are reachable, how many were excluded and for what reason, and the
+message exactly as the first recipient would receive it</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">A <strong style="font-weight:600;color:#111;">test send</strong> to a number entered by hand, which cannot reach a customer</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Confirmation of the recipient count</strong> before a send begins, re-checked
+against the live audience at the moment it starts</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">An <strong style="font-weight:600;color:#111;">opt-out list</strong> applied after the audience is built, so a filtering
+mistake cannot route around it</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Paced delivery</strong> with natural spacing between messages, run as a resumable
+job with live progress and a stop control</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Numbers stored without a country code are resolved against a configured
+default; anything that cannot be read as a valid number is excluded and
+counted rather than guessed at</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Duplicate numbers across customer records are collapsed, so a household
+receives one message</li>
+</ul>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">How it connects.</strong> Messages are sent through a WhatsApp gateway running on
+infrastructure Nature&#39;s Joy controls. Customer numbers are never transmitted to
+a third-party messaging service, and never leave the server: the interface works
+with counts and reachability, and numbers are resolved only at the moment a
+message is sent.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">What this requires.</strong> The gateway is a continuously running service and needs
+a small server of its own — shared web hosting cannot keep a WhatsApp connection
+alive. Setups Works can provide and manage this, or deploy it on infrastructure
+Nature&#39;s Joy already has.</p>
+<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">A note on the risk.</strong> This uses a self-hosted gateway rather than Meta&#39;s
+official WhatsApp Business API. It avoids per-message fees and message template
+approval, but the number used carries a risk of restriction by WhatsApp, so a
+dedicated number should be used rather than the main business line. If
+guaranteed delivery matters more than cost, the official API is the alternative
+and can be quoted separately.</p>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">7. Product and catalogue analytics</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">ABC classification identifying which products carry the revenue, Pareto
 concentration, revenue and units per SKU, refund rate per product, category mix,
 best sellers by both value and volume, slow movers, and market-basket analysis
 showing which products genuinely sell together.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">7. Inventory and restock planning</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">8. Inventory and restock planning</h2>
 <ul style="margin:0 0 14px;padding-left:22px;">
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Days of cover</strong> per product, from current stock and observed sales velocity</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Reorder points</strong> calculated from your supplier lead time plus safety stock</li>
@@ -156,18 +197,18 @@ showing which products genuinely sell together.</p>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Exports as a <strong style="font-weight:600;color:#111;">draft purchase order</strong></li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Every assumption shown on screen and adjustable to your actual supplier terms</li>
 </ul>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">8. Orders and operations</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">9. Orders and operations</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Full order register with totals, tax, shipping, discounts, refunds, payment
 method, and coupons. Order status mix, basket-size distribution, payment method
 performance, a day-by-hour trading heatmap for timing campaigns and staffing,
 weekday performance, and fulfilment timing.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">9. Forecasting</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">10. Forecasting</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Daily revenue projection combining trend with day-of-week seasonality, presented
 with a 95% confidence band. The seasonality is shown explicitly so the projection
 can be sense-checked rather than accepted blindly.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">10. Geography</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">11. Geography</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;">Revenue, orders, customers, and average order value by country, region, and city.</p>
-<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">11. Reports and exports</h2>
+<h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">12. Reports and exports</h2>
 <ul style="margin:0 0 14px;padding-left:22px;">
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;">Ten report types covering every module</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Excel</strong> workbooks with formatted sheets, filters, and correct currency
@@ -198,7 +239,7 @@ removes the stored key and every cached order.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
 <h1 style="font:600 22px/1.3 Helvetica,Arial,sans-serif;color:#111;margin:32px 0 12px;">Deliverables</h1>
 <ol style="margin:0 0 14px;padding-left:22px;">
-<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">The platform</strong>, covering the eleven modules above.</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">The platform</strong>, covering the twelve modules above.</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Source code</strong>, in a repository Nature&#39;s Joy owns.</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Deployment</strong> to the agreed hosting, configured and verified against the live
 store.</li>
@@ -210,7 +251,7 @@ WooCommerce.</li>
 </ol>
 <h2 style="font:600 17px/1.35 Helvetica,Arial,sans-serif;color:#111;margin:26px 0 10px;">Hosting options</h2>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Managed by Setups Works.</strong> Hosting, monitoring, and updates handled on your
-behalf. Nothing for your team to operate.</p>
+behalf, including the WhatsApp gateway. Nothing for your team to operate.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Nature&#39;s Joy infrastructure.</strong> Any host running Node. Best performance, as the
 data cache persists between requests.</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Serverless.</strong> Lowest operational overhead, using a managed cache. Suitable for
@@ -260,6 +301,8 @@ most catalogue sizes.</p>
 product cannot run out unnoticed</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Direct email-platform integration</strong>, so audiences sync automatically rather
 than being exported and imported</li>
+<li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Official WhatsApp Business API</strong>, in place of the self-hosted gateway, where
+guaranteed delivery is worth per-message fees and template approval</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Profitability analysis</strong>, given cost-of-goods data, turning revenue figures
 into margin</li>
 <li style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 6px;"><strong style="font-weight:600;color:#111;">Multi-currency consolidation</strong>, should trading extend beyond INR</li>
@@ -308,11 +351,7 @@ factors, with a 95% interval derived from historical variance. It answers whethe
 the store is pacing ahead of or behind its recent trend. It has no knowledge of
 planned promotions, stockouts, or seasonality outside the period analysed.</p>
 <hr style="border:0;border-top:1px solid #e3e3e3;margin:28px 0;">
-<div style="text-align:center; margin-top:3rem;">
-
-<img src="https://crm.setups.works/uploads/company/bd02979422e6ebfe486aa19a208b6b73.png" alt="Setups Works, the digital agency" width="260" />
-
-<p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Nitheesh Rajendran</strong>
+<div style="text-align:center; margin-top:3rem;"><img src="https://crm.setups.works/uploads/company/bd02979422e6ebfe486aa19a208b6b73.png" alt="Setups Works, the digital agency" width="260" /><p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><strong style="font-weight:600;color:#111;">Nitheesh Rajendran</strong>
 Founder and Developer</p>
 <p style="font:400 14px/1.65 Helvetica,Arial,sans-serif;color:#222;margin:0 0 12px;"><a href="https://setups.works">setups.works</a> · <a href="https://www.linkedin.com/in/nitheeshdr/">linkedin.com/in/nitheeshdr</a></p>
 </div>

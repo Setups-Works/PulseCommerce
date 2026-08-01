@@ -10,8 +10,9 @@
 **Advanced analytics for WooCommerce.**
 
 Customer segmentation, lifetime value, cohort retention, acquisition channels,
-campaign audiences, inventory planning and board-ready report exports, computed
-from your live store with read-only access you approve yourself.
+campaign audiences, WhatsApp broadcasts, inventory planning and board-ready
+report exports, computed from your live store with read-only access you approve
+yourself.
 
 <p>
   <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000?logo=next.js&logoColor=white">
@@ -48,6 +49,7 @@ snapshot, and derives every metric from that snapshot at request time.
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Quick start](#quick-start)
 - [Connecting a store](#connecting-a-store)
+- [WhatsApp campaigns](#whatsapp-campaigns)
 - [Multiple stores](#multiple-stores)
 - [Optional password protection](#optional-password-protection)
 - [Environment variables](#environment-variables)
@@ -150,6 +152,34 @@ snapshot, and derives every metric from that snapshot at request time.
 - **Campaign performance** from `utm_campaign` — orders, revenue, customers,
   new-customer share, new-customer revenue, AOV, top device
 - **Coupon performance** — uses, discount given, revenue, return on discount
+
+</details>
+
+<details open>
+<summary><b>WhatsApp campaigns</b></summary>
+
+- Send an audience a **text, image or video** message through a **self-hosted
+  WhatsApp gateway** ([OpenWA](https://github.com/rmyndharis/OpenWA)) that you
+  run and control
+- `{{name}}` personalisation, degrading cleanly for guest checkouts with no
+  usable name
+- **Dry run** resolves the exact recipient list and sends nothing — how many are
+  reachable, how many were dropped and why, a masked sample, and the message as
+  the first real recipient would receive it
+- **Test send** to a number you type by hand; it cannot reach a customer
+- **Typed confirmation** of the deliverable count before anything goes out, and
+  the server re-resolves the audience and refuses if it changed since
+- **Opt-out list**, applied server-side after the audience is built, so no UI
+  mistake can route around it
+- **Paced sending** — the gateway spaces messages with jitter; a broadcast is a
+  resumable job, so closing the page pauses it rather than breaking it
+- Live progress, an estimate of time remaining, and a stop control
+- Numbers with no country code are resolved against a configurable default,
+  and anything that cannot be read as a real subscriber number is dropped and
+  counted rather than sent
+- Duplicate numbers across customer records are collapsed, so a household is
+  messaged once
+- Link a number by scanning a QR **inside Settings**, no terminal required
 
 </details>
 
@@ -273,6 +303,11 @@ snapshot, and derives every metric from that snapshot at request time.
 - Optional password login with HMAC-SHA256 signed session cookies, verified in
   middleware via Web Crypto
 - One-click disconnect wipes the key and every cached order
+- The WhatsApp gateway key is stored the same way — never in an environment
+  variable, never in a browser bundle, and shown only masked once saved
+- Customer phone numbers never reach the browser: the analytics payload carries
+  only whether someone is reachable, and numbers are resolved server-side at the
+  moment a send runs
 
 </details>
 
@@ -325,6 +360,13 @@ An audience builder with goal-driven presets. Filter on segment, tier, recency,
 spend, orders, churn risk, country and product bought; see reach and revenue at
 stake live; export a CSV shaped for an email or ads platform. Plus campaign
 performance from `utm_campaign` and coupon return-on-discount.
+
+### WhatsApp campaigns
+Compose a text, image or video message and send it to the audience you just
+built. A dry run shows exactly who it would reach before anything is sent, a
+test send goes only to a number you type, and starting a broadcast needs the
+deliverable count typed in. Sending is paced by the gateway and runs as a
+resumable job with live progress.
 
 ### Inventory
 Days of cover per SKU, reorder points from a stated lead time, suggested order
@@ -458,6 +500,82 @@ APP_URL=https://analytics.yourcompany.com
 ```
 
 `APP_URL` is auto-detected on Vercel from `VERCEL_PROJECT_PRODUCTION_URL`.
+
+---
+
+## WhatsApp campaigns
+
+Broadcasts go out through a **self-hosted [OpenWA](https://github.com/rmyndharis/OpenWA)
+gateway** that you run. PulseCommerce is only a client of its REST API and never
+connects to WhatsApp itself, so your messages, your session and your number stay
+on your own infrastructure.
+
+### What you need
+
+A host that can keep a process running continuously. This is the part worth
+getting right before anything else:
+
+| | Works | Why |
+|---|:---:|---|
+| VPS or cloud server | **Yes** | Docker, persistent volumes, a process that stays up |
+| Shared hosting | No | The app is restarted or frozen, and the session's auth state does not survive it |
+| Vercel / serverless | No | No long-lived process at all |
+
+A WhatsApp session is a live connection. If the process dies or the auth
+directory is wiped, the number unlinks and the QR has to be scanned again — and
+a broadcast that runs for hours at a safe pace will never finish.
+
+### Setting it up
+
+1. Deploy OpenWA on your server (Docker Compose is its supported path) behind
+   HTTPS.
+2. Create a session and link a **dedicated number** — see the warning below.
+3. In OpenWA, create an API key with the **operator** role. Sending is all this
+   needs; do not hand over your admin key.
+4. In PulseCommerce, go to **Settings → WhatsApp gateway**, enter the gateway
+   URL and that key, and confirm the country code it suggests.
+
+If no number is linked yet, Settings shows the pairing **QR inline** — scan it
+there. The QR is proxied through this app, so the gateway key never reaches a
+browser page.
+
+### Sending
+
+On the **Campaigns** page, build an audience as usual, then compose below it.
+The order of the controls is the safety model:
+
+1. **Check who this would reach** — a dry run. Resolves the real recipient list
+   and sends nothing, reporting how many are reachable, how many were dropped
+   and why, a masked sample, and the message as the first real recipient would
+   see it.
+2. **Test** — one message to a number you type. It cannot reach a customer.
+3. **Send broadcast** — requires typing the deliverable count. The server
+   re-resolves the audience and refuses if it has changed since you looked.
+
+Sending is paced by the gateway and runs as a resumable job. Closing the page
+pauses it; anything already handed over still goes out, and reopening resumes.
+
+### Phone numbers
+
+WooCommerce checkout fields are free text, so numbers arrive inconsistently, and
+often with no country code at all. The **default country code** in Settings
+decides what a bare national number becomes, which makes it the single setting
+most worth checking — a wrong value sends to the wrong country.
+
+Numbers that cannot be read as a plausible subscriber number are **dropped and
+counted**, never guessed at. Duplicates across customer records are collapsed so
+a household is messaged once, and the opt-out list is applied on the server after
+the audience is built.
+
+Numbers themselves never reach the browser. The analytics payload carries only
+whether a customer is reachable; the number is resolved server-side at the moment
+a send runs.
+
+> **Use a dedicated number.** OpenWA connects through reverse-engineered clients
+> rather than Meta's official Cloud API, so there is a real risk of the number
+> being restricted, and no appeal path through OpenWA. Do not link the number
+> your business runs on. Messaging your own past customers is the safest
+> workload; cold-blasting strangers is what gets numbers banned.
 
 ---
 
@@ -602,6 +720,8 @@ src/
 │   ├── api/
 │   │   ├── analytics/    Computes the full payload
 │   │   ├── customers/    One customer with order history, on demand
+│   │   ├── whatsapp/     Gateway connection, session + QR, dry run,
+│   │   │                 test send, broadcast create/tick/cancel, opt-outs
 │   │   ├── auth/woo/     start → callback → return (Woo authorization)
 │   │   ├── auth/session/ Password login, sign-out
 │   │   ├── reports/      Export generation
@@ -613,6 +733,8 @@ src/
 │   ├── store/            Config, KV abstraction, snapshot loading and caching
 │   ├── analytics/        The engine: KPIs, customers, cohorts, acquisition,
 │   │                     products, inventory, operations, forecast
+│   ├── whatsapp/         OpenWA client, phone normalisation, opt-out list,
+│   │                     server-side recipient resolution, broadcast jobs
 │   ├── export/           CSV, Excel and PDF builders, embedded fonts
 │   ├── auth/             Signed sessions, signed authorization state
 │   └── audience.ts       Campaign audience filtering and CSV shaping
@@ -620,6 +742,7 @@ src/
 │   ├── charts/           Chart primitives on a CVD-validated palette
 │   ├── dashboard/        Stat strip, data table, badges, filters, page states
 │   ├── layout/           Sidebar, topbar, store switcher, command palette
+│   ├── whatsapp/         Gateway settings, QR linking, campaign send panel
 │   └── ui/               shadcn/ui
 └── middleware.ts         Session gate
 ```
@@ -751,6 +874,17 @@ Analytics fall back to order billing data and the app says so in a warning.
 
 **No attribution data** — WooCommerce below 8.5, or Order Attribution disabled.
 It populates for orders placed after you enable it.
+
+**WhatsApp session keeps dropping / shows "qr_ready"** — the host cannot keep a
+process alive, or is not persisting the gateway's data directory, so the auth
+state is lost and a fresh QR is offered. Shared hosting and serverless platforms
+both do this. Move the gateway to a VPS.
+
+**"The session is not ready"** — the gateway is connected but no number is
+linked. Settings shows the pairing QR inline; scan it there.
+
+**Everyone dropped as "unreadable"** — the default country code in Settings is
+empty or wrong for your customers' numbers.
 
 **Inventory page empty** — WooCommerce is not tracking stock quantities for the
 products that sold. Enable stock management per product, or globally under

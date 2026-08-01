@@ -21,7 +21,9 @@ are about to run out, and what next month is likely to look like.
 
 PulseCommerce answers those questions from your existing order data, without
 adding load to the storefront, without copying customer records to a third
-party, and without anyone modelling a database first.
+party, and without anyone modelling a database first. It also closes the loop:
+an audience identified in the platform can be messaged on WhatsApp from the
+same screen, through a gateway Nature's Joy owns.
 
 This document sets out the proposed scope, how the platform connects to your
 store, what is delivered, and commercial terms.
@@ -49,6 +51,8 @@ Questions a growing store needs answered, none of which WooCommerce reports:
 - What proportion of customers ever buy twice?
 
 **On marketing**
+- Once a group worth contacting has been identified, how do you actually reach
+  them without exporting a spreadsheet and hand-typing numbers?
 - Which channel brings genuinely new customers, as opposed to capturing demand
   that already existed?
 - What does each channel actually return, per customer rather than per click?
@@ -122,7 +126,7 @@ rather than taken on trust.
 
 # Proposed scope
 
-Eleven modules.
+Twelve modules.
 
 ## 1. Revenue and performance
 
@@ -176,14 +180,55 @@ discounts used, what they buy, order value over time, and complete order history
   is the number that matters for paid acquisition
 - **Coupon performance**, reporting revenue returned per unit of discount given
 
-## 6. Product and catalogue analytics
+## 6. WhatsApp campaigns
+
+Reaching an audience directly, from the same place it is defined.
+
+- Send a **text, image, or video** message to any audience built above
+- **Personalisation** by first name, degrading gracefully where a guest checkout
+  left no usable name
+- A **dry run** that resolves the exact recipient list and sends nothing: how
+  many are reachable, how many were excluded and for what reason, and the
+  message exactly as the first recipient would receive it
+- A **test send** to a number entered by hand, which cannot reach a customer
+- **Confirmation of the recipient count** before a send begins, re-checked
+  against the live audience at the moment it starts
+- An **opt-out list** applied after the audience is built, so a filtering
+  mistake cannot route around it
+- **Paced delivery** with natural spacing between messages, run as a resumable
+  job with live progress and a stop control
+- Numbers stored without a country code are resolved against a configured
+  default; anything that cannot be read as a valid number is excluded and
+  counted rather than guessed at
+- Duplicate numbers across customer records are collapsed, so a household
+  receives one message
+
+**How it connects.** Messages are sent through a WhatsApp gateway running on
+infrastructure Nature's Joy controls. Customer numbers are never transmitted to
+a third-party messaging service, and never leave the server: the interface works
+with counts and reachability, and numbers are resolved only at the moment a
+message is sent.
+
+**What this requires.** The gateway is a continuously running service and needs
+a small server of its own — shared web hosting cannot keep a WhatsApp connection
+alive. Setups Works can provide and manage this, or deploy it on infrastructure
+Nature's Joy already has.
+
+**A note on the risk.** This uses a self-hosted gateway rather than Meta's
+official WhatsApp Business API. It avoids per-message fees and message template
+approval, but the number used carries a risk of restriction by WhatsApp, so a
+dedicated number should be used rather than the main business line. If
+guaranteed delivery matters more than cost, the official API is the alternative
+and can be quoted separately.
+
+## 7. Product and catalogue analytics
 
 ABC classification identifying which products carry the revenue, Pareto
 concentration, revenue and units per SKU, refund rate per product, category mix,
 best sellers by both value and volume, slow movers, and market-basket analysis
 showing which products genuinely sell together.
 
-## 7. Inventory and restock planning
+## 8. Inventory and restock planning
 
 - **Days of cover** per product, from current stock and observed sales velocity
 - **Reorder points** calculated from your supplier lead time plus safety stock
@@ -193,24 +238,24 @@ showing which products genuinely sell together.
 - Exports as a **draft purchase order**
 - Every assumption shown on screen and adjustable to your actual supplier terms
 
-## 8. Orders and operations
+## 9. Orders and operations
 
 Full order register with totals, tax, shipping, discounts, refunds, payment
 method, and coupons. Order status mix, basket-size distribution, payment method
 performance, a day-by-hour trading heatmap for timing campaigns and staffing,
 weekday performance, and fulfilment timing.
 
-## 9. Forecasting
+## 10. Forecasting
 
 Daily revenue projection combining trend with day-of-week seasonality, presented
 with a 95% confidence band. The seasonality is shown explicitly so the projection
 can be sense-checked rather than accepted blindly.
 
-## 10. Geography
+## 11. Geography
 
 Revenue, orders, customers, and average order value by country, region, and city.
 
-## 11. Reports and exports
+## 12. Reports and exports
 
 - Ten report types covering every module
 - **Excel** workbooks with formatted sheets, filters, and correct currency
@@ -246,7 +291,7 @@ removes the stored key and every cached order.
 
 # Deliverables
 
-1. **The platform**, covering the eleven modules above.
+1. **The platform**, covering the twelve modules above.
 2. **Source code**, in a repository Nature's Joy owns.
 3. **Deployment** to the agreed hosting, configured and verified against the live
    store.
@@ -259,7 +304,7 @@ removes the stored key and every cached order.
 ## Hosting options
 
 **Managed by Setups Works.** Hosting, monitoring, and updates handled on your
-behalf. Nothing for your team to operate.
+behalf, including the WhatsApp gateway. Nothing for your team to operate.
 
 **Nature's Joy infrastructure.** Any host running Node. Best performance, as the
 data cache persists between requests.
@@ -295,6 +340,8 @@ Available separately, either at the outset or later.
   product cannot run out unnoticed
 - **Direct email-platform integration**, so audiences sync automatically rather
   than being exported and imported
+- **Official WhatsApp Business API**, in place of the self-hosted gateway, where
+  guaranteed delivery is worth per-message fees and template approval
 - **Profitability analysis**, given cost-of-goods data, turning revenue figures
   into margin
 - **Multi-currency consolidation**, should trading extend beyond INR
