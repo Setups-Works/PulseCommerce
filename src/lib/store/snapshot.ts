@@ -37,9 +37,19 @@ const cache = new Map<string, CacheEntry>();
 /** Collapses concurrent first-loads into one upstream fetch. */
 const inflight = new Map<string, Promise<StoreSnapshot>>();
 
+/**
+ * Identifies the cached data, not the credential that fetched it.
+ *
+ * The consumer key deliberately plays no part here. WooCommerce issues a fresh
+ * one every time the app is approved, so keying on it meant re-authorizing a
+ * store you were already connected to orphaned every cached copy at once and
+ * forced a full re-pull of the entire order history — long enough to outlive a
+ * serverless request. The same store over the same window holds the same
+ * orders whichever key read them.
+ */
 function cacheKey(config: StoreConfig): string {
   return createHash("sha256")
-    .update(`${config.url}::${config.consumerKey}::${config.historyMonths}::${config.maxPages}`)
+    .update(`${normalise(config.url)}::${config.historyMonths}::${config.maxPages}`)
     .digest("hex")
     .slice(0, 16);
 }
@@ -241,9 +251,25 @@ function describe(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export function invalidateSnapshotCache(): void {
-  const keys = [...cache.keys()];
-  cache.clear();
-  void fs.rm(CACHE_DIR, { recursive: true, force: true });
-  for (const key of keys) void clearSharedSnapshot(key);
+/**
+ * Drops every cached copy of the given stores' snapshots.
+ *
+ * The shared cache has to be cleared by a key computed from the config. Reading
+ * the keys back out of the in-process map only worked on an instance that had
+ * already served that store, which on serverless is rarely the one handling the
+ * disconnect — so the promise that disconnecting deletes every cached order was
+ * not being kept.
+ */
+export async function invalidateSnapshotCache(configs: StoreConfig[]): Promise<void> {
+  await Promise.all(
+    configs.map(async (config) => {
+      const key = cacheKey(config);
+      cache.delete(key);
+      inflight.delete(key);
+      await Promise.all([
+        fs.rm(path.join(CACHE_DIR, `${key}.json`), { force: true }).catch(() => {}),
+        clearSharedSnapshot(key),
+      ]);
+    }),
+  );
 }

@@ -68,28 +68,34 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ connected: true, config: redactConfig(switched) });
   }
 
+  // Captured first: the window is part of the cache key, so clearing the old
+  // snapshot needs the settings it was fetched under.
+  const previous = await readStoreConfig();
   const updated = await updateStoreWindow(parsed.data);
   if (!updated) {
     return NextResponse.json({ error: "No store is connected." }, { status: 409 });
   }
 
-  // The window is part of the cache key, so a change must invalidate it.
-  invalidateSnapshotCache();
+  if (previous) await invalidateSnapshotCache([previous]);
   return NextResponse.json({ connected: true, config: redactConfig(updated) });
 }
 
 /** Disconnects one store, or every store when no URL is given. */
 export async function DELETE(request: Request) {
   const url = new URL(request.url).searchParams.get("url");
+  // Read before removing: the cached snapshots can only be located from the
+  // configs they were fetched under.
+  const { stores } = await listStores();
 
   if (!url) {
     await clearStoreConfig();
-    invalidateSnapshotCache();
+    await invalidateSnapshotCache(stores);
     return NextResponse.json({ connected: false, config: null, stores: [] });
   }
 
+  const target = stores.find((s) => s.url === url);
   const remaining = await removeStore(url);
-  invalidateSnapshotCache();
+  if (target) await invalidateSnapshotCache([target]);
   const book = await listStores();
 
   return NextResponse.json({
