@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAnalytics } from "@/components/providers/analytics-provider";
+import { dialCodeForCurrency } from "@/lib/whatsapp/phone";
 import { formatDateTime } from "@/lib/format";
 
 interface RedactedWhatsApp {
@@ -51,7 +53,19 @@ export function WhatsAppSettingsCard() {
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [sessionId, setSessionId] = useState("");
+  const [dialCode, setDialCode] = useState("");
   const [busy, setBusy] = useState(false);
+
+  /*
+   * The store's currency is already in the browser, so the country code is
+   * suggested from here rather than looked up on the server. An earlier version
+   * inferred it from the order snapshot during connect, which meant a cold
+   * cache turned a WhatsApp connection into a multi-minute WooCommerce pull and
+   * timed the request out.
+   */
+  const { data } = useAnalytics();
+  const suggestedDialCode = data ? dialCodeForCurrency(data.meta.currency) : "";
+  const effectiveDialCode = dialCode.trim() || suggestedDialCode;
 
   const load = useCallback(async () => {
     try {
@@ -79,6 +93,7 @@ export function WhatsAppSettingsCard() {
           baseUrl,
           apiKey,
           ...(sessionId.trim() ? { sessionId: sessionId.trim() } : {}),
+          defaultDialCode: effectiveDialCode,
         }),
       });
       const body = (await res.json()) as SettingsResponse & { error?: string };
@@ -92,7 +107,10 @@ export function WhatsAppSettingsCard() {
       if (body.warning) toast.warning(body.warning);
       else toast.success("WhatsApp gateway connected.");
     } catch {
-      toast.error("Could not reach the gateway.");
+      toast.error("The connection request failed.", {
+        description:
+          "This app could not complete the request. Check the browser network tab — the gateway itself may be fine.",
+      });
     } finally {
       setBusy(false);
     }
@@ -201,6 +219,21 @@ export function WhatsAppSettingsCard() {
                 autoComplete="off"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-dial">Default country code</Label>
+              <Input
+                id="wa-dial"
+                value={dialCode}
+                onChange={(e) => setDialCode(e.target.value)}
+                placeholder={suggestedDialCode ? `${suggestedDialCode} (from ${data?.meta.currency})` : "91"}
+                inputMode="numeric"
+              />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Applied to customer numbers stored without one. Getting this wrong sends to
+                the wrong country, so it is worth checking.
+              </p>
+            </div>
+
             <p className="text-[11px] leading-relaxed text-muted-foreground sm:col-span-2">
               Use an <strong>operator</strong> key rather than your admin key — sending is all
               this needs. The key is verified against the gateway before it is saved, and is

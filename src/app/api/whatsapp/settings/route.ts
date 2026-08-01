@@ -11,8 +11,6 @@ import {
   type WhatsAppConfig,
 } from "@/lib/whatsapp/config";
 import { READY_STATUS, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
-import { dialCodeForCurrency } from "@/lib/whatsapp/phone";
-import { loadSnapshot } from "@/lib/store/snapshot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -114,13 +112,17 @@ export async function PUT(request: Request) {
 
     const session = await new WhatsAppClient({ baseUrl, apiKey, sessionId }).getSession();
 
-    // The dial code decides who a bare ten-digit number resolves to, so it is
-    // seeded from the store's own currency rather than left blank.
-    let defaultDialCode = (parsed.data.defaultDialCode ?? "").replace(/\D/g, "");
-    if (!defaultDialCode) {
-      const snapshot = await loadSnapshot().catch(() => null);
-      defaultDialCode = snapshot ? dialCodeForCurrency(snapshot.currency) : "";
-    }
+    /*
+     * The dial code arrives from the client, which already knows the store's
+     * currency from the analytics payload it is rendering.
+     *
+     * It is deliberately NOT inferred from a snapshot here. Doing that made
+     * connecting a gateway depend on the WooCommerce order history being
+     * cached, and on a cold cache the pull outlived the serverless request —
+     * so saving a WhatsApp connection failed for a reason that had nothing to
+     * do with WhatsApp.
+     */
+    const defaultDialCode = (parsed.data.defaultDialCode ?? "").replace(/\D/g, "");
 
     const config: WhatsAppConfig = {
       baseUrl,
