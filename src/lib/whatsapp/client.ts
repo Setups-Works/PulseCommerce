@@ -224,7 +224,22 @@ export class WhatsAppClient {
     let session = await this.getSession();
     if (isSessionSendable(session)) return session;
 
-    const recoverable = session.status === READY_STATUS && session.phone && !session.engineLoaded;
+    /*
+     * Two shapes of the same problem, both recoverable because the pairing is
+     * on disk and only the engine is missing:
+     *
+     *   ready + engineLoaded false  — the process restarted under the session,
+     *                                 so the row outlived the engine
+     *   disconnected + a phone      — the session was stopped, but it remembers
+     *                                 which number it was linked to
+     *
+     * A session with no phone has never been linked, and no restart substitutes
+     * for scanning a QR.
+     */
+    const recoverable =
+      Boolean(session.phone) &&
+      !session.engineLoaded &&
+      (session.status === READY_STATUS || session.status === "disconnected");
     if (!recoverable) return session;
 
     await this.ensureStarted().catch(() => {});
@@ -234,8 +249,9 @@ export class WhatsAppClient {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       session = await this.getSession();
       if (isSessionSendable(session)) return session;
-      // A dropped pairing surfaces as a QR offer; restarting cannot fix that.
-      if (session.status !== READY_STATUS && session.status !== "initializing") break;
+      // A dropped pairing surfaces as a QR offer; restarting cannot fix that,
+      // so stop waiting rather than burning the whole budget on it.
+      if (session.status === "qr_ready") break;
     }
 
     return session;
