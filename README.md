@@ -584,6 +584,29 @@ Numbers themselves never reach the browser. The analytics payload carries only
 whether a customer is reachable; the number is resolved server-side at the moment
 a send runs.
 
+### Buttons, product cards and link previews
+
+A self-hosted gateway cannot send tappable **buttons** or **product cards**.
+Those are WhatsApp Business Platform features that require pre-approved message
+templates on Meta's Cloud API, and WhatsApp withdrew them from unofficial
+clients — OpenWA's own API marks its catalog endpoints "not supported by any
+engine", and a live gateway answers `501` for them.
+
+The closest thing available is WhatsApp's **link preview**: a message whose body
+contains a URL renders as a tappable card with the page's title, description and
+image. Two things affect whether you get one:
+
+- **Do not attach a photo.** Media suppresses the preview, so the buy link
+  appears as plain text under the picture. A text message with the link on its
+  own line previews properly.
+- **Your product pages need `og:image`.** Without it WhatsApp has no picture to
+  draw and the card comes out bare or not at all. Most WordPress SEO plugins
+  (Yoast, Rank Math) add these tags from the product image automatically.
+
+If tappable buttons are a hard requirement, the official WhatsApp Business Cloud
+API is the only route, at the cost of per-conversation fees and template
+approval.
+
 > **Use a dedicated number.** OpenWA connects through reverse-engineered clients
 > rather than Meta's official Cloud API, so there is a real risk of the number
 > being restricted, and no appeal path through OpenWA. Do not link the number

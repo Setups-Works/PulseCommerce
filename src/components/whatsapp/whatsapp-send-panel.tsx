@@ -362,6 +362,13 @@ export function WhatsAppSendPanel({
                       Uses the photo of whatever they have spent the most on. Anyone whose
                       product has no photo still gets the message, as text.
                     </span>
+                    <span className="mt-1 block text-[11px] text-muted-foreground">
+                      Attaching a photo stops WhatsApp drawing its own link preview, so the
+                      buy link appears as plain text. Leave this off and the link renders as a
+                      tappable card instead — provided your product pages set an{" "}
+                      <code>og:image</code> tag. WhatsApp does not offer tappable buttons to
+                      self-hosted gateways at all; those need the official Business API.
+                    </span>
                   </span>
                 </label>
               ) : null}
