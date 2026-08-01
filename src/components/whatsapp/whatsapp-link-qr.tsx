@@ -74,9 +74,17 @@ export function WhatsAppLinkQr({ onLinked }: { onLinked?: () => void }) {
         if (body.qrCode) setQrCode(body.qrCode);
         setBusy(false);
 
+        /*
+         * No QR and not linked means the engine is stopped — the gateway
+         * answers "Session is not started" and there is nothing to render, so
+         * the panel would otherwise spin forever. Re-running with a start
+         * request boots it and a QR appears on the following pass.
+         */
+        const stalled = !body.ready && !body.qrCode;
+
         // Faster than the QR's own rotation, so the image on screen is always
         // one WhatsApp will still accept.
-        timer.current = setTimeout(() => void run(false), 4000);
+        timer.current = setTimeout(() => void run(stalled), 4000);
       } catch {
         setBusy(false);
         timer.current = setTimeout(() => void run(false), 8000);

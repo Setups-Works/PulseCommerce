@@ -78,18 +78,39 @@ export function WhatsAppSendPanel({
   const [progress, setProgress] = useState<Progress | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /*
+   * Readiness is re-checked, not read once.
+   *
+   * A WhatsApp session can be linked, drop and be relinked while this page
+   * stays open, so a single check on mount goes stale and the panel sits there
+   * claiming "Not linked" long after it is. Polling on an interval and on
+   * refocus keeps what the panel says about sending true.
+   */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void (async () => {
+    let cancelled = false;
+
+    const check = async () => {
       try {
         const res = await fetch("/api/whatsapp/settings", { cache: "no-store" });
         const body = await res.json();
+        if (cancelled) return;
         setConnected(Boolean(body.connected));
         setReady(Boolean(body.ready));
       } catch {
-        setConnected(false);
+        if (!cancelled) setConnected(false);
       }
-    })();
+    };
+
+    void check();
+    const interval = setInterval(() => void check(), 20_000);
+    const onFocus = () => void check();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   const message = { type, text, ...(type === "text" ? {} : { mediaUrl }) };
@@ -249,8 +270,9 @@ export function WhatsAppSendPanel({
             <TriangleAlert className="size-4" />
             <AlertTitle className="text-xs font-medium">Session is not ready</AlertTitle>
             <AlertDescription className="text-xs">
-              The gateway is connected but no number is linked, so nothing can be sent. Scan the
-              QR in OpenWA, then reload.
+              The gateway is connected but no number is linked, so nothing can be sent. Link one
+              in <Link href="/settings" className="underline">Settings</Link> — this notice clears
+              by itself within a few seconds of the scan landing.
             </AlertDescription>
           </Alert>
         ) : null}
