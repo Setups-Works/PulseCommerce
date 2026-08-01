@@ -1,11 +1,10 @@
 "use client";
 
-import { Activity, CircleDot, ExternalLink } from "lucide-react";
+import { Activity, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { StoreSwitcher } from "@/components/layout/store-switcher";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -19,13 +18,11 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatRelative } from "@/lib/format";
 import { NAV_GROUPS } from "./nav-items";
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { data, initialising } = useAnalytics();
+  const { data } = useAnalytics();
 
   return (
     <Sidebar collapsible="icon">

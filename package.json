@@ -1,6 +1,7 @@
 {
-  "name": "natures-joy-woo",
-  "version": "0.1.0",
+  "name": "pulsecommerce",
+  "version": "1.0.0",
+  "description": "Analytics and WhatsApp campaigns for WooCommerce.",
   "private": true,
   "scripts": {
     "dev": "next dev",

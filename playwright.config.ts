@@ -26,7 +26,22 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
 
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      // The default suite: a build with nothing configured, started locally.
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /production-smoke/,
+    },
+    {
+      // Run against a deployed URL after a release. Kept separate because a
+      // production instance has a store connected, so the empty-state
+      // assertions the main suite makes would rightly fail there.
+      name: "smoke",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /production-smoke/,
+    },
+  ],
 
   webServer: process.env.BASE_URL
     ? undefined

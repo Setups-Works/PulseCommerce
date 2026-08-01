@@ -98,10 +98,28 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!activeId) return;
-    void loadThread(activeId);
-    // Incoming replies arrive without warning, so the open thread polls.
-    const interval = setInterval(() => void loadThread(activeId), 12_000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+
+    const run = () => {
+      if (!cancelled) void loadThread(activeId);
+    };
+
+    /*
+     * The first load is deferred by a tick rather than called here directly.
+     * loadThread sets state before it awaits, and doing that synchronously in
+     * an effect body causes a cascading render — the behaviour is identical,
+     * the render is not.
+     *
+     * Incoming replies arrive without warning, so the open thread then polls.
+     */
+    const initial = setTimeout(run, 0);
+    const interval = setInterval(run, 12_000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [activeId, loadThread]);
 
   useEffect(() => {

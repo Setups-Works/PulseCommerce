@@ -1278,11 +1278,30 @@ Next.js handlers with Zod validation inside them, which no generator reads
 faithfully, and a generated document that drifts is worse than one somebody
 keeps honest. CI fails if a route exists that the document does not describe.
 
-### Continuous integration
+### Continuous integration and deployment
 
-`.github/workflows/ci.yml` runs on every push and pull request: typecheck and
-lint, the end-to-end suite with a Playwright report uploaded on failure, and the
-API-documentation coverage check.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and
+pull request: typecheck, lint, the end-to-end suite with a Playwright report
+uploaded on failure, and the API-documentation coverage check.
+
+**Deployment is Vercel's**, triggered by the push rather than by the workflow.
+What CI adds is a check that what Vercel published actually serves: when Vercel
+reports a deployment ready, a `smoke` job runs a separate suite against that
+deployment's URL.
+
+Smoke tests are kept apart from the main suite deliberately. The main suite
+asserts the *empty* state — no store, no gateway — which is right for a fresh
+clone and wrong for production, where a store is connected. The smoke suite
+asserts only what must be true of any live deployment: the app serves, the API
+description is available, settings answers, analytics either returns data or
+says no store is connected, and **no phone number appears in the analytics
+payload**.
+
+Run it against any deployment yourself:
+
+```bash
+BASE_URL=https://your-deployment.vercel.app npx playwright test --project=smoke
+```
 
 ---
 

@@ -7,7 +7,6 @@ import {
   CreditCard,
   MapPin,
   MonitorSmartphone,
-  Package,
   Repeat,
   ShoppingBag,
   UserRound,

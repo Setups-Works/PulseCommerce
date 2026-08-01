@@ -248,3 +248,15 @@
 .recharts-surface:focus {
   outline: none;
 }
+
+/*
+ * Indeterminate progress sweep.
+ *
+ * Used by the top bar while analytics are loading. Indeterminate on purpose:
+ * a cold request is one upstream call with no progress to report, and a fake
+ * percentage that stalls at 90% is worse than an honest animation.
+ */
+@keyframes pulse-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}

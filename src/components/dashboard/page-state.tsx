@@ -3,6 +3,7 @@
 import { AlertTriangle, ArrowRight, Loader2, PlugZap, Store } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { FetchProgressPanel } from "@/components/dashboard/fetch-progress";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,7 @@ function NotConnectedState() {
 function LoadingState() {
   return (
     <div className="space-y-5 p-4 sm:p-6">
+      <FetchProgressPanel />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <Card key={i} className="gap-0 p-4">

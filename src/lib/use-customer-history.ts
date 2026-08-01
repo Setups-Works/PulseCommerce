@@ -12,47 +12,65 @@ type History = NonNullable<CustomerRecord["history"]>;
  * The ledger payload omits history so every customer can be listed rather than
  * a capped slice; this fills it in for the one customer being looked at. A
  * record that already carries history (an export, say) skips the request.
+ *
+ * What is fetched is stored against the key it belongs to, so switching
+ * customers cannot briefly show the previous one's orders — the mismatch reads
+ * as "not loaded" without needing an effect to clear anything.
  */
 export function useCustomerHistory(customer: CustomerRecord | null) {
   const { queryParams } = useAnalytics();
-  const [history, setHistory] = useState<History | null>(customer?.history ?? null);
+  const [fetched, setFetched] = useState<{ key: string; history: History } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const key = customer?.key ?? null;
-  const alreadyHave = customer?.history;
+  const alreadyHave = customer?.history ?? null;
+
+  // Derived rather than stored: a record that arrives with its history needs
+  // no state and no effect to copy it into one.
+  const history = alreadyHave ?? (fetched && fetched.key === key ? fetched.history : null);
 
   useEffect(() => {
-    if (!key) return;
-    if (alreadyHave) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHistory(alreadyHave);
-      return;
-    }
+    if (!key || alreadyHave) return;
 
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
-    const search = new URLSearchParams();
-    if (queryParams.from) search.set("from", queryParams.from);
-    if (queryParams.to) search.set("to", queryParams.to);
-    if (queryParams.granularity) search.set("granularity", queryParams.granularity);
+    /*
+     * Deferred by a tick so the loading flag is not set synchronously in the
+     * effect body, which causes a cascading render. The request is unchanged;
+     * only when its first state update happens is.
+     */
+    const start = setTimeout(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
 
-    fetch(`/api/customers/${encodeURIComponent(key)}?${search.toString()}`, { signal: controller.signal })
-      .then(async (res) => {
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error ?? `Request failed with ${res.status}`);
-        setHistory((json.customer as CustomerRecord).history ?? []);
+      const search = new URLSearchParams();
+      if (queryParams.from) search.set("from", queryParams.from);
+      if (queryParams.to) search.set("to", queryParams.to);
+      if (queryParams.granularity) search.set("granularity", queryParams.granularity);
+
+      fetch(`/api/customers/${encodeURIComponent(key)}?${search.toString()}`, {
+        signal: controller.signal,
       })
-      .catch((err) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "Could not load orders.");
-      })
-      .finally(() => setLoading(false));
+        .then(async (res) => {
+          const json = await res.json();
+          if (!res.ok) throw new Error(json?.error ?? `Request failed with ${res.status}`);
+          setFetched({ key, history: (json.customer as CustomerRecord).history ?? [] });
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setError(err instanceof Error ? err.message : "Could not load orders.");
+        })
+        .finally(() => setLoading(false));
+    }, 0);
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      clearTimeout(start);
+      controller.abort();
+    };
   }, [key, alreadyHave, queryParams]);
 
   return { history, loading, error };

@@ -229,7 +229,6 @@ export function WhatsAppSendPanel({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void (async () => {
       try {
         const res = await fetch("/api/whatsapp/coupons", { cache: "no-store" });
