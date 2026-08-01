@@ -21,6 +21,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AnalyticsResult, CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDays, initials } from "@/lib/format";
+import {
+  atRiskCustomers,
+  lowValueCustomers,
+  risingCustomers,
+  topCustomers,
+} from "@/lib/analytics/customer-cohorts";
 import { applyAudience, EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { useFormatters, type Formatters } from "@/lib/use-currency";
 
@@ -52,13 +58,18 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
     [customers.deciles],
   );
 
-  const baseRows: Record<CohortTab, CustomerRecord[]> = {
-    top: customers.topCustomers,
-    low: customers.lowValueCustomers,
-    risk: customers.atRiskCustomers,
-    rising: customers.risingCustomers,
-    all: customers.records,
-  };
+  // Derived here rather than shipped: every tab then covers the full record
+  // set instead of a server-side slice of fifty.
+  const baseRows: Record<CohortTab, CustomerRecord[]> = useMemo(
+    () => ({
+      top: topCustomers(customers.records),
+      low: lowValueCustomers(customers.records),
+      risk: atRiskCustomers(customers.records),
+      rising: risingCustomers(customers.records),
+      all: customers.records,
+    }),
+    [customers.records],
+  );
 
   // The advanced filter narrows whichever cohort tab is showing.
   const rows = useMemo(
@@ -127,9 +138,9 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
 
       {/* --- Top customer spotlight --------------------------------------- */}
       <TopCustomers
-        customers={customers.topCustomers}
+        customers={baseRows.top}
         fmt={fmt}
-        currencyShare={customers.topCustomers[0]?.revenueShare ?? 0}
+        currencyShare={baseRows.top[0]?.revenueShare ?? 0}
       />
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -221,7 +232,16 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <CardTitle className="text-sm font-semibold">Customer ledger</CardTitle>
-              <CardDescription className="text-xs">{TAB_COPY[tab]}</CardDescription>
+              <CardDescription className="text-xs">
+              {TAB_COPY[tab]}
+              {customers.totalCustomers > customers.records.length ? (
+                <>
+                  {" "}
+                  Showing the top {customers.records.length.toLocaleString()} customers by revenue of{" "}
+                  {customers.totalCustomers.toLocaleString()} active in this period; exports carry every one.
+                </>
+              ) : null}
+            </CardDescription>
             </div>
             <Tabs value={tab} onValueChange={(v) => setTab(v as CohortTab)}>
               <TabsList>

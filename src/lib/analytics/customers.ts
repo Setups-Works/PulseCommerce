@@ -349,17 +349,6 @@ export function buildCustomerAnalytics(
     };
   }).filter((t) => t.customers > 0);
 
-  // "Rising" = bought recently, more than once, and spending above their own
-  // historical pace. These are the accounts worth an upsell touch.
-  const rising = records
-    .filter((r) => r.orders >= 2 && r.recencyDays <= 45 && r.frequencyScore >= 3)
-    .sort((a, b) => b.predictedClv - a.predictedClv)
-    .slice(0, 25);
-
-  const atRisk = records
-    .filter((r) => r.churnRisk >= 0.6 && r.netRevenue > 0)
-    .sort((a, b) => b.netRevenue * b.churnRisk - a.netRevenue * a.churnRisk)
-    .slice(0, 50);
 
   const repeatBuyers = records.filter((r) => r.orders > 1).length;
   const totalOrders = records.reduce((s, r) => s + r.orders, 0);
@@ -367,15 +356,7 @@ export function buildCustomerAnalytics(
 
   return {
     records,
-    topCustomers: byRevenue.slice(0, 50),
-    lowValueCustomers: [...byRevenue]
-      .reverse()
-      .filter((r) => r.netRevenue > 0)
-      .slice(0, 50),
-    newCustomers: byRevenue.filter((r) => r.isNewCustomer),
-    returningCustomers: byRevenue.filter((r) => !r.isNewCustomer),
-    atRiskCustomers: atRisk,
-    risingCustomers: rising,
+    totalCustomers: records.length,
     segmentBreakdown,
     tierBreakdown,
     deciles,

@@ -125,15 +125,18 @@ export interface CustomerRecord {
 }
 
 export interface CustomerAnalytics {
+  /**
+   * Every customer active in the period, highest revenue first. The cohort
+   * views the UI offers are derived from this rather than shipped separately,
+   * so none of them is silently capped.
+   */
   records: CustomerRecord[];
-  topCustomers: CustomerRecord[];
-  lowValueCustomers: CustomerRecord[];
-  /** Customers whose first ever order landed in this period. */
-  newCustomers: CustomerRecord[];
-  /** Customers who had already bought before this period began. */
-  returningCustomers: CustomerRecord[];
-  atRiskCustomers: CustomerRecord[];
-  risingCustomers: CustomerRecord[];
+  /**
+   * How many customers were actually active, which exceeds `records.length`
+   * on large stores. Reported so the UI can say it is showing a subset rather
+   * than quietly presenting the top slice as the whole base.
+   */
+  totalCustomers: number;
   segmentBreakdown: { segment: RfmSegment; customers: number; revenue: number; share: number; averageOrderValue: number }[];
   tierBreakdown: { tier: ValueTier; customers: number; revenue: number; share: number; averageOrderValue: number }[];
   /** Revenue concentration by decile — the Pareto read on the customer base. */

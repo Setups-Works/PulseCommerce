@@ -1,6 +1,7 @@
 import type { StoreSnapshot, WooOrder } from "@/lib/woo/types";
 import { buildAcquisitionAnalytics } from "./acquisition";
 import { buildCohortAnalytics } from "./cohorts";
+import { atRiskCustomers } from "./customer-cohorts";
 import { buildInventoryAnalytics } from "./inventory";
 import { buildCustomerAnalytics, buildCustomerDirectory, buildCustomerRecords, type CustomerContext } from "./customers";
 import {
@@ -85,10 +86,14 @@ export function computeAnalytics(snapshot: StoreSnapshot, opts: AnalyticsOptions
   const kpis = buildKpis(inRange, inPrevRange, firstOrderByCustomer);
   const timeseries = buildTimeseries(inRange, range, granularity, firstOrderByCustomer);
 
+  // Aggregates are computed over every customer; only the row list is capped,
+  // and the cap is applied before anything derives a view from it so the
+  // ledger, the cohort tabs and the profile pages always agree.
   const allRecords = buildCustomerRecords(inRange, ctx).sort((a, b) => b.netRevenue - a.netRevenue);
   const customerRows = opts.maxCustomerRows ?? DEFAULT_CUSTOMER_ROWS;
   const customers = buildCustomerAnalytics(allRecords, inRange, ctx);
   customers.records = allRecords.slice(0, customerRows);
+  customers.totalCustomers = allRecords.length;
 
   const rangeDays = daysBetween(new Date(range.from), new Date(range.to)) + 1;
 
@@ -525,7 +530,7 @@ function buildInsights(r: AnalyticsResult): Insight[] {
     });
   }
 
-  const atRisk = r.customers.atRiskCustomers;
+  const atRisk = atRiskCustomers(r.customers.records);
   if (atRisk.length > 0) {
     const value = atRisk.reduce((s, c) => s + c.netRevenue, 0);
     out.push({

@@ -253,12 +253,26 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
   const columns = useMemo(() => buildCustomerColumns(fmt, tab), [fmt, tab]);
   const router = useRouter();
 
-  const rows = tab === "new" ? data.customers.newCustomers : data.customers.returningCustomers;
+  // Split from the same capped record set the profiles come from, so every row
+  // here is one you can actually open.
+  const { fresh, returning } = useMemo(() => {
+    const records = data.customers.records;
+    return {
+      fresh: records.filter((c) => c.isNewCustomer),
+      returning: records.filter((c) => !c.isNewCustomer),
+    };
+  }, [data.customers.records]);
+
+  const rows = tab === "new" ? fresh : returning;
+
+  const coversAllHistory =
+    !!data.meta.dataBounds && data.meta.range.from <= data.meta.dataBounds.from;
 
   const COPY = {
     new: "Customers whose first ever order landed inside this period. Their next order is the one that matters: converting them to a second purchase is the single biggest jump in lifetime value.",
-    returning:
-      "Customers who had already bought before this period began and came back during it. This is retained revenue, not acquisition.",
+    returning: coversAllHistory
+      ? "Customers who had already bought before this period began. The selected range covers the store's entire history, so nobody predates it and this list is necessarily empty. Narrow the range to see who came back."
+      : "Customers who had already bought before this period began and came back during it. This is retained revenue, not acquisition.",
   } as const;
 
   return (
@@ -270,17 +284,26 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
               {tab === "new" ? "New customers" : "Returning customers"}
               <span className="ml-2 font-normal text-muted-foreground">{fmt.number(rows.length)}</span>
             </CardTitle>
-            <CardDescription className="max-w-prose text-xs">{COPY[tab]}</CardDescription>
+            <CardDescription className="max-w-prose text-xs">
+              {COPY[tab]}
+              {data.customers.totalCustomers > data.customers.records.length ? (
+                <>
+                  {" "}
+                  Listing the top {data.customers.records.length.toLocaleString()} by revenue of{" "}
+                  {data.customers.totalCustomers.toLocaleString()} active; exports carry every one.
+                </>
+              ) : null}
+            </CardDescription>
           </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as "new" | "returning")}>
             <TabsList>
               <TabsTrigger value="new" className="gap-1.5">
                 <UserPlus className="size-3.5" />
-                New ({fmt.number(data.customers.newCustomers.length)})
+                New ({fmt.number(fresh.length)})
               </TabsTrigger>
               <TabsTrigger value="returning" className="gap-1.5">
                 <Repeat2 className="size-3.5" />
-                Returning ({fmt.number(data.customers.returningCustomers.length)})
+                Returning ({fmt.number(returning.length)})
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -297,7 +320,9 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
           emptyMessage={
             tab === "new"
               ? "No first-time customers in this period."
-              : "No previously-seen customers ordered in this period."
+              : coversAllHistory
+                ? "The selected range starts at the store's first ever order, so every customer in it is a first-time customer. Narrow the range to separate new from returning."
+                : "No previously-seen customers ordered in this period."
           }
           stickyFirstColumn
         />

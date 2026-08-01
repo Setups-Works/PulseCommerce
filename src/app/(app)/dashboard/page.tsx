@@ -17,6 +17,7 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { seriesColor } from "@/components/charts/palette";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { topCustomers } from "@/lib/analytics/customer-cohorts";
 import { InsightList } from "@/components/dashboard/insight-list";
 import { AnalyticsPage } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
@@ -183,7 +184,7 @@ function DashboardContent({ data }: { data: import("@/lib/analytics/types").Anal
           description="Net revenue in the selected period"
         >
           <RankedBarChart
-            data={customers.topCustomers.slice(0, 8).map((c) => ({
+            data={topCustomers(customers.records).slice(0, 8).map((c) => ({
               label: c.company ? `${c.name} · ${c.company}` : c.name,
               value: c.netRevenue,
               secondary: `${c.orders} order${c.orders === 1 ? "" : "s"}`,
