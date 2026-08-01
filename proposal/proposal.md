@@ -9,7 +9,6 @@ setups.works
 ---
 
 # Executive summary
-
 Setups Works proposes to deliver **PulseCommerce**, a private analytics platform
 for the Nature's Joy WooCommerce store.
 
@@ -31,7 +30,6 @@ store, what is delivered, and commercial terms.
 ---
 
 # The opportunity
-
 ## What is visible today
 
 The WooCommerce admin shows gross sales by date, a list of top products, and a
@@ -89,8 +87,61 @@ serves the storefront, which is a reliable way to slow a shop down.
 
 ---
 
-# Proposed solution
+# Why PulseCommerce
+## Against the tools already in place
 
+| Capability | PulseCommerce | WooCommerce Analytics | Google Analytics |
+|---|---|---|---|
+| Customer segmentation | Yes | No | No |
+| RFM analysis | Yes | No | No |
+| Customer lifetime value | Yes | No | No |
+| Churn prediction | Yes | No | No |
+| Inventory analytics | Yes | Basic | No |
+| WhatsApp campaigns | Yes | No | No |
+| Customer profiles | Yes | No | No |
+| Forecasting | Yes | No | No |
+| Self-hosted option | Yes | No | No |
+| One-time purchase | Yes | No | No |
+
+## Against the WhatsApp platforms
+
+| Capability | PulseCommerce | AiSensy | WATI | WooCommerce Reports |
+|---|---|---|---|---|
+| Customer analytics | Yes | No | No | Basic |
+| RFM segmentation | Yes | No | No | No |
+| Churn prediction | Yes | No | No | No |
+| Inventory analytics | Yes | No | No | Basic |
+| WhatsApp campaigns | Yes | Yes | Yes | No |
+| Shared inbox | Yes | Yes | Yes | No |
+| Forecasting | Yes | No | No | No |
+| Customer lifetime value | Yes | No | No | No |
+| Self-hosted option | Yes | No | No | No |
+
+The messaging platforms send well and know nothing about your customers. The
+analytics tools know your customers and cannot message them. This does both,
+which is the point: an audience defined by churn risk or by what someone bought
+can be messaged without leaving the screen it was defined on.
+
+## What the market charges monthly
+
+| Platform | Starting price | On top of that |
+|---|---|---|
+| AiSensy | ₹1,500 per month | Meta message charges |
+| Gallabox | approximately ₹2,399 per month | Meta message charges |
+| Interakt | approximately ₹2,799 per month | Meta message charges |
+| WATI | approximately $39 per month (₹3,300+) | Meta message charges |
+| Gupshup | Custom pricing | Meta message charges |
+
+Every one of these is a subscription that continues for as long as it is used,
+and none of it covers what Meta charges per conversation.
+
+Feature comparisons and prices above reflect publicly available information at
+the time of writing. Third-party products and pricing change; verify before
+relying on any of it.
+
+---
+
+# Proposed solution
 A private analytics platform, running on infrastructure Nature's Joy controls,
 reading the store through WooCommerce's official REST API.
 
@@ -133,7 +184,6 @@ rather than taken on trust.
 ---
 
 # Proposed scope
-
 Thirteen modules.
 
 ## 1. Revenue and performance
@@ -387,7 +437,6 @@ dark themes, and optional password protection.
 ---
 
 # How it is built
-
 Three separate pieces, only one of which is the application.
 
 ```
@@ -432,7 +481,6 @@ than the remainder of the audience.
 ---
 
 # How access works
-
 1. You enter your store address in the application.
 2. You are sent to your own WordPress admin, where you review and approve
    **read-only** access.
@@ -446,7 +494,6 @@ removes the stored key and every cached order.
 ---
 
 # Deliverables
-
 1. **The platform**, covering the thirteen modules above.
 2. **Source code**, in a repository Nature's Joy owns.
 3. **Deployment** to the agreed hosting, configured and verified against the live
@@ -471,24 +518,69 @@ most catalogue sizes.
 ---
 
 # Commercial terms
+Two routes, differing only in how WhatsApp messages are sent. Both are one-time
+fees and both include the same thirteen modules, deployment, configuration,
+documentation, handover and the source code in a repository Nature's Joy owns.
 
-> **Complete before sending.** Figures below are placeholders.
-
-| Item | Scope | Fee |
+| | PulseCommerce + WhatsApp Cloud API | PulseCommerce + private WhatsApp gateway |
 |---|---|---|
-| Implementation and handover | Build, deployment, connection, configuration, documentation, walkthrough | `[amount]` |
-| Managed hosting | Hosting, monitoring, updates, per month | `[amount]` |
-| Support | Agreed response times and hours, per month | `[amount]` |
-| Further development | Additional modules or custom metrics, per day | `[day rate]` |
+| **One-time fee** | **₹25,000** | **₹35,000** |
+| Messaging route | Meta's official WhatsApp Business API | A dedicated gateway on your own server |
+| Cost per message | Charged by Meta, per conversation | None |
+| Message templates | Require Meta's approval before use | Written and sent immediately |
+| Delivery | Guaranteed by Meta | Not guaranteed |
+| Tappable buttons | Available | Not available |
+| Running cost | Meta's per-conversation charges | Server hosting, approximately ₹500 per month |
+| Setup | Meta Business verification | Scan a QR code |
 
-**Payment schedule:** `[for example, 50% on commencement, 50% on handover]`
+## What the Cloud API route costs to run
 
-**Timeline:** `[timeframe]` from commencement to handover.
+The ₹25,000 fee covers the platform. Messages themselves are billed by Meta,
+per conversation, at rates that vary by country and message category and change
+without notice. At an illustrative ₹0.75 per marketing conversation, one
+campaign to 11,224 customers costs approximately ₹8,418, and twelve campaigns a
+year approximately ₹1,01,016 — paid to Meta, not to Setups Works.
+
+This route suits a business that values guaranteed delivery and tappable buttons
+more than it minds a per-message cost.
+
+## What the private gateway route costs to run
+
+The ₹35,000 fee covers the platform and a dedicated WhatsApp messaging server
+running on infrastructure Nature's Joy controls. There is no per-message charge
+of any kind. The only running cost is the server itself, approximately ₹500 per
+month, billed by your hosting provider.
+
+This route suits a business messaging its own past customers at volume, where
+the per-message fee would dominate the total cost.
+
+## Three years, compared
+
+Twelve campaigns a year to 11,224 customers, with Meta conversations at an
+illustrative ₹0.75:
+
+| Route | Subscription or fee | Meta charges | Three-year total |
+|---|---|---|---|
+| AiSensy | ₹54,000 | ₹3,03,048 | ₹3,57,048 |
+| Gallabox | ₹86,364 | ₹3,03,048 | ₹3,89,412 |
+| Interakt | ₹1,00,764 | ₹3,03,048 | ₹4,03,812 |
+| WATI | ₹1,18,800 | ₹3,03,048 | ₹4,21,848 |
+| PulseCommerce + Cloud API | ₹25,000 once | ₹3,03,048 | ₹3,28,048 |
+| **PulseCommerce + private gateway** | **₹35,000 once** | **₹0** | **₹53,000** |
+
+Against the cheapest subscription platform, the private gateway route saves
+approximately ₹3,04,048 over three years. Almost all of that saving is the
+per-conversation fee ceasing to apply.
+
+**Payment schedule:** to be agreed in writing before work commences.
+
+**Timeline:** to be confirmed on acceptance.
+
+**Validity:** this quotation is valid for 30 days from the date of issue.
 
 ---
 
 # Optional extensions
-
 Available separately, either at the outset or later.
 
 - **Scheduled reports** delivered by email weekly or monthly
@@ -506,7 +598,6 @@ Available separately, either at the outset or later.
 ---
 
 # Next steps
-
 1. Review the scope above and confirm which modules and options are wanted.
 2. Agree commercial terms and schedule.
 3. **Walkthrough.** On acceptance, Setups Works will demonstrate the platform
@@ -515,54 +606,7 @@ Available separately, either at the outset or later.
 
 ---
 
-# Appendix: how key figures are defined
-
-Included so that, once delivered, every number can be reconciled against
-WooCommerce rather than taken on trust. These are the definitions where
-analytics tools most often disagree with each other.
-
-**Net revenue.** Order total less tax, shipping, and refunds, counted only for
-orders in completed, processing, or on-hold status. Cancelled, failed, and
-pending orders are excluded from revenue while still counting toward
-cancellation rates.
-
-**Customer identity.** Guest checkouts carry no WooCommerce customer ID, so
-buyers are identified by billing email address. A customer ordering under two
-different email addresses will appear as two customers. On most stores the
-majority of orders are guest checkouts, so this materially affects customer
-counts and should be understood when reading them.
-
-**Returning customer rate.** The share of customers active in a period who had
-already purchased before it began.
-
-**Repeat rate in period.** The share of customers who purchased more than once
-inside the period itself. On a short window this differs from the returning
-customer rate by a wide margin. Both are reported separately and labelled,
-because conflating them is a common source of misleading retention figures.
-
-**RFM scores.** Recency, frequency, and monetary values scored as quintiles
-within the store's own customer base rather than against absolute thresholds, so
-segments remain meaningful regardless of the store's size.
-
-**Predicted lifetime value.** Each customer's observed purchase rate projected
-twelve months forward, discounted by their churn risk. An estimate, and presented
-as one.
-
-**Days of cover.** Current stock divided by units sold per day over the selected
-period. Reorder points add a supplier lead time and a safety-stock buffer, both
-configurable to your actual terms.
-
-**Forecast.** A least-squares trend multiplied by day-of-week seasonality
-factors, with a 95% interval derived from historical variance. It answers whether
-the store is pacing ahead of or behind its recent trend. It has no knowledge of
-planned promotions, stockouts, or seasonality outside the period analysed.
-
----
-
----
-
 # Appendix: complete feature list
-
 Everything included in the thirteen modules, listed so nothing delivered goes
 unmentioned.
 
@@ -639,8 +683,52 @@ and a one-click disconnect that wipes the stored key and every cached order.
 
 ---
 
-# Terms and conditions
+# Appendix: how key figures are defined
+Included so that, once delivered, every number can be reconciled against
+WooCommerce rather than taken on trust. These are the definitions where
+analytics tools most often disagree with each other.
 
+**Net revenue.** Order total less tax, shipping, and refunds, counted only for
+orders in completed, processing, or on-hold status. Cancelled, failed, and
+pending orders are excluded from revenue while still counting toward
+cancellation rates.
+
+**Customer identity.** Guest checkouts carry no WooCommerce customer ID, so
+buyers are identified by billing email address. A customer ordering under two
+different email addresses will appear as two customers. On most stores the
+majority of orders are guest checkouts, so this materially affects customer
+counts and should be understood when reading them.
+
+**Returning customer rate.** The share of customers active in a period who had
+already purchased before it began.
+
+**Repeat rate in period.** The share of customers who purchased more than once
+inside the period itself. On a short window this differs from the returning
+customer rate by a wide margin. Both are reported separately and labelled,
+because conflating them is a common source of misleading retention figures.
+
+**RFM scores.** Recency, frequency, and monetary values scored as quintiles
+within the store's own customer base rather than against absolute thresholds, so
+segments remain meaningful regardless of the store's size.
+
+**Predicted lifetime value.** Each customer's observed purchase rate projected
+twelve months forward, discounted by their churn risk. An estimate, and presented
+as one.
+
+**Days of cover.** Current stock divided by units sold per day over the selected
+period. Reorder points add a supplier lead time and a safety-stock buffer, both
+configurable to your actual terms.
+
+**Forecast.** A least-squares trend multiplied by day-of-week seasonality
+factors, with a 95% interval derived from historical variance. It answers whether
+the store is pacing ahead of or behind its recent trend. It has no knowledge of
+planned promotions, stockouts, or seasonality outside the period analysed.
+
+---
+
+---
+
+# Terms and conditions
 ## About the figures
 
 All store figures in this document were computed from naturesjoystore.com covering

@@ -58,6 +58,144 @@ Hosted analytics services. Convenient, but they copy the entire order history, i
 
 Analytics plugins. They run heavy queries against the same database that serves the storefront, which is a reliable way to slow a shop down.
 
+WHY PULSECOMMERCE
+
+Against the tools already in place
+
+Customer segmentation
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+RFM analysis
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Customer lifetime value
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Churn prediction
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Inventory analytics
+    PulseCommerce: Yes
+    WooCommerce Analytics: Basic
+    Google Analytics: No
+
+WhatsApp campaigns
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Customer profiles
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Forecasting
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Self-hosted option
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+One-time purchase
+    PulseCommerce: Yes
+    WooCommerce Analytics: No
+    Google Analytics: No
+
+Against the WhatsApp platforms
+
+Customer analytics
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: Basic
+
+RFM segmentation
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: No
+
+Churn prediction
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: No
+
+Inventory analytics
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: Basic
+
+WhatsApp campaigns
+    PulseCommerce: Yes
+    AiSensy: Yes
+    WATI: Yes
+    WooCommerce Reports: No
+
+Shared inbox
+    PulseCommerce: Yes
+    AiSensy: Yes
+    WATI: Yes
+    WooCommerce Reports: No
+
+Forecasting
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: No
+
+Customer lifetime value
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: No
+
+Self-hosted option
+    PulseCommerce: Yes
+    AiSensy: No
+    WATI: No
+    WooCommerce Reports: No
+
+The messaging platforms send well and know nothing about your customers. The analytics tools know your customers and cannot message them. This does both, which is the point: an audience defined by churn risk or by what someone bought can be messaged without leaving the screen it was defined on.
+
+What the market charges monthly
+
+AiSensy
+    Starting price: ₹1,500 per month
+    On top of that: Meta message charges
+
+Gallabox
+    Starting price: approximately ₹2,399 per month
+    On top of that: Meta message charges
+
+Interakt
+    Starting price: approximately ₹2,799 per month
+    On top of that: Meta message charges
+
+WATI
+    Starting price: approximately $39 per month (₹3,300+)
+    On top of that: Meta message charges
+
+Gupshup
+    Starting price: Custom pricing
+    On top of that: Meta message charges
+
+Every one of these is a subscription that continues for as long as it is used, and none of it covers what Meta charges per conversation.
+
+Feature comparisons and prices above reflect publicly available information at the time of writing. Third-party products and pricing change; verify before relying on any of it.
+
 PROPOSED SOLUTION
 
 A private analytics platform, running on infrastructure Nature's Joy controls, reading the store through WooCommerce's official REST API.
@@ -352,27 +490,93 @@ Serverless. Lowest operational overhead, using a managed cache. Suitable for mos
 
 COMMERCIAL TERMS
 
-Complete before sending. Figures below are placeholders.
+Two routes, differing only in how WhatsApp messages are sent. Both are one-time fees and both include the same thirteen modules, deployment, configuration, documentation, handover and the source code in a repository Nature's Joy owns.
 
-Implementation and handover
-    Scope: Build, deployment, connection, configuration, documentation, walkthrough
-    Fee: [amount]
+One-time fee
+    PulseCommerce + WhatsApp Cloud API: ₹25,000
+    PulseCommerce + private WhatsApp gateway: ₹35,000
 
-Managed hosting
-    Scope: Hosting, monitoring, updates, per month
-    Fee: [amount]
+Messaging route
+    PulseCommerce + WhatsApp Cloud API: Meta's official WhatsApp Business API
+    PulseCommerce + private WhatsApp gateway: A dedicated gateway on your own server
 
-Support
-    Scope: Agreed response times and hours, per month
-    Fee: [amount]
+Cost per message
+    PulseCommerce + WhatsApp Cloud API: Charged by Meta, per conversation
+    PulseCommerce + private WhatsApp gateway: None
 
-Further development
-    Scope: Additional modules or custom metrics, per day
-    Fee: [day rate]
+Message templates
+    PulseCommerce + WhatsApp Cloud API: Require Meta's approval before use
+    PulseCommerce + private WhatsApp gateway: Written and sent immediately
 
-Payment schedule: [for example, 50% on commencement, 50% on handover]
+Delivery
+    PulseCommerce + WhatsApp Cloud API: Guaranteed by Meta
+    PulseCommerce + private WhatsApp gateway: Not guaranteed
 
-Timeline: [timeframe] from commencement to handover.
+Tappable buttons
+    PulseCommerce + WhatsApp Cloud API: Available
+    PulseCommerce + private WhatsApp gateway: Not available
+
+Running cost
+    PulseCommerce + WhatsApp Cloud API: Meta's per-conversation charges
+    PulseCommerce + private WhatsApp gateway: Server hosting, approximately ₹500 per month
+
+Setup
+    PulseCommerce + WhatsApp Cloud API: Meta Business verification
+    PulseCommerce + private WhatsApp gateway: Scan a QR code
+
+What the Cloud API route costs to run
+
+The ₹25,000 fee covers the platform. Messages themselves are billed by Meta, per conversation, at rates that vary by country and message category and change without notice. At an illustrative ₹0.75 per marketing conversation, one campaign to 11,224 customers costs approximately ₹8,418, and twelve campaigns a year approximately ₹1,01,016 — paid to Meta, not to Setups Works.
+
+This route suits a business that values guaranteed delivery and tappable buttons more than it minds a per-message cost.
+
+What the private gateway route costs to run
+
+The ₹35,000 fee covers the platform and a dedicated WhatsApp messaging server running on infrastructure Nature's Joy controls. There is no per-message charge of any kind. The only running cost is the server itself, approximately ₹500 per month, billed by your hosting provider.
+
+This route suits a business messaging its own past customers at volume, where the per-message fee would dominate the total cost.
+
+Three years, compared
+
+Twelve campaigns a year to 11,224 customers, with Meta conversations at an illustrative ₹0.75:
+
+AiSensy
+    Subscription or fee: ₹54,000
+    Meta charges: ₹3,03,048
+    Three-year total: ₹3,57,048
+
+Gallabox
+    Subscription or fee: ₹86,364
+    Meta charges: ₹3,03,048
+    Three-year total: ₹3,89,412
+
+Interakt
+    Subscription or fee: ₹1,00,764
+    Meta charges: ₹3,03,048
+    Three-year total: ₹4,03,812
+
+WATI
+    Subscription or fee: ₹1,18,800
+    Meta charges: ₹3,03,048
+    Three-year total: ₹4,21,848
+
+PulseCommerce + Cloud API
+    Subscription or fee: ₹25,000 once
+    Meta charges: ₹3,03,048
+    Three-year total: ₹3,28,048
+
+PulseCommerce + private gateway
+    Subscription or fee: ₹35,000 once
+    Meta charges: ₹0
+    Three-year total: ₹53,000
+
+Against the cheapest subscription platform, the private gateway route saves approximately ₹3,04,048 over three years. Almost all of that saving is the per-conversation fee ceasing to apply.
+
+Payment schedule: to be agreed in writing before work commences.
+
+Timeline: to be confirmed on acceptance.
+
+Validity: this quotation is valid for 30 days from the date of issue.
 
 OPTIONAL EXTENSIONS
 
@@ -392,26 +596,6 @@ NEXT STEPS
 2. Agree commercial terms and schedule.
 3. Walkthrough. On acceptance, Setups Works will demonstrate the platform against Nature's Joy data so the findings can be seen before rollout.
 4. Deployment, verification, and handover.
-
-APPENDIX: HOW KEY FIGURES ARE DEFINED
-
-Included so that, once delivered, every number can be reconciled against WooCommerce rather than taken on trust. These are the definitions where analytics tools most often disagree with each other.
-
-Net revenue. Order total less tax, shipping, and refunds, counted only for orders in completed, processing, or on-hold status. Cancelled, failed, and pending orders are excluded from revenue while still counting toward cancellation rates.
-
-Customer identity. Guest checkouts carry no WooCommerce customer ID, so buyers are identified by billing email address. A customer ordering under two different email addresses will appear as two customers. On most stores the majority of orders are guest checkouts, so this materially affects customer counts and should be understood when reading them.
-
-Returning customer rate. The share of customers active in a period who had already purchased before it began.
-
-Repeat rate in period. The share of customers who purchased more than once inside the period itself. On a short window this differs from the returning customer rate by a wide margin. Both are reported separately and labelled, because conflating them is a common source of misleading retention figures.
-
-RFM scores. Recency, frequency, and monetary values scored as quintiles within the store's own customer base rather than against absolute thresholds, so segments remain meaningful regardless of the store's size.
-
-Predicted lifetime value. Each customer's observed purchase rate projected twelve months forward, discounted by their churn risk. An estimate, and presented as one.
-
-Days of cover. Current stock divided by units sold per day over the selected period. Reorder points add a supplier lead time and a safety-stock buffer, both configurable to your actual terms.
-
-Forecast. A least-squares trend multiplied by day-of-week seasonality factors, with a 95% interval derived from historical variance. It answers whether the store is pacing ahead of or behind its recent trend. It has no knowledge of planned promotions, stockouts, or seasonality outside the period analysed.
 
 APPENDIX: COMPLETE FEATURE LIST
 
@@ -444,6 +628,26 @@ Reports and exports. Ten report types, Excel with formatted sheets, filters and 
 Platform. Multiple stores with instant switching, a command palette across customers, products and orders, keyboard navigation throughout, light and dark themes, persisted date ranges, sortable, searchable and expandable tables, optional password protection, honest empty states, and partial-data warnings surfaced rather than hidden.
 
 Security. Approval inside your own WordPress admin, no credential ever typed into a form in this product, verification before saving, keys shown only masked, customer phone numbers never sent to the browser, opt-outs enforced on the server, and a one-click disconnect that wipes the stored key and every cached order.
+
+APPENDIX: HOW KEY FIGURES ARE DEFINED
+
+Included so that, once delivered, every number can be reconciled against WooCommerce rather than taken on trust. These are the definitions where analytics tools most often disagree with each other.
+
+Net revenue. Order total less tax, shipping, and refunds, counted only for orders in completed, processing, or on-hold status. Cancelled, failed, and pending orders are excluded from revenue while still counting toward cancellation rates.
+
+Customer identity. Guest checkouts carry no WooCommerce customer ID, so buyers are identified by billing email address. A customer ordering under two different email addresses will appear as two customers. On most stores the majority of orders are guest checkouts, so this materially affects customer counts and should be understood when reading them.
+
+Returning customer rate. The share of customers active in a period who had already purchased before it began.
+
+Repeat rate in period. The share of customers who purchased more than once inside the period itself. On a short window this differs from the returning customer rate by a wide margin. Both are reported separately and labelled, because conflating them is a common source of misleading retention figures.
+
+RFM scores. Recency, frequency, and monetary values scored as quintiles within the store's own customer base rather than against absolute thresholds, so segments remain meaningful regardless of the store's size.
+
+Predicted lifetime value. Each customer's observed purchase rate projected twelve months forward, discounted by their churn risk. An estimate, and presented as one.
+
+Days of cover. Current stock divided by units sold per day over the selected period. Reorder points add a supplier lead time and a safety-stock buffer, both configurable to your actual terms.
+
+Forecast. A least-squares trend multiplied by day-of-week seasonality factors, with a 95% interval derived from historical variance. It answers whether the store is pacing ahead of or behind its recent trend. It has no knowledge of planned promotions, stockouts, or seasonality outside the period analysed.
 
 TERMS AND CONDITIONS
 
