@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Loader2, MessageCircle, TriangleAlert, Unplug } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle, ShieldCheck, TriangleAlert, Unplug } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -35,6 +35,8 @@ interface SessionState {
 
 interface SettingsResponse {
   connected: boolean;
+  /** Set from WHATSAPP_API_URL / WHATSAPP_API_KEY rather than through this form. */
+  fromEnv?: boolean;
   config: RedactedWhatsApp | null;
   session: SessionState | null;
   ready?: boolean;
@@ -145,6 +147,12 @@ export function WhatsAppSettingsCard() {
               connects to WhatsApp directly.
             </CardDescription>
           </div>
+          {state?.fromEnv ? (
+            <Badge variant="outline" className="shrink-0 gap-1">
+              <ShieldCheck className="size-3" />
+              From environment
+            </Badge>
+          ) : null}
           {state?.connected ? (
             <Badge variant={ready ? "default" : "secondary"} className="shrink-0 gap-1">
               {ready ? <CheckCircle2 className="size-3" /> : <TriangleAlert className="size-3" />}
@@ -258,7 +266,13 @@ export function WhatsAppSettingsCard() {
       </CardContent>
 
       <CardFooter className="gap-2 border-t pt-4">
-        {state?.connected ? (
+        {state?.fromEnv ? (
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Set by <code>WHATSAPP_API_URL</code> and <code>WHATSAPP_API_KEY</code> on the host.
+            Change them there and redeploy; this connection cannot be edited or removed here,
+            which is what stops it being lost by accident.
+          </p>
+        ) : state?.connected ? (
           <Button variant="outline" size="sm" onClick={disconnect} disabled={busy} className="gap-1.5">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Unplug className="size-4" />}
             Disconnect

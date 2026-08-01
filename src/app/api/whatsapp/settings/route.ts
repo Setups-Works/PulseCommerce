@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   clearWhatsAppConfig,
+  configuredByEnvironment,
+  rememberAdoptedSession,
   DEFAULT_SEND_DELAY_MS,
   MIN_SEND_DELAY_MS,
   normaliseBaseUrl,
@@ -17,24 +19,53 @@ export const dynamic = "force-dynamic";
 
 /** Connection state, plus the gateway's live view of the session. */
 export async function GET() {
+  const fromEnv = configuredByEnvironment();
   const config = await readWhatsAppConfig();
   if (!config) {
-    return NextResponse.json({ connected: false, config: null, session: null });
+    return NextResponse.json({ connected: false, config: null, session: null, fromEnv });
   }
 
   let session = null;
   let error: string | null = null;
+  let sessionId = config.sessionId;
+
   try {
-    session = await new WhatsAppClient(config).getSession();
+    const client = new WhatsAppClient(config);
+
+    if (!sessionId) {
+      // WHATSAPP_SESSION_ID was omitted, so adopt the gateway's session and
+      // remember it — the alternative is failing for a value the gateway can
+      // simply be asked for.
+      const sessions = await client.listSessions();
+      const ready = sessions.filter((s) => s.status === READY_STATUS);
+      const chosen = ready.length === 1 ? ready[0] : sessions.length === 1 ? sessions[0] : null;
+      if (!chosen) {
+        return NextResponse.json({
+          connected: true,
+          config: redactWhatsAppConfig(config),
+          session: null,
+          fromEnv,
+          error:
+            sessions.length === 0
+              ? "The gateway has no WhatsApp sessions. Create one in OpenWA."
+              : `The gateway has ${sessions.length} sessions. Set WHATSAPP_SESSION_ID to the one to send from.`,
+        });
+      }
+      sessionId = chosen.id;
+      await rememberAdoptedSession(sessionId).catch(() => {});
+    }
+
+    session = await new WhatsAppClient({ ...config, sessionId }).getSession();
   } catch (err) {
     error = err instanceof Error ? err.message : "The gateway could not be reached.";
   }
 
   return NextResponse.json({
     connected: true,
-    config: redactWhatsAppConfig(config),
+    config: redactWhatsAppConfig({ ...config, sessionId }),
     session,
     ready: session?.status === READY_STATUS,
+    fromEnv,
     error,
   });
 }
@@ -53,6 +84,16 @@ const schema = z.object({
  * than none: it would surface as a failed broadcast halfway through a campaign.
  */
 export async function PUT(request: Request) {
+  if (configuredByEnvironment()) {
+    return NextResponse.json(
+      {
+        error:
+          "The gateway is set by environment variables, so it cannot be changed here. Edit WHATSAPP_API_URL and WHATSAPP_API_KEY on the host and redeploy.",
+      },
+      { status: 409 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -157,6 +198,16 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE() {
+  if (configuredByEnvironment()) {
+    return NextResponse.json(
+      {
+        error:
+          "The gateway is set by environment variables. Remove WHATSAPP_API_URL and WHATSAPP_API_KEY on the host to disconnect it.",
+      },
+      { status: 409 },
+    );
+  }
+
   await clearWhatsAppConfig();
   return NextResponse.json({ connected: false, config: null, session: null });
 }

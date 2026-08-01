@@ -30,6 +30,8 @@ export interface WhatsAppConfig {
 }
 
 const CONFIG_KEY = "whatsapp-config";
+/** Session id discovered from the gateway when the environment omits one. */
+const ADOPTED_SESSION_KEY = "whatsapp-env-session";
 
 export const DEFAULT_SEND_DELAY_MS = 4000;
 /** OpenWA's own floor. Anything lower is rejected upstream. */
@@ -37,7 +39,50 @@ export const MIN_SEND_DELAY_MS = 1000;
 /** Recipients per submitted batch — OpenWA rejects more than this. */
 export const MAX_BATCH_SIZE = 100;
 
+/**
+ * Environment-provided gateway, which takes precedence over anything saved
+ * through the UI.
+ *
+ * Unlike the WooCommerce credentials — where the whole point of the app
+ * authorization flow is that a merchant never handles a secret — the gateway
+ * key has no such flow: it is issued in your own OpenWA dashboard and pasted
+ * somewhere either way. Putting it in the environment makes the connection
+ * survive a redeploy, a cleared store, and a mis-click on Disconnect.
+ */
+function environmentConfig(): Omit<WhatsAppConfig, "sessionId"> | null {
+  const baseUrl = process.env.WHATSAPP_API_URL?.trim();
+  const apiKey = process.env.WHATSAPP_API_KEY?.trim();
+  if (!baseUrl || !apiKey) return null;
+
+  return {
+    baseUrl: baseUrl.replace(/\/+$/, ""),
+    apiKey,
+    defaultDialCode: (process.env.WHATSAPP_DIAL_CODE ?? "").replace(/\D/g, ""),
+    delayBetweenMessagesMs: Math.max(
+      MIN_SEND_DELAY_MS,
+      Number(process.env.WHATSAPP_SEND_DELAY_MS) || DEFAULT_SEND_DELAY_MS,
+    ),
+  };
+}
+
+/** True when the gateway comes from the environment rather than the UI. */
+export function configuredByEnvironment(): boolean {
+  return environmentConfig() !== null;
+}
+
 export async function readWhatsAppConfig(): Promise<WhatsAppConfig | null> {
+  const fromEnv = environmentConfig();
+
+  if (fromEnv) {
+    // The session id is the one part that may not be known up front, so it can
+    // be omitted and adopted from the gateway once, then remembered.
+    const sessionId =
+      process.env.WHATSAPP_SESSION_ID?.trim() ||
+      (await getStore().get(ADOPTED_SESSION_KEY).catch(() => null)) ||
+      "";
+    return { ...fromEnv, sessionId };
+  }
+
   try {
     const raw = await getStore().get(CONFIG_KEY);
     if (!raw) return null;
@@ -54,6 +99,11 @@ export async function readWhatsAppConfig(): Promise<WhatsAppConfig | null> {
   } catch {
     return null;
   }
+}
+
+/** Remembers a session adopted from the gateway when the env named none. */
+export async function rememberAdoptedSession(sessionId: string): Promise<void> {
+  await getStore().set(ADOPTED_SESSION_KEY, sessionId);
 }
 
 export async function writeWhatsAppConfig(config: WhatsAppConfig): Promise<void> {

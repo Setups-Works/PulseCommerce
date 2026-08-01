@@ -535,6 +535,19 @@ a broadcast that runs for hours at a safe pace will never finish.
 4. In PulseCommerce, go to **Settings → WhatsApp gateway**, enter the gateway
    URL and that key, and confirm the country code it suggests.
 
+Alternatively, set it on the host instead of in the UI:
+
+```bash
+WHATSAPP_API_URL=https://wa.yourdomain.com
+WHATSAPP_API_KEY=...            # operator role
+WHATSAPP_DIAL_CODE=91           # assumed when a number has no country code
+WHATSAPP_SESSION_ID=...         # optional; the only session is adopted if omitted
+```
+
+When these are set they take precedence, and Settings shows the connection as
+read-only. That is the point: a connection held in the environment survives a
+redeploy, a cleared store, and a mis-click on Disconnect.
+
 If no number is linked yet, Settings shows the pairing **QR inline** — scan it
 there. The QR is proxied through this app, so the gateway key never reaches a
 browser page.
@@ -624,6 +637,11 @@ browser.
 | `APP_PASSWORD` | for login | Set alongside `AUTH_SECRET` to require a password. |
 | `KV_REST_API_URL` | on serverless | Redis endpoint. Vercel KV and Upstash both provide it. |
 | `KV_REST_API_TOKEN` | on serverless | Token for the above. `UPSTASH_REDIS_REST_*` names work too. |
+| `WHATSAPP_API_URL` | no | OpenWA gateway base URL. Setting this and the key below takes the connection out of the UI entirely. |
+| `WHATSAPP_API_KEY` | no | Gateway API key, operator role. |
+| `WHATSAPP_SESSION_ID` | no | Which session to send from. Omit it and the only session on the gateway is adopted and remembered. |
+| `WHATSAPP_DIAL_CODE` | no | Country code assumed for customer numbers stored without one, e.g. `91`. |
+| `WHATSAPP_SEND_DELAY_MS` | no | Pause between messages. Default `4000`; the gateway's own floor is `1000`. |
 
 Credentials are **never** environment variables. The issued key is written to
 `.data/store-config.json` when self-hosted, or to your Redis on serverless.
