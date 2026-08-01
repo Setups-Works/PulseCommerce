@@ -55,7 +55,7 @@ export async function GET() {
       await rememberAdoptedSession(sessionId).catch(() => {});
     }
 
-    session = await new WhatsAppClient({ ...config, sessionId }).getSession();
+    session = await new WhatsAppClient({ ...config, sessionId }).ensureSendable();
   } catch (err) {
     error = err instanceof Error ? err.message : "The gateway could not be reached.";
   }

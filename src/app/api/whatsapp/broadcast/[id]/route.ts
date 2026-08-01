@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
+import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import {
   estimateBatchMs,
@@ -69,6 +69,22 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
   }
 
+  /*
+   * A broadcast runs for hours, so the gateway is very likely to restart
+   * somewhere in the middle. Recovering here means that costs one batch of
+   * delay rather than failing every remaining recipient.
+   */
+  const client = new WhatsAppClient(config);
+  const session = await client.ensureSendable().catch(() => null);
+  if (!session || !isSessionSendable(session)) {
+    return await fail(
+      job,
+      session
+        ? `The WhatsApp session stopped being able to send (status "${session.status}", engine ${session.engineLoaded ? "loaded" : "not loaded"}). Re-link the number in Settings, then start a new broadcast.`
+        : "The WhatsApp gateway became unreachable mid-broadcast.",
+    );
+  }
+
   const chunk = nextChunk(job);
   const messages: BulkMessageItem[] = chunk.map((recipient) => ({
     chatId: recipient.chatId,
@@ -80,7 +96,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }));
 
   try {
-    const accepted = await new WhatsAppClient(config).sendBulk(messages, {
+    const accepted = await client.sendBulk(messages, {
       delayBetweenMessages: job.delayBetweenMessagesMs,
       randomizeDelay: true,
       // One bad number must not abandon the rest of the batch; failures are

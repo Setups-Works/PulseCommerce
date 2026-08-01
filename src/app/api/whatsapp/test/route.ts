@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   const client = new WhatsAppClient(config);
 
   try {
-    const session = await client.getSession();
+    const session = await client.ensureSendable();
     if (!isSessionSendable(session)) {
       return NextResponse.json(
         {

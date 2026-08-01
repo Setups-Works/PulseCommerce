@@ -207,6 +207,41 @@ export class WhatsAppClient {
   }
 
   /**
+   * Returns a session that can actually send, restarting the engine if that is
+   * all that is wrong.
+   *
+   * When a gateway's process restarts, the session row survives saying "ready"
+   * while the in-memory engine does not — and every send then fails with
+   * "Session is not active". The pairing credentials are on disk, though, so
+   * starting the engine reconnects the same number in a few seconds with no QR
+   * and no human involved. Recovering here means a restart costs a moment
+   * rather than a re-scan, which matters on any host that recycles processes.
+   *
+   * A session that was never linked is returned unchanged: no amount of
+   * restarting substitutes for scanning a QR.
+   */
+  async ensureSendable(waitMs = 20_000): Promise<WhatsAppSession> {
+    let session = await this.getSession();
+    if (isSessionSendable(session)) return session;
+
+    const recoverable = session.status === READY_STATUS && session.phone && !session.engineLoaded;
+    if (!recoverable) return session;
+
+    await this.ensureStarted().catch(() => {});
+
+    const deadline = Date.now() + waitMs;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      session = await this.getSession();
+      if (isSessionSendable(session)) return session;
+      // A dropped pairing surfaces as a QR offer; restarting cannot fix that.
+      if (session.status !== READY_STATUS && session.status !== "initializing") break;
+    }
+
+    return session;
+  }
+
+  /**
    * Whether a number is registered on WhatsApp, and its canonical chat id.
    * Worth doing before a broadcast: sending to numbers that were never on
    * WhatsApp is both wasted and a pattern that attracts restrictions.

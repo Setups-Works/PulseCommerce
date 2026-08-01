@@ -87,7 +87,7 @@ export async function POST(request: Request) {
 
     // A session that is not linked would fail every message in the batch, so
     // this is checked before a job exists rather than after it half-runs.
-    const session = await new WhatsAppClient(resolved.config).getSession();
+    const session = await new WhatsAppClient(resolved.config).ensureSendable();
     if (!isSessionSendable(session)) {
       return NextResponse.json(
         {
