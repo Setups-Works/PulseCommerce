@@ -190,6 +190,9 @@ export class WooClient {
         ),
       );
       for (const r of results) out.push(...r);
+      // Brief pause between batches so a long pull reads as steady traffic
+      // rather than a burst worth rate-limiting.
+      if (i + concurrency < pages.length) await new Promise((resolve) => setTimeout(resolve, 120));
     }
 
     return out;
@@ -225,9 +228,13 @@ export class WooClient {
   }
 
   getOrders(params: Record<string, string | number | undefined>, maxPages?: number) {
+    // Deliberately gentle. Six connections wide pulled a 20k-order history fast
+    // enough, but sustained bursts got this app refused by the store's security
+    // layer. With a shared snapshot cache the pull is rare, so throughput
+    // matters far less than not being blocked.
     return this.fetchAll<WooOrder>("orders", { ...params, _fields: ORDER_FIELDS }, {
       maxPages,
-      concurrency: 6,
+      concurrency: 3,
     });
   }
 

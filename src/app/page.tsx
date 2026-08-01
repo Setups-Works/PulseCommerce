@@ -147,17 +147,7 @@ cloudflared tunnel --url https://localhost:3000
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-xs text-muted-foreground">
           <p>PulseCommerce, advanced analytics for WooCommerce.</p>
           <div className="flex items-center gap-3">
-            <span className="text-right leading-tight">
-              Built by{" "}
-              <a
-                href="https://www.linkedin.com/in/nitheeshdr/"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-foreground hover:underline"
-              >
-                Nitheesh Rajendran
-              </a>
-            </span>
+            <span className="leading-tight">Built by</span>
             {/* The mark ships in both polarities; CSS picks one per theme. */}
             <a href="https://setups.works" target="_blank" rel="noreferrer" aria-label="Setups Works">
               <Image

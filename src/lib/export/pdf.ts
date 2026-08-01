@@ -142,7 +142,10 @@ export function buildPdf(result: AnalyticsResult, sheets: Sheet[]): Buffer {
       columnStyles: Object.fromEntries(
         sheet.columns.map((c, i) => [
           i,
-          { halign: c.format === "text" || c.format === "date" ? "left" : "right" } as const,
+          {
+            halign:
+              c.format === "text" || c.format === "date" || c.format === "datetime" ? "left" : "right",
+          } as const,
         ]),
       ),
       theme: "grid",
@@ -217,6 +220,10 @@ function renderCell(value: unknown, column: Column, fmt: Formatter): string {
     case "date": {
       const d = new Date(String(value));
       return Number.isNaN(d.getTime()) ? String(value) : d.toISOString().slice(0, 10);
+    }
+    case "datetime": {
+      const d = new Date(String(value));
+      return Number.isNaN(d.getTime()) ? String(value) : d.toISOString().slice(0, 16).replace("T", " ");
     }
     default:
       return Array.isArray(value) ? value.join(", ") : String(value);

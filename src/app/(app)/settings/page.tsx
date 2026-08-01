@@ -337,27 +337,16 @@ cloudflared tunnel --url https://localhost:3000    # or: ngrok http https://loca
       {/* --- Colophon ------------------------------------------------------ */}
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">Designed and built by</p>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Built by</p>
             <a
-              href="https://www.linkedin.com/in/nitheeshdr/"
+              href="https://setups.works"
               target="_blank"
               rel="noreferrer"
-              className="block text-base font-semibold tracking-tight hover:underline"
+              className="text-sm font-medium hover:underline"
             >
-              Nitheesh Rajendran
+              Setups Works
             </a>
-            <p className="text-xs text-muted-foreground">
-              Founder &amp; Developer at{" "}
-              <a
-                href="https://setups.works"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-foreground hover:underline"
-              >
-                Setups Works
-              </a>
-            </p>
           </div>
 
           {/* The mark ships in both polarities; CSS picks one per theme. */}

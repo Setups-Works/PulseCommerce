@@ -1,7 +1,7 @@
 import { monthLabel, STATUS_LABELS } from "@/lib/analytics/helpers";
 import type { AnalyticsResult } from "@/lib/analytics/types";
 
-export type ColumnFormat = "text" | "number" | "currency" | "percent" | "date" | "integer";
+export type ColumnFormat = "text" | "number" | "currency" | "percent" | "date" | "datetime" | "integer";
 
 export interface Column {
   key: string;
@@ -101,8 +101,11 @@ function executiveSheet(r: AnalyticsResult): Sheet {
     metric: KPI_LABELS[key] ?? key,
     value: m.value,
     previous: m.previous,
-    change: m.change === null ? null : m.change * 100,
+    change: m.change === null ? null : Math.round(m.change * 10000) / 100,
     unit: CURRENCY_KPIS.has(key) ? r.meta.currency : PERCENT_KPIS.has(key) ? "%" : "count",
+    // Lets the workbook writer pick a per-row number format, since a single
+    // column here mixes money, counts and percentages.
+    valueFormat: CURRENCY_KPIS.has(key) ? "currency" : PERCENT_KPIS.has(key) ? "percent" : "integer",
   }));
 
   return {
@@ -245,7 +248,7 @@ function ordersSheet(r: AnalyticsResult): Sheet {
     description: `${r.orders.length} orders in the selected period.`,
     columns: [
       { key: "number", header: "Order", format: "text", width: 12 },
-      { key: "date", header: "Date", format: "date", width: 18 },
+      { key: "date", header: "Date", format: "datetime", width: 20 },
       { key: "statusLabel", header: "Status", format: "text", width: 14 },
       { key: "customerName", header: "Customer", format: "text", width: 26 },
       { key: "customerEmail", header: "Email", format: "text", width: 30 },

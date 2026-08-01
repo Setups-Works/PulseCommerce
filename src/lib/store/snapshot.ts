@@ -3,10 +3,12 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { WooApiError, WooClient } from "@/lib/woo/client";
 import { attachAttribution } from "@/lib/woo/attribution";
+import { slimSnapshot } from "@/lib/woo/slim";
 import { decodeEntities } from "@/lib/woo/entities";
 import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "@/lib/woo/types";
 import { readStoreConfig, type StoreConfig } from "./config";
 import { isServerless } from "./kv";
+import { clearSharedSnapshot, readSharedSnapshot, writeSharedSnapshot } from "./snapshot-cache";
 import { NotConnectedError } from "./errors";
 
 interface CacheEntry {
@@ -65,12 +67,21 @@ export async function loadSnapshot(opts: LoadOptions = {}): Promise<StoreSnapsho
       cache.set(key, { snapshot: fromDisk, expiresAt: Date.now() + MEMORY_TTL_MS });
       return fromDisk;
     }
+
+    // Shared across every instance, unlike memory and /tmp. This is what stops
+    // each cold serverless instance re-pulling the whole order history.
+    const fromShared = await readSharedSnapshot(key, DISK_TTL_MS);
+    if (fromShared) {
+      cache.set(key, { snapshot: fromShared, expiresAt: Date.now() + MEMORY_TTL_MS });
+      void writeDiskCache(key, fromShared);
+      return fromShared;
+    }
   }
 
   const job = fetchLiveSnapshot(config)
     .then(async (snapshot) => {
       cache.set(key, { snapshot, expiresAt: Date.now() + MEMORY_TTL_MS });
-      await writeDiskCache(key, snapshot);
+      await Promise.all([writeDiskCache(key, snapshot), writeSharedSnapshot(key, snapshot)]);
       return snapshot;
     })
     .finally(() => {
@@ -172,7 +183,7 @@ async function fetchLiveSnapshot(config: StoreConfig): Promise<StoreSnapshot> {
     ).toFixed(1)}s`,
   );
 
-  return decodeSnapshot({
+  return slimSnapshot(decodeSnapshot({
     storeUrl: normalise(config.url),
     storeName,
     currency,
@@ -181,7 +192,7 @@ async function fetchLiveSnapshot(config: StoreConfig): Promise<StoreSnapshot> {
     customers,
     products: products as WooProduct[],
     warnings,
-  });
+  }));
 }
 
 /**
@@ -231,6 +242,8 @@ function describe(err: unknown): string {
 }
 
 export function invalidateSnapshotCache(): void {
+  const keys = [...cache.keys()];
   cache.clear();
   void fs.rm(CACHE_DIR, { recursive: true, force: true });
+  for (const key of keys) void clearSharedSnapshot(key);
 }

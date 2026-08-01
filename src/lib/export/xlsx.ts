@@ -17,6 +17,8 @@ function numberFormat(column: Column, currency: string): string | undefined {
       return "#,##0.00";
     case "date":
       return "yyyy-mm-dd";
+    case "datetime":
+      return "yyyy-mm-dd hh:mm";
     default:
       return undefined;
   }
@@ -33,7 +35,7 @@ function currencySymbol(code: string): string {
 
 function coerce(value: unknown, format: Column["format"]): string | number | Date | null {
   if (value === null || value === undefined || value === "") return null;
-  if (format === "date") {
+  if (format === "date" || format === "datetime") {
     const d = value instanceof Date ? value : new Date(String(value));
     return Number.isNaN(d.getTime()) ? String(value) : d;
   }
@@ -107,7 +109,13 @@ export async function buildWorkbook(result: AnalyticsResult, sheets: Sheet[]): P
       const values = sheet.columns.map((c) => coerce(row[c.key], c.format));
       const added = ws.addRow(values);
       sheet.columns.forEach((c, i) => {
-        const fmt = numberFormat(c, result.meta.currency);
+        // A row may override the column's format — the executive summary mixes
+        // money, counts and percentages down a single column.
+        const override = c.key === "value" || c.key === "previous" ? row.valueFormat : undefined;
+        const fmt = numberFormat(
+          typeof override === "string" ? { ...c, format: override as Column["format"] } : c,
+          result.meta.currency,
+        );
         if (fmt) added.getCell(i + 1).numFmt = fmt;
       });
     }
