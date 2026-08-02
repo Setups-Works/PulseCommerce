@@ -59,6 +59,9 @@ export function Beat({
 
   const local = frame - start;
   const scale = 1 + (local / (end - start)) * zoom;
+  // Arrives slightly small and settles, so consecutive beats read as one
+  // window resizing rather than two windows swapping.
+  const settle = at(local, 0, 22);
 
   return (
     <div
@@ -73,8 +76,8 @@ export function Beat({
         fontFamily: font,
         color: S.text,
         // Clear of the heading above and the progress line below.
-        padding: "184px 92px 116px",
-        transform: `scale(${scale})`,
+        padding: "148px 92px 108px",
+        transform: `scale(${scale * (0.985 + settle * 0.015)})`,
       }}
     >
       {children(local)}

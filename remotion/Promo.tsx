@@ -706,40 +706,13 @@ function Chrome() {
           transform: `translateY(${(1 - e) * 10}px)`,
         }}
       >
-        <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.03em", color: S.text }}>
+        {/* Small and quiet: a label on a continuous session, not a slide title. */}
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em", color: S.text }}>
           {title}
         </div>
-        <div style={{ marginTop: 6, fontSize: 21, color: S.dim }}>{desc}</div>
+        <div style={{ marginTop: 3, fontSize: 17, color: S.dim }}>{desc}</div>
       </div>
 
-      <div
-        style={{
-          position: "absolute",
-          right: 88,
-          top: 62,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          opacity: 0.9,
-        }}
-      >
-        <img
-          src={LOGO}
-          alt=""
-          style={{ width: 44, height: 44, objectFit: "contain", filter: "invert(1)" }}
-        />
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: 800,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: S.text,
-          }}
-        >
-          Setups Works
-        </span>
-      </div>
     </AbsoluteFill>
   );
 }
@@ -753,6 +726,72 @@ function Progress() {
         <div style={{ height: 2, background: S.edge }}>
           <div style={{ height: 2, width: `${(frame / DURATION) * 100}%`, background: S.accent }} />
         </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+/**
+ * A pointer that moves, and clicks.
+ *
+ * The strongest signal that this is software being used rather than a deck
+ * playing: it travels to where the next thing happens, arrives just before it
+ * happens, and rings once on contact. Positions are per beat, in viewport
+ * percentages, so they survive a change of composition size.
+ */
+const MARKS: [number, number][] = [
+  [50, 58], [32, 44], [40, 52], [46, 50], [38, 48], [40, 46],
+  [30, 40], [46, 44], [42, 46], [36, 42], [62, 56], [48, 44],
+  [40, 48], [34, 46], [50, 60], [50, 56],
+];
+
+function Cursor() {
+  const frame = useCurrentFrame();
+  const i = Math.min(MARKS.length - 1, Math.floor(frame / B));
+  const local = frame - i * B;
+  const from = MARKS[Math.max(0, i - 1)];
+  const to = MARKS[i];
+
+  // Travels over the first third of the beat, then rests where it landed.
+  const t = at(local, 6, 34);
+  const x = interpolate(t, [0, 1], [from[0], to[0]]);
+  const y = interpolate(t, [0, 1], [from[1], to[1]]);
+
+  // One ring on arrival, then nothing until the next beat.
+  const ring = at(local, 34, 52);
+  const press = 1 - at(local, 34, 40) * 0.16 + at(local, 40, 48) * 0.16;
+
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <div style={{ position: "absolute", left: `${x}%`, top: `${y}%` }}>
+        {ring > 0 && ring < 1 ? (
+          <span
+            style={{
+              position: "absolute",
+              left: -18,
+              top: -18,
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              border: `2px solid ${S.accent}`,
+              opacity: 1 - ring,
+              transform: `scale(${0.5 + ring * 1.1})`,
+            }}
+          />
+        ) : null}
+        <span
+          style={{
+            position: "absolute",
+            left: -9,
+            top: -9,
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            background: S.accent,
+            boxShadow: "0 2px 10px rgba(13,16,23,.35)",
+            transform: `scale(${press})`,
+          }}
+        />
       </div>
     </AbsoluteFill>
   );
@@ -777,6 +816,7 @@ export const Promo: React.FC = () => (
     <Assistant />
     <Close />
     <Chrome />
+    <Cursor />
     <Progress />
   </AbsoluteFill>
 );
