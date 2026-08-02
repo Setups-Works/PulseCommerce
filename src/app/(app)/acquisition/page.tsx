@@ -8,6 +8,7 @@ import { ChartCard, legendFromLabels } from "@/components/charts/chart-card";
 import { DonutChart, donutLegend } from "@/components/charts/donut-chart";
 import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { AiSummary } from "@/components/dashboard/ai-summary";
 import { RiskBadge, SegmentBadge, TierBadge } from "@/components/dashboard/badges";
 import { DataTable } from "@/components/dashboard/data-table";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
@@ -78,6 +79,8 @@ function AcquisitionContent({ data }: { data: AnalyticsResult }) {
           }
         />
       </StatStrip>
+
+      <AiSummary question="Summarise acquisition: where new customers come from, which channels bring first-time buyers, and how long a second order takes. Three sentences." />
 
       {/* --- New versus returning ---------------------------------------- */}
       <div className="grid gap-4 lg:grid-cols-3">

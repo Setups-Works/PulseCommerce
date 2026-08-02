@@ -10,6 +10,7 @@ import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { SCATTER_BANDS, SegmentScatter } from "@/components/charts/segment-scatter";
 import { seriesColor } from "@/components/charts/palette";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { AiSummary } from "@/components/dashboard/ai-summary";
 import { RiskBadge, SegmentBadge, TierBadge } from "@/components/dashboard/badges";
 import { CustomerFilters } from "@/components/dashboard/customer-filters";
 import { DataTable } from "@/components/dashboard/data-table";
@@ -135,6 +136,8 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
           )}`}
         />
       </StatStrip>
+
+      <AiSummary question="Summarise the customer base: how it splits by segment and value tier, the repeat rate, and which group is worth attention. Three sentences." />
 
       {/* --- Top customer spotlight --------------------------------------- */}
       <TopCustomers

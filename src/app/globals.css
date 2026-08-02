@@ -79,7 +79,10 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* Setups Works blue (#2f66e8), on an otherwise black-and-white palette. One
+     accent colour means anything blue is deliberate — a link, a primary action,
+     a selected state — and never decoration. */
+  --primary: oklch(0.552 0.206 263.7);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -141,8 +144,10 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.215 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* The lighter brand step in dark mode: #2f66e8 on near-black does not carry
+     enough contrast for text sitting on it. */
+  --primary: oklch(0.639 0.179 262.4);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.27 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.27 0 0);

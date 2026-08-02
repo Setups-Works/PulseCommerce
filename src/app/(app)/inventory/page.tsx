@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChartCard } from "@/components/charts/chart-card";
 import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
+import { AiSummary } from "@/components/dashboard/ai-summary";
 import { DataTable } from "@/components/dashboard/data-table";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
@@ -142,6 +143,8 @@ function InventoryContent({ data }: { data: AnalyticsResult }) {
           footer={`${inventory.counts.overstocked} SKUs over six months of cover`}
         />
       </StatStrip>
+
+      <AiSummary question="Summarise stock risk: what is out or nearly out, and which of those matter most by the revenue behind them. Three sentences." />
 
       <Alert>
         <Warehouse />

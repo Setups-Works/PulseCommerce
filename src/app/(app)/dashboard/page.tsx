@@ -18,6 +18,7 @@ import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { seriesColor } from "@/components/charts/palette";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { topCustomers } from "@/lib/analytics/customer-cohorts";
+import { AiSummary } from "@/components/dashboard/ai-summary";
 import { InsightList } from "@/components/dashboard/insight-list";
 import { AnalyticsPage } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
@@ -94,6 +95,8 @@ function DashboardContent({ data }: { data: import("@/lib/analytics/types").Anal
           )} returning`}
         />
       </StatStrip>
+
+      <AiSummary question="Summarise how the store is performing: revenue and orders against the previous period, what changed most, and the one thing worth acting on. Three sentences." />
 
       {/* --- Revenue trend ------------------------------------------------ */}
       <ChartCard

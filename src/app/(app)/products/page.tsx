@@ -8,6 +8,7 @@ import { DonutChart, donutLegend } from "@/components/charts/donut-chart";
 import { ParetoChart } from "@/components/charts/pareto-chart";
 import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { seriesColor } from "@/components/charts/palette";
+import { AiSummary } from "@/components/dashboard/ai-summary";
 import { AbcBadge } from "@/components/dashboard/badges";
 import { DataTable } from "@/components/dashboard/data-table";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
@@ -100,6 +101,8 @@ function ProductsContent({ data }: { data: AnalyticsResult }) {
           footer={`${bCount} class B · ${products.totals.skusSold - aCount - bCount} class C`}
         />
       </StatStrip>
+
+      <AiSummary question="Summarise product performance: what carries the revenue, what is not selling, and anything with a worrying refund rate. Three sentences." />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <ChartCard

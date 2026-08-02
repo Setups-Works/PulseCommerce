@@ -6,6 +6,7 @@ import { ForecastChart } from "@/components/charts/forecast-chart";
 import { seriesColor } from "@/components/charts/palette";
 import { RankedBarChart } from "@/components/charts/ranked-bar-chart";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { AiSummary } from "@/components/dashboard/ai-summary";
 import { InsightList } from "@/components/dashboard/insight-list";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
@@ -73,6 +74,8 @@ function ForecastContent({ data }: { data: AnalyticsResult }) {
           footer={`To ${formatDate(projected.at(-1)?.date ?? "")}`}
         />
       </StatStrip>
+
+      <AiSummary question="Summarise the outlook: the revenue trend, what next month looks like, and how much confidence the figures support. Three sentences." />
 
       <ChartCard
         title="Revenue forecast"
