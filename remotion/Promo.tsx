@@ -29,14 +29,24 @@ const T = {
 
 export const DURATION = 880;
 
+/**
+ * Solid fills, in the product's own blue.
+ *
+ * Colour returns as flat surfaces rather than gradients or blur: two renders
+ * died with seek-to-frame timeouts on large blurred layers, so depth here comes
+ * from stacked opaque shapes and never from a filter.
+ */
 const S = {
-  bg: "#0b0c0e",
-  panel: "#15171b",
-  edge: "#24272e",
-  chip: "#1d2026",
-  text: "#f4f5f7",
-  dim: "#9aa0ab",
-  accent: "#ffffff",
+  bg: "#080b14",
+  panel: "#111827",
+  edge: "#1f2b45",
+  chip: "#16203a",
+  text: "#f4f6fb",
+  dim: "#94a1bd",
+  /** --primary, light mode: oklch(0.552 0.206 263.7) */
+  accent: "#2f66e8",
+  /** --primary, dark mode: oklch(0.639 0.179 262.4) */
+  accentSoft: "#4d86f7",
 };
 
 function at(frame: number, from: number, to: number, easing = Easing.out(Easing.cubic)) {
@@ -81,8 +91,8 @@ function Stage({
 function Window({ children, title, width = 880 }: { children: React.ReactNode; title: string; width?: number }) {
   return (
     <div style={{ width, borderRadius: 20, background: S.panel, border: `1px solid ${S.edge}`, overflow: "hidden" }}>
-      <div style={{ height: 56, background: S.chip, borderBottom: `1px solid ${S.edge}`, display: "flex", alignItems: "center", gap: 13, padding: "0 22px" }}>
-        <img src={LOGO} alt="" style={{ width: 26, height: 26, borderRadius: 7 }} />
+      <div style={{ height: 56, background: S.chip, borderBottom: `2px solid ${S.accent}`, display: "flex", alignItems: "center", gap: 13, padding: "0 22px" }}>
+        <img src={LOGO} alt="" style={{ width: 26, height: 26, objectFit: "contain" }} />
         <span style={{ fontSize: 18, fontWeight: 700 }}>{title}</span>
       </div>
       <div style={{ padding: 26 }}>{children}</div>
@@ -115,7 +125,7 @@ function Bubble({ side, show, children }: { side: "in" | "out"; show: number; ch
       borderBottomRightRadius: side === "out" ? 5 : 18,
       borderBottomLeftRadius: side === "in" ? 5 : 18,
       background: side === "out" ? S.accent : S.chip,
-      color: side === "out" ? S.bg : S.text,
+      color: side === "out" ? "#fff" : S.text,
       fontSize: 18, lineHeight: 1.42, opacity: show,
       transform: `translateY(${(1 - show) * 20}px)`,
     }}>
@@ -129,7 +139,7 @@ function Open() {
     <Stage range={T.open}>
       {(l) => (
         <div style={{ textAlign: "center" }}>
-          <img src={LOGO} alt="" style={{ width: 112, height: 112, borderRadius: 27, background: S.panel, border: `1px solid ${S.edge}`, padding: 19, opacity: at(l, 0, 24), transform: `scale(${0.9 + at(l, 0, 24) * 0.1})` }} />
+          <img src={LOGO} alt="" style={{ width: 128, height: 128, objectFit: "contain", opacity: at(l, 0, 24), transform: `scale(${0.9 + at(l, 0, 24) * 0.1})` }} />
           <div style={{ marginTop: 32, fontSize: 78, fontWeight: 800, letterSpacing: "-0.04em", opacity: at(l, 12, 34) }}>PulseCommerce</div>
           <div style={{ marginTop: 14, fontSize: 29, color: S.dim, opacity: at(l, 24, 46) }}>Find the customer. Write the message. Send it.</div>
         </div>
@@ -152,7 +162,7 @@ function Audience() {
                 {filters.map((f, i) => {
                   const on = at(l, 16 + i * 12, 30 + i * 12);
                   return (
-                    <span key={f} style={{ fontSize: 18, fontWeight: 600, padding: "10px 17px", borderRadius: 999, background: on > 0.5 ? S.accent : S.chip, color: on > 0.5 ? S.bg : S.dim, border: `1px solid ${S.edge}`, opacity: at(l, 10 + i * 12, 24 + i * 12) }}>{f}</span>
+                    <span key={f} style={{ fontSize: 18, fontWeight: 600, padding: "10px 17px", borderRadius: 999, background: on > 0.5 ? S.accent : S.chip, color: on > 0.5 ? "#fff" : S.dim, border: `1px solid ${S.edge}`, opacity: at(l, 10 + i * 12, 24 + i * 12) }}>{f}</span>
                   );
                 })}
               </div>
@@ -295,7 +305,7 @@ function Close() {
     <Stage range={T.close}>
       {(l) => (
         <div style={{ textAlign: "center" }}>
-          <img src={LOGO} alt="" style={{ width: 88, height: 88, borderRadius: 23, background: S.panel, border: `1px solid ${S.edge}`, padding: 15, opacity: at(l, 0, 20) }} />
+          <img src={LOGO} alt="" style={{ width: 88, height: 88, objectFit: "contain", opacity: at(l, 0, 20) }} />
           <div style={{ marginTop: 28, fontSize: 54, fontWeight: 800, letterSpacing: "-0.035em", opacity: at(l, 10, 32) }}>Analytics and WhatsApp, in one place</div>
           <div style={{ marginTop: 20, fontSize: 31, color: S.dim, opacity: at(l, 24, 46) }}>setups.works</div>
         </div>
