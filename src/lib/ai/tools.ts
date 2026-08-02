@@ -196,7 +196,10 @@ export const ACTION_TOOLS = [
             "orders", "cohorts", "geography", "operations", "forecast",
           ]),
         )
-        .describe("Which sections. 'executive' alone suits most requests."),
+        .describe(
+          "Which sections. 'executive' for an overview, 'customers' for a customer " +
+            "list including the top ones by value, 'products' for the catalogue.",
+        ),
       from: z.string().optional().describe("ISO date. Omit for the current window."),
       to: z.string().optional().describe("ISO date."),
       reason: z.string().describe("What the report covers, for the approval card."),
@@ -239,6 +242,67 @@ export type ReadToolName = (typeof READ_TOOLS)[number]["name"];
 export type ActionToolName = (typeof ACTION_TOOLS)[number]["name"];
 
 export const ACTION_TOOL_NAMES: string[] = ACTION_TOOLS.map((t) => t.name);
+
+/**
+ * Words that make a tool worth offering.
+ *
+ * Every schema and description rides on every request, and the free tier meters
+ * tokens per minute — the full set was 4,400 tokens, so one question used more
+ * than half a minute's budget and a follow-up failed outright. Sending only
+ * what the question could plausibly need brings a request to roughly a third of
+ * that.
+ *
+ * A tool that is not offered simply is not used; the cost of a bad guess is a
+ * rephrased question, where the cost of sending everything was no answer at all.
+ */
+const RELEVANCE: Record<string, RegExp> = {
+  get_analytics: /revenue|sales|order|aov|perform|month|week|compare|growth|trend|how are|doing|summar/i,
+  get_customer_segments: /segment|tier|rfm|churn|risk|loyal|vip|cohort|who are|customer base|summar/i,
+  get_top_customers: /customer|buyer|top|best|spend|most order|loyal|vip|churn/i,
+  get_products: /product|sku|catalog|best sell|slow|refund|category|item|summar/i,
+  find_product: /product|sku|item|catalog|photo|image|link|about the/i,
+  get_inventory_risk: /stock|inventory|out of|restock|reorder|run out|cover|summar/i,
+  get_audience_size: /audience|how many|reach|segment|campaign|target|send|message/i,
+  get_flows: /flow|sequence|automat|drip|start|pause/i,
+  get_menu: /menu|auto.?reply|greeting|trigger|bot|inbound/i,
+  get_whatsapp_status: /whatsapp|gateway|connect|linked|session|send/i,
+  propose_test_message: /send|test|message|msg|whatsapp|text|draft|notify/i,
+  propose_customer_message: /send|message|customer|whatsapp|reorder|notify/i,
+  propose_customer_batch: /send|message|customers|top|batch|everyone in|these|notify/i,
+  propose_report: /report|pdf|excel|csv|export|document|download/i,
+  propose_menu_toggle: /menu|auto.?reply|bot|turn (on|off)|enable|disable/i,
+  propose_menu_update: /menu|greeting|trigger|option|rewrite|auto.?reply/i,
+  propose_flow_status: /flow|start|pause|resume|activate|draft/i,
+};
+
+/** At most this many tools per request, keeping the payload predictable. */
+const MAX_TOOLS = 8;
+
+/**
+ * The tools worth offering for one question.
+ *
+ * Falls back to the core analytics reads when nothing matches, so a vague
+ * question still gets an answer rather than a model with no way to look
+ * anything up.
+ */
+export function pickTools(text: string) {
+  const all = [...READ_TOOLS, ...ACTION_TOOLS];
+  const matched = all.filter((t) => RELEVANCE[t.name]?.test(text));
+
+  if (matched.length === 0) {
+    return all.filter((t) =>
+      ["get_analytics", "get_customer_segments", "get_products", "get_inventory_risk"].includes(
+        t.name,
+      ),
+    );
+  }
+
+  // Reads first: a model offered an action and no way to check its facts will
+  // propose one built on nothing.
+  const reads = matched.filter((t) => !t.name.startsWith("propose_"));
+  const actions = matched.filter((t) => t.name.startsWith("propose_"));
+  return [...reads, ...actions].slice(0, MAX_TOOLS);
+}
 
 /**
  * The instructions the model works under.

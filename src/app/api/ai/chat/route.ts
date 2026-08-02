@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runReadTool } from "@/lib/ai/execute";
-import { ACTION_TOOLS, READ_TOOLS, SYSTEM_PROMPT } from "@/lib/ai/tools";
+import { ACTION_TOOLS, SYSTEM_PROMPT, pickTools } from "@/lib/ai/tools";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 /**
  * The assistant.
@@ -116,25 +116,40 @@ export async function POST(request: Request) {
   const model = { name: MODEL, degraded: false };
 
   /*
-   * Whether to send the action tools at all.
-   *
-   * Every tool's schema and description rides on every request, and the free
-   * tier meters tokens per minute — sixteen tools was most of a 3,000-token
-   * request, which one question could not fit inside an 8,000/minute budget.
-   * Most questions are analytics and can never need an action tool, so those
-   * are only offered when the operator's own words suggest one. A false
-   * negative costs a follow-up; sending everything always cost the answer.
+   * Only the tools this question could plausibly need. The full set was 4,400
+   * tokens a request against an 8,000-per-minute free-tier budget, so a single
+   * question spent most of a minute and the next one failed.
    */
-  const wantsAction = /\b(send|message|msg|text|whatsapp|draft|report|pdf|excel|csv|turn (on|off)|enable|disable|start|pause|menu|flow|coupon|announce|notify)\b/i.test(
+  const offered = pickTools(
     parsed.data.messages
       .filter((m) => m.role === "user")
       .map((m) => m.content)
       .join(" "),
   );
 
+  /*
+   * A read tool loads the store snapshot, and a cold one is a full pull from
+   * WooCommerce — minutes on a large history, longer than any function may run.
+   * Rather than letting the request hang until the platform kills it and the
+   * screen sits on "Reading your store…" forever, the wait is bounded here and
+   * explained.
+   */
+  const deadline = Date.now() + 240_000;
+
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-      const reply = await callGroq(key, conversation, model, wantsAction);
+      if (Date.now() > deadline) {
+        return NextResponse.json({
+          message:
+            "Your store's data is still being fetched, which happens once per date range " +
+            "and takes a few minutes on a large history. Open the dashboard, let it " +
+            "finish, then ask me again — after that it is instant.",
+          toolsUsed: used,
+          proposals: [],
+        });
+      }
+
+      const reply = await callGroq(key, conversation, model, offered);
       const calls = (reply.tool_calls ?? []) as ToolCall[];
 
       if (calls.length === 0) {
@@ -206,7 +221,7 @@ async function callGroq(
   key: string,
   messages: Record<string, unknown>[],
   model: { name: string; degraded: boolean },
-  withActions: boolean,
+  offered: ReturnType<typeof pickTools>,
 ): Promise<{ content?: string | null; tool_calls?: unknown }> {
   /*
    * Rate limits are the normal case on Groq's free tier, not an exception: a
@@ -223,7 +238,7 @@ async function callGroq(
       body: JSON.stringify({
         model: model.name,
         messages,
-        tools: toolSpecs(withActions),
+        tools: toolSpecs(offered),
         tool_choice: "auto",
         // Low, deliberately. This answers questions about a real business from
         // real figures; inventiveness is not a quality anyone wants here.
@@ -307,8 +322,7 @@ function describeGroqError(status: number, detail: string): string {
 }
 
 /** The tool list, in the shape the chat completions API expects. */
-function toolSpecs(withActions: boolean) {
-  const tools = withActions ? [...READ_TOOLS, ...ACTION_TOOLS] : READ_TOOLS;
+function toolSpecs(tools: ReturnType<typeof pickTools>) {
   return tools.map((tool) => ({
     type: "function" as const,
     function: {
