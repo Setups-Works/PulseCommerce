@@ -383,6 +383,59 @@ export const openApiDocument = {
       },
     },
 
+    "/api/whatsapp/menu": {
+      get: {
+        tags: ["Flows"],
+        summary: "The inbound menu bot's configuration",
+        description:
+          "Proxies the gateway's plugin API so the admin key stays on the server. " +
+          "Reports whether the extension is installed and whether it is currently answering; " +
+          "not installed is a normal state, not an error.",
+        responses: {
+          200: { description: "The menu, and whether it is on", content: json({ type: "object" }) },
+          409: { description: "No gateway is connected" },
+          502: { description: "The gateway did not respond" },
+        },
+      },
+      put: {
+        tags: ["Flows"],
+        summary: "Save the menu, and turn it on or off",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              trigger: {
+                type: "string",
+                description:
+                  "Matched exactly and case-insensitively. Empty means every text message " +
+                  "opens the menu, so every customer who writes gets a menu instead of a person.",
+              },
+              greeting: { type: "string" },
+              respondInGroups: { type: "boolean" },
+              options: {
+                type: "array",
+                description:
+                  "The menu tree. Each node has the key the customer types, the reply, and " +
+                  "an optional submenu. Keys are renumbered server-side so a menu never " +
+                  "offers 1, 2, 4 after a deletion.",
+                items: { $ref: "#/components/schemas/MenuOption" },
+              },
+              enabled: {
+                type: "boolean",
+                description: "Omit to save without changing whether it is answering.",
+              },
+            },
+            required: ["trigger", "greeting", "options", "respondInGroups"],
+          }),
+        },
+        responses: {
+          200: { description: "Saved" },
+          422: { description: "Invalid menu — empty greeting, no options, or nested too deep" },
+          502: { description: "The gateway did not respond" },
+        },
+      },
+    },
     "/api/whatsapp/flows": {
       get: {
         tags: ["Flows"],
@@ -791,6 +844,16 @@ export const openApiDocument = {
           },
         },
         required: ["type", "text"],
+      },
+      MenuOption: {
+        type: "object",
+        description: "One menu entry. Omitting `options` makes choosing it end the conversation.",
+        properties: {
+          key: { type: "string", description: "What the customer replies to choose this." },
+          text: { type: "string" },
+          options: { type: "array", items: { $ref: "#/components/schemas/MenuOption" } },
+        },
+        required: ["key", "text"],
       },
       CustomerKeys: {
         type: "array",

@@ -363,6 +363,34 @@ export class WhatsAppClient {
       { method: "POST" },
     );
   }
+
+  // --- Plugins -------------------------------------------------------------
+  // Gateway-wide rather than per-session: a plugin is installed on the gateway
+  // and its configuration is read and written by id, not by conversation.
+
+  getPlugin(id: string): Promise<{
+    id: string;
+    status: string;
+    version?: string;
+    config?: Record<string, unknown>;
+  }> {
+    return this.request(`/api/plugins/${encodeURIComponent(id)}`);
+  }
+
+  setPluginConfig(id: string, config: unknown): Promise<unknown> {
+    return this.request(`/api/plugins/${encodeURIComponent(id)}/config`, {
+      method: "PUT",
+      body: { config },
+    });
+  }
+
+  /** `enabled` false disables it. Installed plugins are inert until enabled. */
+  setPluginEnabled(id: string, enabled: boolean): Promise<unknown> {
+    return this.request(
+      `/api/plugins/${encodeURIComponent(id)}/${enabled ? "enable" : "disable"}`,
+      { method: "POST" },
+    );
+  }
 }
 
 function describeError(payload: unknown, raw: string, status: number): string {

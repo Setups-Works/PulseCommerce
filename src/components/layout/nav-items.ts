@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Megaphone,
   MessageCircle,
+  MessageSquare,
   Package,
   ReceiptText,
   Settings,
@@ -99,6 +100,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: "Flows",
         icon: Workflow,
         description: "Multi-step campaigns that send themselves over days",
+      },
+      {
+        href: "/menu",
+        label: "Auto-reply",
+        icon: MessageSquare,
+        description: "The menu a customer gets when they message you first",
       },
       {
         href: "/inbox",
