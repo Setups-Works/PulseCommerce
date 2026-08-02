@@ -10,6 +10,7 @@ import {
   Package,
   ReceiptText,
   Settings,
+  Sparkles,
   Users,
   Warehouse,
   Workflow,
@@ -89,6 +90,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Marketing",
     items: [
+      {
+        href: "/assistant",
+        label: "Assistant",
+        icon: Sparkles,
+        description: "Ask about the store, and have messages drafted for approval",
+      },
       {
         href: "/campaigns",
         label: "Campaigns",

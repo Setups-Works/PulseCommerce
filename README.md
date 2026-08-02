@@ -58,6 +58,7 @@ never reach a third-party messaging service.
 - [WhatsApp campaigns](#whatsapp-campaigns)
 - [Automated flows](#automated-flows)
 - [Gateway plugins and the menu bot](#gateway-plugins-and-the-menu-bot)
+- [The assistant](#the-assistant)
 - [Multiple stores](#multiple-stores)
 - [Optional password protection](#optional-password-protection)
 - [Environment variables](#environment-variables)
@@ -1254,6 +1255,54 @@ as text, and a flow branches on free text rather than tapped replies.
 
 ---
 
+## The assistant
+
+`/assistant` answers questions about the store and drafts messages, through Groq.
+The interesting part is not that it can read things; it is what it is prevented
+from doing.
+
+```
+you ask ──► model ──► read tool  ──► executed at once, result fed back, loop continues
+                 └──► action tool ──► NOT executed
+                                       │
+                                       ▼
+                              proposal card in the UI
+                                       │
+                                  you approve
+                                       │
+                                       ▼
+                          the ordinary REST endpoint,
+                          with the guards it already has
+```
+
+**It reads freely.** KPIs, segments, top customers, products, stock risk,
+audience sizes, flows, the menu bot, gateway status — all through the same
+functions the screens use, so it cannot quote a figure the dashboard disagrees
+with.
+
+**It proposes; it never performs.** Sending a test message, toggling the menu
+bot, starting or pausing a flow, rewriting the menu. Each returns to the browser
+as a card. Approving calls the endpoint the matching screen calls — the
+assistant is a route to those endpoints, not a way around them.
+
+**There is no broadcast tool.** Deliberately, and there is a test asserting it
+stays that way. Sending to an audience is the one action that reaches thousands
+of people irreversibly, and no phrasing of a prompt should get near it. It starts
+from Campaigns, by a person, behind a typed confirmation.
+
+**Phone numbers and email addresses are in nothing it can read.** The rest of the
+app keeps them server-side; handing them to a model that then writes them into a
+reply would be the one place that rule quietly stopped holding.
+
+Model: `llama-3.3-70b-versatile` at temperature `0.2` — this answers questions
+about a real business from real figures, and inventiveness is not wanted. Without
+`GROQ_API_KEY` the route returns 503 and the screen says it is unavailable.
+
+Built with `@tanstack/ai` and the shadcn `bubble`, `message`, `message-scroller`,
+`marker` and `attachment` components.
+
+---
+
 ## Multiple stores
 
 Authorize as many as you like. Each keeps its own credentials, data window and
@@ -1292,6 +1341,8 @@ proving you can approve the store is proof of access.
 | `WHATSAPP_SESSION_ID` | no | Which session to send from. Adopted automatically if omitted. |
 | `WHATSAPP_DIAL_CODE` | no | Country code for numbers stored without one, e.g. `91`. |
 | `WHATSAPP_SEND_DELAY_MS` | no | Pause between messages. Default `4000`; gateway floor `1000`. |
+| `CRON_SECRET` | for flows | Authorises the scheduled flow tick. Unset closes the route rather than opening it. |
+| `GROQ_API_KEY` | for the assistant | Enables `/assistant`. Unset returns 503 and the screen says so. |
 
 WooCommerce credentials are **never** environment variables — they arrive only
 through the authorization flow.

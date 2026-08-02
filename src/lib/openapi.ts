@@ -44,6 +44,7 @@ export const openApiDocument = {
     { name: "WhatsApp", description: "Gateway connection and session" },
     { name: "Campaigns", description: "Audience resolution and broadcasts" },
     { name: "Flows", description: "Multi-step campaigns advanced on a schedule" },
+    { name: "Assistant", description: "Reads the store and proposes actions for approval" },
     { name: "Inbox", description: "Conversations and replies" },
     { name: "Auth", description: "Optional password sessions" },
   ],
@@ -383,6 +384,59 @@ export const openApiDocument = {
       },
     },
 
+    "/api/ai/chat": {
+      post: {
+        tags: ["Assistant"],
+        summary: "Ask the assistant",
+        description:
+          "Runs a tool-calling loop against Groq. Read tools execute server-side and their " +
+          "results are fed back; action tools are never executed — the loop stops and the " +
+          "call is returned as a proposal for a person to approve. Approving calls the " +
+          "ordinary endpoint for that action, so an assistant is a route to those endpoints " +
+          "rather than a way around their guards. There is deliberately no tool for sending " +
+          "to an audience.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              messages: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    role: { type: "string", enum: ["user", "assistant", "tool"] },
+                    content: { type: "string" },
+                  },
+                  required: ["role", "content"],
+                },
+              },
+            },
+            required: ["messages"],
+          }),
+        },
+        responses: {
+          200: {
+            description: "The answer, what it read, and anything it proposes",
+            content: json({
+              type: "object",
+              properties: {
+                message: { type: "string" },
+                toolsUsed: { type: "array", items: { type: "object" } },
+                proposals: {
+                  type: "array",
+                  description: "Actions awaiting human approval. Nothing has happened yet.",
+                  items: { type: "object" },
+                },
+              },
+            }),
+          },
+          422: { description: "Malformed conversation" },
+          502: { description: "Groq did not answer" },
+          503: { description: "GROQ_API_KEY is not set, so the assistant is off" },
+        },
+      },
+    },
     "/api/whatsapp/menu": {
       get: {
         tags: ["Flows"],

@@ -169,6 +169,38 @@ test.describe("refusals that protect customers", () => {
     expect((await res.json()).error).toMatch(/step/i);
   });
 
+  test("the assistant is off, not open, when its key is unset", async ({ request }) => {
+    /*
+     * No key must mean unavailable rather than erroring in some other way, so
+     * the screen can say "not configured" instead of showing a stack trace.
+     */
+    const res = await request.post("/api/ai/chat", {
+      headers: { "Content-Type": "application/json" },
+      data: { messages: [{ role: "user", content: "hello" }] },
+    });
+    expect(res.status()).toBe(503);
+    expect((await res.json()).code).toBe("no_api_key");
+  });
+
+  test("the assistant has no tool for sending to an audience", async () => {
+    /*
+     * The safety property worth pinning in a test rather than a comment. If a
+     * broadcast tool is ever added to the list, this fails — which is the
+     * moment to think hard, because no prompt should be able to message
+     * thousands of customers.
+     */
+    const { ACTION_TOOLS, READ_TOOLS } = await import("@/lib/ai/tools");
+    const names = [...ACTION_TOOLS, ...READ_TOOLS].map((t) => t.name);
+
+    for (const forbidden of ["broadcast", "send_campaign", "send_audience", "send_bulk"]) {
+      expect(names).not.toContain(forbidden);
+    }
+    // Every action is a proposal, by name as well as by behaviour.
+    for (const tool of ACTION_TOOLS) {
+      expect(tool.name.startsWith("propose_")).toBe(true);
+    }
+  });
+
   test("an unknown flow id is a 404, not a crash", async ({ request }) => {
     const res = await request.get("/api/whatsapp/flows/does-not-exist");
     expect(res.status()).toBe(404);
