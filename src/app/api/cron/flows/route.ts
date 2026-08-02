@@ -16,6 +16,8 @@ import {
   type Flow,
   type FlowState,
 } from "@/lib/whatsapp/flows";
+import { readOptOutSet } from "@/lib/whatsapp/opt-out";
+import { normalisePhone } from "@/lib/whatsapp/phone";
 import { resolveAudience } from "@/lib/whatsapp/recipients";
 
 export const runtime = "nodejs";
@@ -102,13 +104,24 @@ async function tickFlow(flow: Flow, now: Date) {
   const state = await readState(flow.id);
   const resolved = await resolveAudience({ filter: flow.entry });
 
+  /*
+   * A test flow addresses one hand-typed number and never reads the audience,
+   * so trying a sequence out cannot reach a customer. The opt-out list still
+   * applies: a number that asked not to be messaged is not a number to test on.
+   */
+  const recipients = flow.testPhone
+    ? testRecipient(flow.testPhone, resolved.config.defaultDialCode, await readOptOutSet())
+    : resolved.recipients;
+
   // Reachability is resolved by the same code a broadcast uses, so a flow can
   // never address a number a broadcast would have refused.
-  const byKey = new Map(resolved.recipients.map((r) => [r.key, r]));
+  const byKey = new Map(recipients.map((r) => [r.key, r]));
   const customersByKey = new Map(resolved.allCustomers.map((c) => [c.key, c]));
 
-  const enrolled = enrol(flow, state, resolved.recipients, now);
-  const { exited, remaining } = applyExits(flow, state, customersByKey);
+  const enrolled = enrol(flow, state, recipients, now);
+  const { exited, remaining } = flow.testPhone
+    ? { exited: 0, remaining: state.active }
+    : applyExits(flow, state, customersByKey);
 
   state.active = remaining;
   state.stats.exited += exited;
@@ -205,6 +218,34 @@ async function tickFlow(flow: Flow, now: Date) {
     failed,
     active: state.active.length,
   };
+}
+
+/**
+ * The single recipient of a test flow.
+ *
+ * Returns nobody when the number cannot be parsed or has opted out, which makes
+ * a mistyped test a flow that sends nothing rather than one that sends
+ * somewhere unintended.
+ */
+function testRecipient(
+  phone: string,
+  defaultDialCode: string,
+  optedOut: Set<string>,
+): BroadcastRecipient[] {
+  const normalised = normalisePhone(phone, { defaultDialCode });
+  if (!normalised || optedOut.has(normalised.e164)) return [];
+
+  return [
+    {
+      key: `test:${normalised.e164}`,
+      chatId: normalised.chatId,
+      name: "",
+      // Placeholders, since there is no customer behind a test number. A
+      // template that leans on {{product}} shows that plainly rather than
+      // inventing a purchase this person never made.
+      vars: { orders: "0", store: "your store" },
+    },
+  ];
 }
 
 /** Adds anyone newly matching the entry filter, and records them as seen. */

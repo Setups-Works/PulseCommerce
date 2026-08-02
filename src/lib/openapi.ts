@@ -414,6 +414,13 @@ export const openApiDocument = {
                   required: ["waitDays", "message"],
                 },
               },
+              testPhone: {
+                type: "string",
+                description:
+                  "Test mode. Every step goes to this one number and the entry audience is " +
+                  "never read, so a sequence can be checked without messaging a customer. " +
+                  "The opt-out list still applies.",
+              },
               exitOn: {
                 type: "string",
                 enum: ["none", "ordered"],

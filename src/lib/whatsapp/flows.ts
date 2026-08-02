@@ -50,6 +50,17 @@ export interface Flow {
   entry: AudienceFilter;
   steps: FlowStep[];
   exitOn: FlowExit;
+  /**
+   * Test mode: every step goes to this one number and the entry audience is
+   * ignored entirely.
+   *
+   * A flow is otherwise only addressable as a segment, which makes "try it and
+   * see" mean "message real customers". This exists so the sequence, the timing
+   * and the copy can be checked against your own phone first, and it is a
+   * property of the flow rather than a runtime flag so a flow built as a test
+   * cannot later be started against an audience by accident.
+   */
+  testPhone?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -268,6 +279,7 @@ export async function createFlow(input: {
   entry: AudienceFilter;
   steps: FlowStep[];
   exitOn: FlowExit;
+  testPhone?: string;
   status?: FlowStatus;
 }): Promise<Flow> {
   const now = new Date().toISOString();
@@ -280,6 +292,7 @@ export async function createFlow(input: {
     entry: input.entry,
     steps: input.steps,
     exitOn: input.exitOn,
+    ...(input.testPhone ? { testPhone: input.testPhone } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -311,6 +324,7 @@ export function summarise(flow: Flow, state: FlowState) {
     status: flow.status,
     steps: flow.steps.length,
     exitOn: flow.exitOn,
+    testPhone: flow.testPhone ?? null,
     createdAt: flow.createdAt,
     updatedAt: flow.updatedAt,
     active: state.active.length,

@@ -20,6 +20,7 @@ interface FlowSummary {
   steps: number;
   exitOn: "none" | "ordered";
   active: number;
+  testPhone: string | null;
   stats: { enrolled: number; sent: number; completed: number; exited: number; failed: number };
   lastTickAt: string | null;
   nextDueAt: string | null;
@@ -45,6 +46,7 @@ export default function FlowsPage() {
   const [name, setName] = useState("");
   const [presetId, setPresetId] = useState(AUDIENCE_PRESETS[0]?.id ?? "");
   const [exitOn, setExitOn] = useState<"none" | "ordered">("ordered");
+  const [testPhone, setTestPhone] = useState("");
   const [steps, setSteps] = useState<DraftStep[]>([{ waitDays: "0", text: "" }]);
 
   const preset = AUDIENCE_PRESETS.find((p) => p.id === presetId) ?? null;
@@ -78,6 +80,7 @@ export default function FlowsPage() {
           name: name.trim(),
           entry: preset.filter,
           exitOn,
+          ...(testPhone.trim() ? { testPhone: testPhone.trim() } : {}),
           steps: steps.map((s) => ({
             waitDays: Number(s.waitDays) || 0,
             message: { type: "text", text: s.text },
@@ -271,6 +274,23 @@ export default function FlowsPage() {
             <Separator />
 
             <div className="space-y-1.5">
+              <Label htmlFor="flow-test">Send only to this number (optional)</Label>
+              <Input
+                id="flow-test"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="6383984698"
+              />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Fill this in and the flow ignores the audience above entirely — every
+                step goes to this one number. It is the way to check the sequence, the
+                timing and the wording without messaging a customer.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-1.5">
               <Label>Leave the flow early</Label>
               <div className="flex gap-1.5">
                 <Button
@@ -334,11 +354,16 @@ export default function FlowsPage() {
                         <p className="truncate text-sm font-medium">{flow.name}</p>
                         <p className="text-[11px] text-muted-foreground">
                           {flow.steps} step{flow.steps === 1 ? "" : "s"} ·{" "}
-                          {flow.exitOn === "ordered" ? "exits when they order" : "no early exit"}
+                          {flow.testPhone
+                            ? `test flow — only ${flow.testPhone}`
+                            : flow.exitOn === "ordered"
+                              ? "exits when they order"
+                              : "no early exit"}
                         </p>
                       </div>
 
                       <div className="flex items-center gap-1.5">
+                        {flow.testPhone ? <Badge variant="secondary">Test</Badge> : null}
                         <Badge
                           variant={
                             flow.status === "active"

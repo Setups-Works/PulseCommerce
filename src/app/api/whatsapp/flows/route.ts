@@ -29,6 +29,14 @@ const createSchema = z.object({
     .min(1, "A flow needs at least one step.")
     .max(MAX_STEPS, `A flow can have at most ${MAX_STEPS} steps.`),
   exitOn: z.enum(["none", "ordered"]).default("ordered"),
+  /**
+   * Test mode. Every step goes to this number and the entry audience is never
+   * read, so a sequence can be checked without messaging a customer.
+   */
+  testPhone: z
+    .string()
+    .regex(/^[+ 0-9()-]{6,20}$/, "That does not look like a phone number.")
+    .optional(),
 });
 
 /** Every flow, with its progress. */
