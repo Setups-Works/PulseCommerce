@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Markdown } from "@/components/ui/markdown";
 
 /**
  * A plain-English read of whatever page it sits on.
@@ -61,7 +62,7 @@ export function AiSummary({
         <div className="min-w-0 flex-1">
           {answer ? (
             <>
-              <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{answer}</p>
+              <Markdown>{answer}</Markdown>
               <div className="mt-2 flex items-center gap-2">
                 <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => void run()} disabled={busy}>
                   Ask again

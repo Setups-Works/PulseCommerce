@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/attachment";
 import { Bubble, BubbleContent, BubbleGroup } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
+import { Markdown } from "@/components/ui/markdown";
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
 import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
 import {
@@ -391,12 +392,16 @@ export default function AssistantPage() {
                                 prose to read, not a message in a thread. */}
                             <BubbleContent
                               className={
-                                turn.role === "assistant"
-                                  ? "px-0 text-[13px] leading-relaxed whitespace-pre-wrap"
-                                  : "whitespace-pre-wrap"
+                                turn.role === "assistant" ? "px-0" : "whitespace-pre-wrap"
                               }
                             >
-                              {turn.content}
+                              {/* The model answers in markdown; a question is
+                                  typed plainly and stays that way. */}
+                              {turn.role === "assistant" ? (
+                                <Markdown>{turn.content}</Markdown>
+                              ) : (
+                                turn.content
+                              )}
                             </BubbleContent>
                           </Bubble>
                         ) : null}
