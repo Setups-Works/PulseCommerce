@@ -144,6 +144,36 @@ test.describe("refusals that protect customers", () => {
     expect([400, 422]).toContain(res.status());
   });
 
+  test("the cron endpoint is closed, not open, when its secret is unset", async ({ request }) => {
+    /*
+     * This route sends real messages to real customers. The failure mode of a
+     * missing environment variable must never be "anyone on the internet can
+     * trigger the sends", so an absent CRON_SECRET has to refuse rather than
+     * wave the request through. The test server sets no secret.
+     */
+    const res = await request.post("/api/cron/flows");
+    expect([401, 503]).toContain(res.status());
+
+    const wrong = await request.post("/api/cron/flows", {
+      headers: { Authorization: "Bearer definitely-not-the-secret" },
+    });
+    expect([401, 503]).toContain(wrong.status());
+  });
+
+  test("a flow with no steps is refused", async ({ request }) => {
+    const res = await request.post("/api/whatsapp/flows", {
+      headers: { "Content-Type": "application/json" },
+      data: { name: "Empty", entry: {}, steps: [] },
+    });
+    expect(res.status()).toBe(422);
+    expect((await res.json()).error).toMatch(/step/i);
+  });
+
+  test("an unknown flow id is a 404, not a crash", async ({ request }) => {
+    const res = await request.get("/api/whatsapp/flows/does-not-exist");
+    expect(res.status()).toBe(404);
+  });
+
   test("an unknown broadcast id is a 404, not a crash", async ({ request }) => {
     const res = await request.get("/api/whatsapp/broadcast/does-not-exist");
     expect(res.status()).toBe(404);

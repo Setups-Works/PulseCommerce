@@ -43,6 +43,7 @@ export const openApiDocument = {
     { name: "Reports", description: "Excel, PDF and CSV exports" },
     { name: "WhatsApp", description: "Gateway connection and session" },
     { name: "Campaigns", description: "Audience resolution and broadcasts" },
+    { name: "Flows", description: "Multi-step campaigns advanced on a schedule" },
     { name: "Inbox", description: "Conversations and replies" },
     { name: "Auth", description: "Optional password sessions" },
   ],
@@ -382,6 +383,115 @@ export const openApiDocument = {
       },
     },
 
+    "/api/whatsapp/flows": {
+      get: {
+        tags: ["Flows"],
+        summary: "Every flow, with its progress",
+        responses: { 200: { description: "Flow summaries", content: json({ type: "object" }) } },
+      },
+      post: {
+        tags: ["Flows"],
+        summary: "Create a flow",
+        description:
+          "Always created as a draft. Designing a sequence and starting to send it are two " +
+          "decisions; conflating them turns a typo in a filter into messages that cannot be recalled.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              entry: { $ref: "#/components/schemas/AudienceFilter" },
+              steps: {
+                type: "array",
+                description: "Sent in order. Each waits the given number of days after the one before it.",
+                items: {
+                  type: "object",
+                  properties: {
+                    waitDays: { type: "number", minimum: 0, maximum: 365 },
+                    message: { $ref: "#/components/schemas/Message" },
+                  },
+                  required: ["waitDays", "message"],
+                },
+              },
+              exitOn: {
+                type: "string",
+                enum: ["none", "ordered"],
+                description:
+                  "\"ordered\" removes anyone who buys after joining, so a win-back sequence " +
+                  "stops nagging a customer who already came back.",
+              },
+            },
+            required: ["name", "entry", "steps"],
+          }),
+        },
+        responses: {
+          201: { description: "Created, as a draft", content: json({ type: "object" }) },
+          422: { description: "Invalid flow" },
+        },
+      },
+    },
+    "/api/whatsapp/flows/{id}": {
+      get: {
+        tags: ["Flows"],
+        summary: "One flow, its steps and what is due next",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: { description: "The flow", content: json({ type: "object" }) },
+          404: { description: "No such flow" },
+        },
+      },
+      patch: {
+        tags: ["Flows"],
+        summary: "Rename, start, pause or resume",
+        description:
+          "Steps and the entry filter cannot be edited. People are already partway through, and " +
+          "changing a later step under someone who has had the earlier ones gives them a sequence " +
+          "nobody designed.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              status: { type: "string", enum: ["draft", "active", "paused"] },
+            },
+          }),
+        },
+        responses: {
+          200: { description: "Updated", content: json({ type: "object" }) },
+          404: { description: "No such flow" },
+        },
+      },
+      delete: {
+        tags: ["Flows"],
+        summary: "Delete a flow and everyone's place in it",
+        description:
+          "Pausing is the reversible option. Deleting discards the record of who has already been " +
+          "messaged, so a flow recreated afterwards restarts everyone from step one.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: { description: "Deleted" },
+          404: { description: "No such flow" },
+        },
+      },
+    },
+    "/api/cron/flows": {
+      post: {
+        tags: ["Flows"],
+        summary: "Advance every active flow",
+        description:
+          "Called by Vercel Cron with the project's CRON_SECRET as a bearer token, and closed when " +
+          "that secret is unset. What is due is computed from stored timestamps, so a tick that is " +
+          "skipped, retried or runs late sends the same messages, once. GET does the same work.",
+        responses: {
+          200: { description: "What each flow did", content: json({ type: "object" }) },
+          401: { description: "Missing or wrong bearer token" },
+          503: { description: "CRON_SECRET is not set, so scheduled sending is off" },
+        },
+      },
+    },
     "/api/whatsapp/broadcast": {
       get: {
         tags: ["Campaigns"],

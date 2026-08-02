@@ -7,10 +7,11 @@ import {
   Megaphone,
   MessageCircle,
   Package,
-  Warehouse,
   ReceiptText,
   Settings,
   Users,
+  Warehouse,
+  Workflow,
 } from "lucide-react";
 
 export interface NavItem {
@@ -92,6 +93,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: "Campaigns",
         icon: Megaphone,
         description: "Build audiences and measure campaign and coupon performance",
+      },
+      {
+        href: "/flows",
+        label: "Flows",
+        icon: Workflow,
+        description: "Multi-step campaigns that send themselves over days",
       },
       {
         href: "/inbox",

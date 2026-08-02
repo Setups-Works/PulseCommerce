@@ -43,6 +43,8 @@ export interface BroadcastMessage {
 }
 
 export interface BroadcastRecipient {
+  /** Customer key, so a flow can tell who it has already enrolled. */
+  key: string;
   chatId: string;
   /** First name, for {{name}} substitution. */
   name: string;
@@ -188,6 +190,7 @@ export function resolveRecipients(
     seen.add(normalised.e164);
 
     recipients.push({
+      key: customer.key,
       chatId: normalised.chatId,
       name: firstName(customer.name),
       vars: variablesFor(customer, context),

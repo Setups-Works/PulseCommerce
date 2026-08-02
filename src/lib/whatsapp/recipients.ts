@@ -48,6 +48,14 @@ export function phoneMapFromSnapshot(snapshot: StoreSnapshot): Map<string, strin
 export interface ResolvedAudience extends ResolveResult {
   config: WhatsAppConfig;
   audience: CustomerRecord[];
+  /**
+   * Every customer in range, filtered or not.
+   *
+   * A flow needs this to decide who leaves: someone who orders again usually
+   * stops matching the entry filter, so checking the filtered audience alone
+   * would never see the very event the exit condition is about.
+   */
+  allCustomers: CustomerRecord[];
   currency: string;
 }
 
@@ -74,6 +82,7 @@ export async function resolveAudience(request: AudienceRequest): Promise<Resolve
     ...resolveRecipients(audience, phoneByKey, optedOut, config, contextFrom(snapshot, analytics.meta.currency)),
     config,
     audience,
+    allCustomers: analytics.customers.records,
     currency: analytics.meta.currency,
   };
 }
