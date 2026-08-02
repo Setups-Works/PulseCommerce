@@ -1293,8 +1293,12 @@ a parse error where the diagram should have been.
 
 ### API reference
 
-The API is described by an OpenAPI document at **`/api/openapi`** and rendered
-at **`/api-docs`**. It is written by hand rather than generated: these are
+The API is described by an OpenAPI 3.1 document at **`/api/openapi`** and
+rendered as Swagger UI at **`/api-docs`**, served from the bundle rather than a
+CDN so the reference works behind a firewall and is pinned to the version in
+the lockfile. "Try it out" is disabled: every route either needs a connected
+store or changes real state, and a docs page is no place to fire a live
+broadcast. It is written by hand rather than generated: these are
 Next.js handlers with Zod validation inside them, which no generator reads
 faithfully, and a generated document that drifts is worse than one somebody
 keeps honest. CI fails if a route exists that the document does not describe.

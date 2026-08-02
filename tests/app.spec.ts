@@ -28,9 +28,16 @@ test("the connect form refuses a plainly invalid URL", async ({ page }) => {
 
 test("the API reference renders the spec", async ({ page }) => {
   await page.goto("/api-docs");
-  // Scalar loads from a CDN; assert the mount point and the spec URL are wired,
-  // rather than depending on a third-party script in CI.
-  await expect(page.locator("#api-reference")).toHaveAttribute("data-url", "/api/openapi");
+
+  /*
+   * Swagger UI is served from the bundle, not a CDN, so this asserts the
+   * rendered result rather than the wiring: a real operation from the real
+   * document, which fails if the spec stops parsing or the viewer stops
+   * mounting. Neither was checkable while it depended on a third-party script.
+   */
+  await expect(page.getByText("/api/whatsapp/broadcast").first()).toBeVisible({
+    timeout: 20_000,
+  });
 });
 
 test("dashboard pages ask for a store rather than rendering empty charts", async ({ page }) => {
