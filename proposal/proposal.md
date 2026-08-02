@@ -436,6 +436,54 @@ An optional menu answers immediately.
 The value is context. Answering "is this back in stock?" is a different
 conversation when the person asking has ordered eleven times.
 
+## The assistant
+
+Every figure in this document came from a report somebody had to open and read.
+The assistant answers the same questions in plain English.
+
+- **Ask about the business** — revenue against the previous period, who is about
+  to churn, what is running out of stock, how many customers an audience would
+  reach. It reads the same cached figures the dashboards use, so it cannot
+  report a number the screens disagree with
+- **It shows its working**, listing which figures it consulted, so an answer can
+  be traced rather than trusted
+- **It has your catalogue**, so a message it drafts names a real product and
+  links to the real page, with the real photograph
+- **Ask it to write a message** — to a number you type for testing, or to
+  customers it has just listed for you by name
+- **Ask it for a report** — a PDF, Excel or CSV over any date range, generated
+  and downloaded
+- **Conversations are kept** beside the chat and can be reopened or deleted.
+  They stay in the browser rather than on a server, so no second copy of your
+  business data exists to secure
+
+### What it is not allowed to do
+
+This is the part that matters, because an assistant with a WhatsApp gateway
+behind it is only as safe as its limits.
+
+**It proposes; it never performs.** Anything that sends a message, changes a
+setting or switches something on comes back as a card describing exactly what
+would happen, with Approve and Reject. Nothing occurs until a person approves.
+
+**Approving changes nothing about the rules.** An approved proposal runs through
+the same route the corresponding screen uses, with the same checks — unreachable
+and opted-out customers are still excluded, and the number of recipients is the
+platform's own count, not the assistant's.
+
+**It cannot message your customer base.** There is no facility for it, however
+it is asked. A broadcast starts from the campaigns screen, by a person, behind a
+typed confirmation. Asked outright to message every customer immediately, and
+told not to seek permission, it declines and explains where that is done instead.
+
+**It never sees a phone number or an email address.** Those are absent from
+everything it can read, so they cannot appear in anything it writes.
+
+**It cannot invent a link.** A product address it did not obtain from your
+catalogue is removed before the proposal is shown, and the removal is stated.
+
+---
+
 ## 8. Product and catalogue analytics
 
 ABC classification identifying which products carry the revenue, Pareto
