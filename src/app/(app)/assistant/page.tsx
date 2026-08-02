@@ -256,7 +256,51 @@ export default function AssistantPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-[calc(100vh-8rem)] gap-4">
+      {/* Chat list. Hidden on small screens, where the conversation is the
+          whole point and a rail would halve it. */}
+      <aside className="hidden w-56 shrink-0 flex-col gap-2 lg:flex">
+        <Button variant="outline" className="w-full justify-start gap-2" onClick={newChat}>
+          <MessageSquarePlus className="size-4" />
+          New chat
+        </Button>
+
+        <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
+          {chats.length === 0 ? (
+            <p className="px-2 py-3 text-[11px] text-muted-foreground">
+              Your conversations appear here. They stay in this browser.
+            </p>
+          ) : (
+            chats.map((chat) => (
+              <div
+                key={chat.id}
+                className={`group flex items-center gap-1 rounded-md px-2 py-1.5 text-xs ${
+                  chat.id === activeId ? "bg-muted font-medium" : "hover:bg-muted/60"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => openChat(chat)}
+                  className="min-w-0 flex-1 truncate text-left"
+                  title={chat.title}
+                >
+                  {chat.title}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete ${chat.title}`}
+                  onClick={() => deleteChat(chat.id)}
+                  className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                >
+                  <Trash2 className="size-3.5 text-muted-foreground hover:text-warning" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
       <MessageScrollerProvider>
         <MessageScroller className="min-h-0 flex-1">
           <MessageScrollerViewport>
@@ -424,6 +468,7 @@ export default function AssistantPage() {
           </p>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -446,6 +491,15 @@ function ProposalCard({
           <ShieldCheck className="size-3.5" />
           {described.title}
         </AttachmentTitle>
+        {described.recipients?.length ? (
+          <div className="mt-1.5 rounded-md border bg-muted/40 p-2">
+            <p className="text-[11px] font-medium">Goes to, individually:</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              {described.recipients.join(" · ")}
+            </p>
+          </div>
+        ) : null}
+
         {described.preview ? (
           <div className="mt-1.5 max-w-[19rem] overflow-hidden rounded-lg rounded-tl-sm border bg-muted">
             {described.preview.imageUrl ? (
@@ -515,9 +569,13 @@ function ProposalCard({
 function describe(p: Proposal): {
   title: string;
   detail: string;
+  recipients?: string[];
   preview?: { text: string; imageUrl?: string; productUrl?: string };
 } {
-  const input = p.input as Record<string, string | boolean | undefined>;
+  const input = p.input as Record<string, unknown> as Record<
+    string,
+    string | boolean | undefined
+  >;
 
   switch (p.tool) {
     case "propose_test_message":
@@ -529,6 +587,21 @@ function describe(p: Proposal): {
           imageUrl: typeof input.imageUrl === "string" ? input.imageUrl : undefined,
         },
       };
+    case "propose_customer_batch": {
+      const people = Array.isArray(input.customers)
+        ? (input.customers as { name?: string }[])
+        : [];
+      return {
+        title: `Message ${people.length} customer${people.length === 1 ? "" : "s"}`,
+        detail: String(input.reason ?? ""),
+        recipients: people.map((c) => String(c.name ?? "Unnamed")),
+        preview: {
+          text: String(input.text ?? ""),
+          imageUrl: typeof input.imageUrl === "string" ? input.imageUrl : undefined,
+          productUrl: typeof input.productUrl === "string" ? input.productUrl : undefined,
+        },
+      };
+    }
     case "propose_customer_message":
       return {
         title: `Message ${input.customerName ?? "one customer"}`,
@@ -616,6 +689,41 @@ async function requestFor(p: Proposal): Promise<
               ? "The menu bot is answering customers now."
               : "The menu bot is off."
             : "The menu bot's script was replaced.",
+      };
+    }
+    case "propose_customer_batch": {
+      const people = (input.customers ?? []) as unknown as { customerKey: string }[];
+      const keys = people.map((c) => c.customerKey);
+
+      const body = {
+        filter: { ...EMPTY_FILTER, requirePhone: true },
+        customerKeys: keys,
+        message: input.imageUrl
+          ? { type: "image", text: withLink(input), mediaUrl: input.imageUrl }
+          : { type: "text", text: withLink(input) },
+      };
+
+      /*
+       * The confirmation count comes from the server's own dry run, not from
+       * how many names the model listed. If some of them are unreachable or
+       * opted out, the send is for the smaller, true number — the same check a
+       * person gets on the campaigns screen.
+       */
+      const dry = await fetch("/api/whatsapp/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).then((r) => r.json());
+
+      if (!dry?.deliverable) {
+        throw new Error("None of those customers are reachable on WhatsApp.");
+      }
+
+      return {
+        url: "/api/whatsapp/broadcast",
+        method: "POST",
+        body: { ...body, confirm: dry.deliverable },
+        done: `Sending to ${dry.deliverable} customer${dry.deliverable === 1 ? "" : "s"}.`,
       };
     }
     case "propose_customer_message": {

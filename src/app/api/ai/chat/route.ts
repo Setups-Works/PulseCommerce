@@ -142,7 +142,10 @@ export async function POST(request: Request) {
           message: typeof reply.content === "string" ? reply.content : "",
           toolsUsed: used,
           proposals: actions.map((c) => {
-            const { input, dropped } = vetUrls(safeParse(c.function.arguments), used);
+            const { input, dropped } = vetUrls(
+              attachProduct(safeParse(c.function.arguments), used),
+              used,
+            );
             return { id: c.id, tool: c.function.name, input, droppedUrls: dropped };
           }),
           model: model.name,
@@ -295,6 +298,36 @@ function toolSpecs() {
       parameters: z.toJSONSchema(tool.schema, { io: "input" }),
     },
   }));
+}
+
+/**
+ * Fills in the product photo and link the model looked up but forgot to attach.
+ *
+ * Asked for a message "about Olive Oil Pomace with its photo and buy link", the
+ * model reliably calls find_product and then reliably omits both fields from
+ * the proposal — twice over, with the requirement stated in the tool schema and
+ * again in the prompt. Since the lookup did happen, the answer is in this
+ * turn's results, so it is taken from there rather than asked for a third time.
+ *
+ * Only ever fills a field the model left empty; anything it did supply stands
+ * and is vetted separately.
+ */
+function attachProduct(
+  input: Record<string, unknown>,
+  used: { name: string; result: unknown }[],
+): Record<string, unknown> {
+  if (input.imageUrl && input.productUrl) return input;
+
+  const lookup = [...used].reverse().find((u) => u.name === "find_product");
+  const product = (lookup?.result as { products?: Record<string, string>[] } | undefined)
+    ?.products?.[0];
+  if (!product) return input;
+
+  return {
+    ...input,
+    imageUrl: input.imageUrl || product.imageUrl || undefined,
+    productUrl: input.productUrl || product.productUrl || undefined,
+  };
 }
 
 /**

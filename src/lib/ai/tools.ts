@@ -170,8 +170,14 @@ export const ACTION_TOOLS = [
         .max(25)
         .describe("From get_top_customers. Keys, never phone numbers."),
       text: z.string().describe("The message body, the same for everyone."),
-      productUrl: z.string().optional().describe("A buy link from find_product."),
-      imageUrl: z.string().optional().describe("A photo URL from find_product."),
+      productUrl: z
+        .string()
+        .optional()
+        .describe("REQUIRED when the message is about a product: the productUrl from find_product."),
+      imageUrl: z
+        .string()
+        .optional()
+        .describe("REQUIRED when the message is about a product: the imageUrl from find_product."),
       reason: z.string().describe("Who these are and why, for the approval card."),
     }),
   },
@@ -246,5 +252,8 @@ PROPOSING
 - Call get_audience_size before quoting any audience number.
 - To message several named customers, call get_top_customers first, then
   propose_customer_batch with the customerKeys it returned. Never guess a key.
+- If the message is about a product, call find_product and pass BOTH its
+  imageUrl and productUrl into the proposal. A product message without its
+  photo and link is not what was asked for.
 
 If no store is connected or the gateway is not linked, say which and stop.`;
