@@ -332,6 +332,11 @@ export const openApiDocument = {
                 },
                 sample: { type: "array", items: { type: "string" }, description: "Masked" },
                 preview: { type: "string", nullable: true },
+                media: {
+                  type: "string",
+                  nullable: true,
+                  description: "Photo the first recipient would receive, resolved as the send resolves it.",
+                },
                 estimatedMs: { type: "integer" },
               },
             }),

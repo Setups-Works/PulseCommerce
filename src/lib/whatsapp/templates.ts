@@ -22,6 +22,13 @@ export interface MessageTemplate {
   /** Attaching the product photo turns this into an image message. */
   withImage: boolean;
   requires: TemplateRequirement;
+  /**
+   * This template is about one product chosen for the campaign, not the
+   * recipient's own past purchase. {{product}}, {{product_url}} and the photo
+   * all come from the picker, so the same link goes to everyone — which is the
+   * point of announcing one product.
+   */
+  campaignProduct?: true;
 }
 
 export const MESSAGE_TEMPLATES: MessageTemplate[] = [
@@ -141,6 +148,7 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
       "— {{store}}",
     withImage: true,
     requires: "none",
+    campaignProduct: true,
   },
   {
     id: "offer",

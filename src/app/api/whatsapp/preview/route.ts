@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isNotConnected } from "@/lib/store/errors";
-import { renderMessage } from "@/lib/whatsapp/broadcast";
+import { mediaFor, renderMessage } from "@/lib/whatsapp/broadcast";
 import { resolveAudience } from "@/lib/whatsapp/recipients";
 import {
   audienceFilterSchema,
@@ -54,11 +54,17 @@ export async function POST(request: Request) {
 
     const { recipients, skipped, matched, sample, config } = resolved;
 
-    // Preview against a real recipient rather than a placeholder, so a broken
-    // {{name}} or a missing greeting is visible before anything is sent.
-    const preview = parsed.data.message
-      ? renderMessage(parsed.data.message, recipients[0] ?? { chatId: "", name: "" })
-      : null;
+    /*
+     * Preview against a real recipient rather than a placeholder, so a broken
+     * {{name}} or a missing greeting is visible before anything is sent.
+     *
+     * The photo is resolved the same way the send resolves it, which is the
+     * only way a preview can be trusted: a per-customer photo that turns out
+     * to be missing for the first recipient shows as missing here too.
+     */
+    const first = recipients[0] ?? { chatId: "", name: "", vars: {} };
+    const preview = parsed.data.message ? renderMessage(parsed.data.message, first) : null;
+    const media = parsed.data.message ? mediaFor(parsed.data.message, first) : null;
 
     const perMessageMs = config.delayBetweenMessagesMs + 1000;
     return NextResponse.json({
@@ -67,6 +73,7 @@ export async function POST(request: Request) {
       skipped,
       sample,
       preview,
+      media,
       estimatedMs: recipients.length * perMessageMs,
       delayBetweenMessagesMs: config.delayBetweenMessagesMs,
       defaultDialCode: config.defaultDialCode,

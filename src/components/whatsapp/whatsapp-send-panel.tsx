@@ -9,6 +9,7 @@ import {
   Square,
   TriangleAlert,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -30,6 +31,8 @@ interface Preview {
   skipped: { noPhone: number; unparseable: number; optedOut: number; duplicate: number };
   sample: string[];
   preview: string | null;
+  /** The photo the first recipient would receive, resolved as the send does. */
+  media: string | null;
   estimatedMs: number;
   delayBetweenMessagesMs: number;
 }
@@ -207,16 +210,23 @@ export function WhatsAppSendPanel({
     productId: product?.id ?? null, customerKeys,
   });
   const preview = previewState?.sig === signature ? previewState.data : null;
-  const composed =
-    text.trim().length > 0 &&
-    (type === "text" || useProductImage || Boolean(product?.image) || mediaUrl.trim().length > 0);
-
   const applyTemplate = (id: string) => {
     const template = MESSAGE_TEMPLATES.find((t) => t.id === id);
     if (!template) return;
     setTemplateId(id);
     setText(template.body);
-    if (template.withImage) {
+
+    /*
+     * A campaign-product template draws {{product_url}} and its photo from the
+     * picker, so it must not also switch on the per-customer photo — that
+     * resolved the link against each recipient's own past purchase, and
+     * collapsed to no link at all for anyone whose product had left the
+     * catalogue. It becomes an image message once a product is chosen.
+     */
+    if (template.campaignProduct) {
+      setUseProductImage(false);
+      setType(product?.image ? "image" : "text");
+    } else if (template.withImage) {
       setType("image");
       setUseProductImage(true);
     } else {
@@ -226,6 +236,15 @@ export function WhatsAppSendPanel({
   };
 
   const activeTemplate = MESSAGE_TEMPLATES.find((t) => t.id === templateId) ?? null;
+
+  // A campaign-product template with nothing picked has no link and no photo,
+  // so it would send a sentence with a hole where the product should be.
+  const needsProduct = Boolean(activeTemplate?.campaignProduct) && !product;
+
+  const composed =
+    text.trim().length > 0 &&
+    !needsProduct &&
+    (type === "text" || useProductImage || Boolean(product?.image) || mediaUrl.trim().length > 0);
 
   /**
    * Choosing a product with a photo makes this an image message.
@@ -572,6 +591,13 @@ export function WhatsAppSendPanel({
                 </Button>
               ))}
             </div>
+            {needsProduct ? (
+              <p className="text-[11px] leading-relaxed text-warning">
+                Pick a campaign product above. This template sends that product&apos;s
+                photo and its link, so without one the message has a gap where the
+                product should be.
+              </p>
+            ) : null}
             {activeTemplate ? (
               <p className="text-[11px] leading-relaxed text-muted-foreground">
                 {activeTemplate.purpose}{" "}
@@ -839,11 +865,30 @@ export function WhatsAppSendPanel({
             </p>
 
             {preview.preview ? (
-              <div className="rounded-md bg-muted p-2.5">
-                <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground">
                   As the first recipient will see it
                 </p>
-                <p className="whitespace-pre-wrap text-xs">{preview.preview}</p>
+                {/* Shaped like the message itself: the photo on top, the caption
+                    under it, which is how WhatsApp renders an image send. */}
+                <div className="max-w-[19rem] overflow-hidden rounded-lg rounded-tl-sm border bg-muted">
+                  {preview.media ? (
+                    <Image
+                      unoptimized
+                      src={preview.media}
+                      alt=""
+                      width={304}
+                      height={304}
+                      className="max-h-56 w-full bg-background object-contain"
+                    />
+                  ) : null}
+                  <p className="whitespace-pre-wrap p-2.5 text-xs">{preview.preview}</p>
+                </div>
+                {type !== "text" && !preview.media ? (
+                  <p className="text-[11px] text-warning">
+                    No photo resolved for this recipient, so they receive text only.
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
