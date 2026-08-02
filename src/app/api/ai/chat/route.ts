@@ -115,9 +115,26 @@ export async function POST(request: Request) {
   /** Swapped to the fallback for the rest of the turn once quota is hit. */
   const model = { name: MODEL, degraded: false };
 
+  /*
+   * Whether to send the action tools at all.
+   *
+   * Every tool's schema and description rides on every request, and the free
+   * tier meters tokens per minute — sixteen tools was most of a 3,000-token
+   * request, which one question could not fit inside an 8,000/minute budget.
+   * Most questions are analytics and can never need an action tool, so those
+   * are only offered when the operator's own words suggest one. A false
+   * negative costs a follow-up; sending everything always cost the answer.
+   */
+  const wantsAction = /\b(send|message|msg|text|whatsapp|draft|report|pdf|excel|csv|turn (on|off)|enable|disable|start|pause|menu|flow|coupon|announce|notify)\b/i.test(
+    parsed.data.messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.content)
+      .join(" "),
+  );
+
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-      const reply = await callGroq(key, conversation, model);
+      const reply = await callGroq(key, conversation, model, wantsAction);
       const calls = (reply.tool_calls ?? []) as ToolCall[];
 
       if (calls.length === 0) {
@@ -189,6 +206,7 @@ async function callGroq(
   key: string,
   messages: Record<string, unknown>[],
   model: { name: string; degraded: boolean },
+  withActions: boolean,
 ): Promise<{ content?: string | null; tool_calls?: unknown }> {
   /*
    * Rate limits are the normal case on Groq's free tier, not an exception: a
@@ -205,7 +223,7 @@ async function callGroq(
       body: JSON.stringify({
         model: model.name,
         messages,
-        tools: toolSpecs(),
+        tools: toolSpecs(withActions),
         tool_choice: "auto",
         // Low, deliberately. This answers questions about a real business from
         // real figures; inventiveness is not a quality anyone wants here.
@@ -289,8 +307,9 @@ function describeGroqError(status: number, detail: string): string {
 }
 
 /** The tool list, in the shape the chat completions API expects. */
-function toolSpecs() {
-  return [...READ_TOOLS, ...ACTION_TOOLS].map((tool) => ({
+function toolSpecs(withActions: boolean) {
+  const tools = withActions ? [...READ_TOOLS, ...ACTION_TOOLS] : READ_TOOLS;
+  return tools.map((tool) => ({
     type: "function" as const,
     function: {
       name: tool.name,
