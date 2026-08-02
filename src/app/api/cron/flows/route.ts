@@ -28,6 +28,11 @@ export const maxDuration = 300;
  * Driven by Vercel Cron rather than by a browser, because a flow's defining
  * feature is waiting days between steps and nobody keeps a tab open for that.
  *
+ * Runs once a day (Vercel's Hobby plan allows no more), at an hour chosen so
+ * messages land mid-morning rather than overnight. A step is therefore sent on
+ * the first run after it comes due, which makes waitDays the granularity a flow
+ * actually has.
+ *
  * Everything here is idempotent against time, not against being run: what is
  * due is computed from stored timestamps, so a tick that is skipped, retried or
  * runs late sends the same messages, once, whenever it does run. A missed tick

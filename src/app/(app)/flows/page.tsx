@@ -312,8 +312,9 @@ export default function FlowsPage() {
             <CardHeader>
               <CardTitle className="text-sm font-semibold">Your flows</CardTitle>
               <CardDescription className="text-xs">
-                Active flows are advanced hourly by a scheduled job. A missed run delays a
-                step; it cannot lose one or send it twice.
+                Active flows are advanced once a day, at 10:00 IST — so a step is sent on
+                the first run after it comes due, not the minute it does. A missed run
+                delays a step; it cannot lose one or send it twice.
               </CardDescription>
             </CardHeader>
 
