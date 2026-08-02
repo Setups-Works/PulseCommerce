@@ -332,9 +332,35 @@ function ProposalCard({
           <ShieldCheck className="size-3.5" />
           {described.title}
         </AttachmentTitle>
-        <AttachmentDescription className="whitespace-pre-wrap">
-          {described.detail}
-        </AttachmentDescription>
+        {described.preview ? (
+          <div className="mt-1.5 max-w-[19rem] overflow-hidden rounded-lg rounded-tl-sm border bg-muted">
+            {described.preview.imageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element --
+                 catalogue URLs are arbitrary remote hosts; next/image would
+                 need every connected store's domain in next.config. */
+              <img
+                src={described.preview.imageUrl}
+                alt=""
+                className="max-h-44 w-full bg-background object-contain"
+              />
+            ) : null}
+            <p className="whitespace-pre-wrap p-2.5 text-xs">
+              {described.preview.text}
+              {described.preview.productUrl ? (
+                <>
+                  {"\n\n"}
+                  <span className="break-all text-primary underline">
+                    {described.preview.productUrl}
+                  </span>
+                </>
+              ) : null}
+            </p>
+          </div>
+        ) : (
+          <AttachmentDescription className="whitespace-pre-wrap">
+            {described.detail}
+          </AttachmentDescription>
+        )}
 
         {outcome ? (
           <p className="mt-1.5 text-[11px] font-medium">
@@ -357,15 +383,39 @@ function ProposalCard({
   );
 }
 
-/** Plain English for the approval card. A card nobody reads is not a safeguard. */
-function describe(p: Proposal): { title: string; detail: string } {
+/**
+ * Plain English for the approval card. A card nobody reads is not a safeguard.
+ *
+ * Message proposals carry a `preview`, drawn as WhatsApp will draw it — photo
+ * on top, caption under, link beneath. Reading "[image: https://…]" tells you
+ * nothing about what the recipient gets; seeing the picture does.
+ */
+function describe(p: Proposal): {
+  title: string;
+  detail: string;
+  preview?: { text: string; imageUrl?: string; productUrl?: string };
+} {
   const input = p.input as Record<string, string | boolean | undefined>;
 
   switch (p.tool) {
     case "propose_test_message":
       return {
         title: `Send a test message to ${input.phone ?? "a number"}`,
-        detail: `${String(input.text ?? "")}${input.imageUrl ? `\n\n[image: ${input.imageUrl}]` : ""}`,
+        detail: String(input.text ?? ""),
+        preview: {
+          text: String(input.text ?? ""),
+          imageUrl: typeof input.imageUrl === "string" ? input.imageUrl : undefined,
+        },
+      };
+    case "propose_customer_message":
+      return {
+        title: `Message ${input.customerName ?? "one customer"}`,
+        detail: String(input.text ?? ""),
+        preview: {
+          text: String(input.text ?? ""),
+          imageUrl: typeof input.imageUrl === "string" ? input.imageUrl : undefined,
+          productUrl: typeof input.productUrl === "string" ? input.productUrl : undefined,
+        },
       };
     case "propose_menu_toggle":
       return {
@@ -446,6 +496,41 @@ async function requestFor(p: Proposal): Promise<
             : "The menu bot's script was replaced.",
       };
     }
+    case "propose_customer_message": {
+      /*
+       * One customer, addressed by key. The broadcast endpoint resolves the
+       * number server-side from the snapshot and applies the opt-out list, so
+       * the phone never passes through the browser or the model — and the
+       * confirmation count it demands is read from its own dry run rather than
+       * guessed, which is what makes "one customer" verifiably one.
+       */
+      const body = {
+        filter: { ...EMPTY_FILTER, requirePhone: true },
+        customerKeys: [input.customerKey],
+        message: input.imageUrl
+          ? { type: "image", text: withLink(input), mediaUrl: input.imageUrl }
+          : { type: "text", text: withLink(input) },
+      };
+
+      const dry = await fetch("/api/whatsapp/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).then((r) => r.json());
+
+      if (!dry?.deliverable) {
+        throw new Error(
+          "That customer is not reachable on WhatsApp — no usable number, or they have opted out.",
+        );
+      }
+
+      return {
+        url: "/api/whatsapp/broadcast",
+        method: "POST",
+        body: { ...body, confirm: dry.deliverable },
+        done: "Message sent.",
+      };
+    }
     case "propose_flow_status":
       return {
         url: `/api/whatsapp/flows/${input.flowId}`,
@@ -457,6 +542,26 @@ async function requestFor(p: Proposal): Promise<
       return null;
   }
 }
+
+/** The buy link belongs in the body; WhatsApp has no separate link field. */
+function withLink(input: Record<string, never>): string {
+  const text = String(input.text ?? "");
+  const url = input.productUrl ? String(input.productUrl) : "";
+  return url && !text.includes(url) ? `${text}\n\n${url}` : text;
+}
+
+/**
+ * The audience filter that matches nobody on its own.
+ *
+ * Paired with customerKeys it narrows to exactly those people — the keys are a
+ * restriction on the filter, never a replacement for it, so an unreachable or
+ * opted-out customer is still excluded.
+ */
+const EMPTY_FILTER = {
+  segments: [], tiers: [], recencyMin: null, recencyMax: null,
+  minSpend: null, minOrders: null, churnRiskMin: null, countries: [],
+  accountType: "any", boughtProduct: "", requireEmail: false, requirePhone: true,
+};
 
 function readable(tool: string): string {
   return tool.replace(/^get_/, "").replace(/_/g, " ");

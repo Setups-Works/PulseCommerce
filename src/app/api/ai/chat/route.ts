@@ -32,8 +32,17 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
  */
 const MODEL = "llama-3.3-70b-versatile";
 
-/** Enough hops to read three or four things and then answer. */
-const MAX_TOOL_ROUNDS = 6;
+/** Enough hops to read two or three things and then answer. */
+const MAX_TOOL_ROUNDS = 4;
+
+/*
+ * Groq's free tier limits tokens per minute, not requests — 12,000 on this
+ * plan. Every round resends the tool list, the system prompt and every earlier
+ * tool result, so an uncapped result set will exhaust a minute's budget in one
+ * question. Results are trimmed to this before going back into the
+ * conversation; the model needs enough to answer, not the whole table.
+ */
+const MAX_RESULT_CHARS = 2400;
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant", "tool"]),
@@ -135,7 +144,7 @@ export async function POST(request: Request) {
           role: "tool",
           tool_call_id: call.id,
           name: call.function.name,
-          content: JSON.stringify(result),
+          content: compact(result),
         });
       }
     }
@@ -160,25 +169,43 @@ async function callGroq(
   key: string,
   messages: Record<string, unknown>[],
 ): Promise<{ content?: string | null; tool_calls?: unknown }> {
-  const response = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      tools: toolSpecs(),
-      tool_choice: "auto",
-      // Low, deliberately. This answers questions about a real business from
-      // real figures; inventiveness is not a quality anyone wants here.
-      temperature: 0.2,
-      max_tokens: 1500,
-    }),
-    cache: "no-store",
-  });
+  /*
+   * Rate limits are the normal case on Groq's free tier, not an exception: a
+   * question that needs three tool rounds is three requests in a few seconds.
+   * A 429 is retried after the delay Groq itself asks for, so an ordinary
+   * question does not fail in the user's face over a one-second wait.
+   */
+  let response: Response | null = null;
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(describeGroqError(response.status, detail));
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
+        tools: toolSpecs(),
+        tool_choice: "auto",
+        // Low, deliberately. This answers questions about a real business from
+        // real figures; inventiveness is not a quality anyone wants here.
+        temperature: 0.2,
+        max_tokens: 1200,
+      }),
+      cache: "no-store",
+    });
+
+    if (response.status !== 429) break;
+
+    const wait = retryAfterMs(response);
+    // Only worth waiting for a short cooldown. A minute-long one is a quota
+    // problem, and telling the operator that beats silently hanging.
+    if (wait > 12_000 || attempt === 2) break;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+  }
+
+  if (!response || !response.ok) {
+    const detail = response ? await response.text().catch(() => "") : "";
+    throw new Error(describeGroqError(response?.status ?? 0, detail));
   }
 
   const json = (await response.json()) as {
@@ -190,9 +217,24 @@ async function callGroq(
   return message;
 }
 
+/** How long Groq asked us to wait, in milliseconds. */
+function retryAfterMs(response: Response): number {
+  const header = response.headers.get("retry-after");
+  const seconds = header ? Number(header) : NaN;
+  // Groq usually answers in fractions of a second; a missing header means a
+  // short, polite default rather than giving up immediately.
+  return Number.isFinite(seconds) ? Math.ceil(seconds * 1000) + 250 : 1500;
+}
+
 function describeGroqError(status: number, detail: string): string {
   if (status === 401) return "Groq rejected the API key. Check GROQ_API_KEY.";
-  if (status === 429) return "Groq is rate-limiting this key. Wait a moment and try again.";
+  if (status === 429) {
+    return (
+      "Groq's rate limit for this key is still in effect after retrying. " +
+      "Free-tier keys allow only a few requests a minute — wait a minute, or " +
+      "use a key with a higher limit."
+    );
+  }
 
   try {
     const parsed = JSON.parse(detail) as { error?: { message?: string } };
@@ -213,6 +255,19 @@ function toolSpecs() {
       parameters: z.toJSONSchema(tool.schema, { io: "input" }),
     },
   }));
+}
+
+/**
+ * A tool result, small enough to send back repeatedly.
+ *
+ * Truncation is announced rather than silent: a model that is handed a cut-off
+ * list and told nothing will happily state a total it cannot see.
+ */
+function compact(result: Record<string, unknown>): string {
+  const full = JSON.stringify(result);
+  if (full.length <= MAX_RESULT_CHARS) return full;
+
+  return `${full.slice(0, MAX_RESULT_CHARS)}… [truncated — this is a partial list. Say so rather than quoting a total from it.]`;
 }
 
 function safeParse(raw: string): Record<string, unknown> {

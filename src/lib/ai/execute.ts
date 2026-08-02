@@ -32,9 +32,11 @@ export async function runReadTool(name: string, input: Json): Promise<Json> {
       case "get_customer_segments":
         return await segments();
       case "get_top_customers":
-        return await topCustomers(num(input.limit, 10, 50));
+        return await topCustomers(num(input.limit, 5, 25));
       case "get_products":
-        return await products(num(input.limit, 10, 50), input.slowMovers === true);
+        return await products(num(input.limit, 5, 25), input.slowMovers === true);
+      case "find_product":
+        return await findProduct(String(input.query ?? ""));
       case "get_inventory_risk":
         return await inventory();
       case "get_audience_size":
@@ -129,6 +131,9 @@ async function topCustomers(limit: number): Promise<Json> {
     // No email, no phone. The model gets what a leaderboard shows and nothing
     // that identifies a person beyond their name.
     .map((c) => ({
+      // The key is how a message is later addressed to this person. The server
+      // turns it into a number at send time; the model never sees one.
+      customerKey: c.key,
       name: c.name,
       orders: c.orders,
       spend: Math.round(c.netRevenue),
@@ -163,8 +168,45 @@ async function products(limit: number, slowMovers: boolean): Promise<Json> {
       refundRate: Number(p.refundRate.toFixed(3)),
       revenueShare: Number(p.revenueShare.toFixed(4)),
     })),
-    categories: a.products.categories.slice(0, 10),
+    categories: a.products.categories.slice(0, 6),
   };
+}
+
+/**
+ * Catalogue lookup, so the model never has to invent a link.
+ *
+ * Returns the permalink and photo exactly as WooCommerce has them. Without this
+ * the model fills the gap itself, and what it fills it with is example.com —
+ * which then reaches a customer.
+ */
+async function findProduct(query: string): Promise<Json> {
+  const snapshot = await loadSnapshot();
+  const needle = query.trim().toLowerCase();
+  if (!needle) return { error: "Give a product name to search for." };
+
+  const matches = snapshot.products
+    .filter((p) => {
+      if (p.status && p.status !== "publish") return false;
+      return (
+        p.name.toLowerCase().includes(needle) ||
+        p.sku?.toLowerCase().includes(needle) ||
+        p.categories?.some((c) => c.name.toLowerCase().includes(needle))
+      );
+    })
+    .sort((a, b) => (b.total_sales ?? 0) - (a.total_sales ?? 0))
+    .slice(0, 5)
+    .map((p) => ({
+      name: p.name,
+      sku: p.sku,
+      price: p.price,
+      category: p.categories?.[0]?.name ?? "",
+      productUrl: p.permalink ?? "",
+      imageUrl: p.images?.[0]?.src ?? "",
+    }));
+
+  return matches.length
+    ? { products: matches }
+    : { products: [], note: `Nothing in the catalogue matches "${query}".` };
 }
 
 async function inventory(): Promise<Json> {
@@ -174,7 +216,7 @@ async function inventory(): Promise<Json> {
     // Ordered by the revenue behind each, not by how empty the shelf is: a
     // slow-moving item at zero matters less than a best seller at two days.
     .sort((x, y) => y.revenue - x.revenue)
-    .slice(0, 25)
+    .slice(0, 12)
     .map((i) => ({
       name: i.name,
       sku: i.sku,

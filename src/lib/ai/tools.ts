@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+/*
+ * Models routinely send "10" where a number was asked for, and Groq validates
+ * the call against this schema before it ever reaches us — so a strict number
+ * type turns a perfectly good tool call into "expected number, but got string"
+ * and the turn dies. These accept either and the executor coerces, which costs
+ * nothing and removes a whole class of failure.
+ */
+const loose = {
+  number: () => z.union([z.number(), z.string()]),
+  boolean: () => z.union([z.boolean(), z.string()]),
+};
+
 /**
  * What the assistant is allowed to do.
  *
@@ -48,7 +60,7 @@ export const READ_TOOLS = [
       "The highest-value customers, with orders, spend, segment and churn risk. Never " +
       "returns phone numbers or email addresses.",
     schema: z.object({
-      limit: z.number().min(1).max(50).default(10),
+      limit: loose.number().optional().describe("How many to return. Up to 50."),
     }),
   },
   {
@@ -57,8 +69,19 @@ export const READ_TOOLS = [
       "Product performance: revenue, units, refund rate and ABC class per product, " +
       "best sellers and slow movers.",
     schema: z.object({
-      limit: z.number().min(1).max(50).default(10),
-      slowMovers: z.boolean().default(false).describe("Return the worst performers instead."),
+      limit: loose.number().optional().describe("How many to return. Up to 50."),
+      slowMovers: loose.boolean().optional().describe("Return the worst performers instead."),
+    }),
+  },
+  {
+    name: "find_product",
+    description:
+      "Look up a real product in the catalogue by name, SKU or category. Returns its " +
+      "exact name, its buy link and its photo URL. You MUST call this before " +
+      "proposing any message that mentions a product, links to one, or attaches an " +
+      "image — the URLs it returns are the only real ones you have.",
+    schema: z.object({
+      query: z.string().describe("Part of the product name, SKU or category."),
     }),
   },
   {
@@ -75,12 +98,12 @@ export const READ_TOOLS = [
       "on WhatsApp. Resolves the real list and sends nothing. Use this before " +
       "proposing any campaign, so the numbers quoted are real.",
     schema: z.object({
-      segments: z.array(z.string()).default([]).describe("RFM segment names."),
-      tiers: z.array(z.string()).default([]).describe("VIP, High, Mid, Low, One-time."),
-      minOrders: z.number().nullable().default(null),
-      minSpend: z.number().nullable().default(null),
-      churnRiskMin: z.number().min(0).max(1).nullable().default(null),
-      recencyMin: z.number().nullable().default(null).describe("Days since last order, lower bound."),
+      segments: z.array(z.string()).optional().describe("RFM segment names."),
+      tiers: z.array(z.string()).optional().describe("VIP, High, Mid, Low, One-time."),
+      minOrders: loose.number().nullish(),
+      minSpend: loose.number().nullish(),
+      churnRiskMin: loose.number().nullish().describe("0 to 1."),
+      recencyMin: loose.number().nullish().describe("Days since last order, lower bound."),
     }),
   },
   {
@@ -122,7 +145,25 @@ export const ACTION_TOOLS = [
     schema: z.object({
       phone: z.string().describe("The number to send to, as the operator gave it."),
       text: z.string().describe("The message body. Template variables are not resolved here."),
-      imageUrl: z.string().optional().describe("A publicly reachable image URL to attach."),
+      imageUrl: z
+        .string()
+        .optional()
+        .describe("A photo URL from find_product. Never invent one; omit if you have none."),
+    }),
+  },
+  {
+    name: "propose_customer_message",
+    description:
+      "Propose sending a WhatsApp message to ONE named customer, identified by the " +
+      "customerKey returned by get_top_customers. Their phone number is resolved on " +
+      "the server at send time and is never shown to you. Use for 'message my top " +
+      "customer' or 'ask this customer to reorder'.",
+    schema: z.object({
+      customerKey: z.string().describe("The key from get_top_customers. Not a phone number."),
+      customerName: z.string().describe("Their name, for the approval card."),
+      text: z.string().describe("The message body."),
+      productUrl: z.string().optional().describe("A buy link from find_product. Never invented."),
+      imageUrl: z.string().optional().describe("A photo URL from find_product. Never invented."),
     }),
   },
   {
@@ -181,6 +222,13 @@ HOW YOU ANSWER
 - Prefer one concrete number with its context over a paragraph of hedging.
 - Currency is Indian rupees. Write large numbers readably (₹70.7L, not 7070000).
 - Be brief. This is a working tool, not a chat companion.
+
+URLS AND PRODUCTS
+- Never write a URL you did not receive from a tool. No example.com, no guessed
+  product links, no placeholder image addresses. If you want to mention or
+  attach a product, call find_product first and use exactly what it returns.
+- If find_product returns nothing, say the product was not found and propose the
+  message without a link or image rather than inventing either.
 
 WHAT YOU MUST NOT DO
 - Do not invent customer names, phone numbers, order counts or revenue.
