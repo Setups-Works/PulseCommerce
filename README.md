@@ -181,6 +181,11 @@ never reach a third-party messaging service.
   reach a customer
 - **Gateway plugins**, including an inbound numbered menu bot that answers when
   nobody is at a desk
+- **Menu builder** at `/menu` — trigger word, greeting and a drag-and-drop option
+  tree, with every move also on a button so it works without a mouse
+- **An assistant** that reads the store, drafts messages against your real
+  catalogue, and proposes rather than performs
+- **Per-page summaries** in plain English, on request
 - **Paced sending** with jitter, as a resumable job with live progress
 - **Automatic recovery** when the gateway restarts mid-broadcast
 - Link a number by scanning a **QR inside Settings**
@@ -1294,9 +1299,58 @@ from Campaigns, by a person, behind a typed confirmation.
 app keeps them server-side; handing them to a model that then writes them into a
 reply would be the one place that rule quietly stopped holding.
 
-Model: `llama-3.3-70b-versatile` at temperature `0.2` — this answers questions
-about a real business from real figures, and inventiveness is not wanted. Without
-`GROQ_API_KEY` the route returns 503 and the screen says it is unavailable.
+### What it can propose
+
+A test message to a number you type · a message to one named customer · a message
+to a list of customers it has just read for you, every recipient named on the
+card · turning the auto-reply menu on or off · rewriting that menu · starting or
+pausing a flow · generating a **PDF, Excel or CSV report** over any date range.
+
+Approving a customer send resolves the recipients server-side and uses the count
+from the platform's own dry run, not from how many names the model listed — so
+unreachable and opted-out customers are excluded exactly as on the campaigns
+screen. Batches are capped at 25.
+
+### Conversations
+
+Listed beside the chat, reopenable, deletable, and kept in `localStorage` rather
+than on the server: they hold the operator's questions about their own store and
+nothing the server needs, so there is no second copy of business data to secure.
+The cost is that history does not follow you to another machine.
+
+### Summaries on the analytics pages
+
+Dashboard, customers, products, inventory, acquisition and forecast each carry a
+plain-English read of what is on screen, answered through these same tools so a
+summary cannot disagree with the figures above it.
+
+It runs **on a button, not on page load**. Every summary is a model call against
+a metered key with a daily cap; a dashboard that spends quota each time somebody
+glances at it exhausts the allowance by mid-morning, and the assistant is then
+unavailable exactly when it is wanted.
+
+### Choosing a model, and staying inside the free tier
+
+`openai/gpt-oss-120b` by default, `GROQ_MODEL` to override, falling back to
+`llama-3.3-70b-versatile` when a daily cap is hit — the response reports which
+model answered, so nobody wonders why quality moved.
+
+Not a Llama model by default, and the reason is tool calling rather than prose:
+with sixteen tools in play the Llama models intermittently emit their *text* call
+format, `<function=find_product{…}</function>`, which Groq rejects outright.
+gpt-oss produced a clean call every time under the same load.
+
+Three things keep a question inside the free tier's per-minute token budget:
+
+| | |
+|---|---|
+| **Action tools are sent only when wanted** | Most questions are analytics and can never need one. An analytics question carries nine schemas instead of sixteen. |
+| **Tool results are truncated** | To 1,600 characters, and the truncation is announced so the model does not quote a total from a partial list. |
+| **Optional parameters accept `null`** | Models say "not narrowing this" with `null` far more often than by omitting a key, and Groq validates the call before we see it. Widened via `type`, never `anyOf` — unions made the model fail to produce a call at all. |
+
+Temperature `0.2`: this answers questions about a real business from real figures,
+and inventiveness is not wanted. Without `GROQ_API_KEY` the route returns 503 and
+the screen says it is unavailable.
 
 Built with `@tanstack/ai` and the shadcn `bubble`, `message`, `message-scroller`,
 `marker` and `attachment` components.
@@ -1420,6 +1474,12 @@ batches. Transient failures retry with exponential backoff.
 ---
 
 ## Design system
+
+Black, white and one blue — `#2f66e8`, converted to oklch to match the rest of
+the tokens. A single accent means anything blue is deliberate: a link, a primary
+action, a selected row, never decoration. Dark mode uses a lighter step of the
+same hue, because `#2f66e8` on near-black does not carry enough contrast for text
+sitting on it.
 
 Chrome is monochrome by intent, so colour is reserved for data and genuine state.
 Charts use an eight-slot categorical palette validated for colour-vision
