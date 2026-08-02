@@ -182,6 +182,27 @@ export const ACTION_TOOLS = [
     }),
   },
   {
+    name: "propose_report",
+    description:
+      "Propose generating a PDF, Excel or CSV report over a date range. Use when " +
+      "asked for a report, a summary document, or 'send me a PDF'. Approving " +
+      "downloads the file; nothing is emailed.",
+    schema: z.object({
+      format: z.enum(["pdf", "xlsx", "csv"]).describe("pdf unless asked otherwise."),
+      reports: z
+        .array(
+          z.enum([
+            "executive", "customers", "segments", "products", "categories",
+            "orders", "cohorts", "geography", "operations", "forecast",
+          ]),
+        )
+        .describe("Which sections. 'executive' alone suits most requests."),
+      from: z.string().optional().describe("ISO date. Omit for the current window."),
+      to: z.string().optional().describe("ISO date."),
+      reason: z.string().describe("What the report covers, for the approval card."),
+    }),
+  },
+  {
     name: "propose_menu_toggle",
     description:
       "Propose turning the menu bot on or off.",

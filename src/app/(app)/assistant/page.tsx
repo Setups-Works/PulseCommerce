@@ -235,8 +235,26 @@ export default function AssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: request.body ? JSON.stringify(request.body) : undefined,
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? "That did not work.");
+
+      if (request.download) {
+        // The response is the file itself. Saved from the blob rather than by
+        // navigating, so the POST body and its date range survive.
+        if (!res.ok) throw new Error("The report could not be generated.");
+        const blob = await res.blob();
+        const name =
+          res.headers.get("content-disposition")?.match(/filename="?([^"]+)"?/)?.[1] ??
+          "report";
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = name;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error ?? "That did not work.");
+      }
 
       settle(turnIndex, proposal.id, "approved");
       toast.success(request.done);
@@ -587,6 +605,13 @@ function describe(p: Proposal): {
           imageUrl: typeof input.imageUrl === "string" ? input.imageUrl : undefined,
         },
       };
+    case "propose_report": {
+      const sections = Array.isArray(input.reports) ? (input.reports as string[]) : [];
+      return {
+        title: `Generate a ${String(input.format ?? "pdf").toUpperCase()} report`,
+        detail: `${input.reason ?? ""}\n\nSections: ${sections.join(", ") || "executive"}`,
+      };
+    }
     case "propose_customer_batch": {
       const people = Array.isArray(input.customers)
         ? (input.customers as { name?: string }[])
@@ -645,7 +670,7 @@ function describe(p: Proposal): {
  * would either be rejected as incomplete or wipe the parts it did not mention.
  */
 async function requestFor(p: Proposal): Promise<
-  { url: string; method: string; body?: unknown; done: string } | null
+  { url: string; method: string; body?: unknown; done: string; download?: boolean } | null
 > {
   const input = p.input as Record<string, never>;
 
@@ -761,6 +786,19 @@ async function requestFor(p: Proposal): Promise<
         done: "Message sent.",
       };
     }
+    case "propose_report":
+      return {
+        url: "/api/reports/export",
+        method: "POST",
+        body: {
+          format: input.format ?? "pdf",
+          reports: input.reports ?? ["executive"],
+          ...(input.from ? { from: input.from } : {}),
+          ...(input.to ? { to: input.to } : {}),
+        },
+        download: true,
+        done: "Report downloaded.",
+      };
     case "propose_flow_status":
       return {
         url: `/api/whatsapp/flows/${input.flowId}`,

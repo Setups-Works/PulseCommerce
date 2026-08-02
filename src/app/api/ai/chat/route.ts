@@ -295,9 +295,47 @@ function toolSpecs() {
     function: {
       name: tool.name,
       description: tool.description,
-      parameters: z.toJSONSchema(tool.schema, { io: "input" }),
+      parameters: allowNulls(z.toJSONSchema(tool.schema, { io: "input" })),
     },
   }));
+}
+
+/**
+ * Lets every optional parameter be null as well as absent.
+ *
+ * Models express "I am not narrowing this" as `null` far more often than by
+ * omitting the key — and Groq validates the call against this schema before we
+ * ever see it, so `"/from": expected string, but got null` kills the turn over
+ * a distinction nobody meant. Widening the type is one line here instead of a
+ * caveat on every parameter, and the executors already treat null as absent.
+ *
+ * Done by extending `type` rather than wrapping in anyOf: unions made the model
+ * fail to produce a call at all.
+ */
+function allowNulls(schema: unknown): unknown {
+  if (!schema || typeof schema !== "object") return schema;
+  const node = schema as Record<string, unknown>;
+
+  if (node.properties && typeof node.properties === "object") {
+    const required = new Set(Array.isArray(node.required) ? (node.required as string[]) : []);
+
+    for (const [name, raw] of Object.entries(node.properties as Record<string, unknown>)) {
+      if (required.has(name) || !raw || typeof raw !== "object") continue;
+      const property = raw as Record<string, unknown>;
+
+      if (typeof property.type === "string") {
+        property.type = [property.type, "null"];
+      }
+      // Enums need the value listed too, not just the type widened.
+      if (Array.isArray(property.enum) && !property.enum.includes(null)) {
+        property.enum = [...property.enum, null];
+      }
+      allowNulls(property);
+    }
+  }
+
+  if (node.items) allowNulls(node.items);
+  return node;
 }
 
 /**
