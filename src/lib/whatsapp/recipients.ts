@@ -3,6 +3,7 @@ import { customerKey } from "@/lib/analytics/helpers";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { applyAudience, type AudienceFilter } from "@/lib/audience";
 import { loadSnapshot } from "@/lib/store/snapshot";
+import { GatewayNotConnectedError } from "./errors";
 import type { StoreSnapshot } from "@/lib/woo/types";
 import { readWhatsAppConfig, type WhatsAppConfig } from "./config";
 import { readOptOutSet } from "./opt-out";
@@ -53,7 +54,7 @@ export interface ResolvedAudience extends ResolveResult {
 export async function resolveAudience(request: AudienceRequest): Promise<ResolvedAudience> {
   const config = await readWhatsAppConfig();
   if (!config) {
-    throw new Error("No WhatsApp gateway is connected. Add one in Settings first.");
+    throw new GatewayNotConnectedError();
   }
 
   const snapshot = await loadSnapshot();

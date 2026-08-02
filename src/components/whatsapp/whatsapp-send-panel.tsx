@@ -185,7 +185,19 @@ export function WhatsAppSendPanel({
   const message = {
     type,
     text,
-    ...(type === "text" ? {} : useProductImage ? { useProductImage } : { mediaUrl }),
+    /*
+     * An empty media URL is omitted rather than sent as "". The schema validates
+     * it as a URL, so an empty string came back as "Invalid URL" — which is what
+     * happened whenever a campaign product supplied the photo and this field was
+     * left blank, the ordinary case.
+     */
+    ...(type === "text"
+      ? {}
+      : useProductImage
+        ? { useProductImage: true }
+        : mediaUrl.trim()
+          ? { mediaUrl: mediaUrl.trim() }
+          : {}),
     ...(coupon ? { coupon: { code: coupon.code, value: couponValue(coupon) } } : {}),
     ...(product
       ? {

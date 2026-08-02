@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isNotConnected } from "@/lib/store/errors";
+import { isGatewayNotConnected } from "@/lib/whatsapp/errors";
 import { mediaFor, renderMessage } from "@/lib/whatsapp/broadcast";
 import { resolveAudience } from "@/lib/whatsapp/recipients";
 import {
@@ -81,6 +82,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isNotConnected(error)) {
       return NextResponse.json({ error: error.message, code: "not_connected" }, { status: 409 });
+    }
+    if (isGatewayNotConnected(error)) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not resolve the audience." },

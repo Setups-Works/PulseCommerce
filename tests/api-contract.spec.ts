@@ -98,6 +98,44 @@ test.describe("refusals that protect customers", () => {
     expect((await res.json()).error).toMatch(/media|product photo/i);
   });
 
+  test("a product photo is enough — no media URL is needed", async ({ request }) => {
+    /*
+     * The panel leaves the media URL blank when a campaign product supplies the
+     * photo. Sending it as "" failed the URL check and surfaced as "Invalid URL"
+     * at the moment of sending, so this pins that the field may be absent.
+     *
+     * 409 is the pass: no store is connected in the test environment, and the
+     * body got far enough to be asked about one. A 422 would mean it was
+     * rejected as malformed, which is the bug.
+     */
+    const res = await request.post("/api/whatsapp/preview", {
+      headers: { "Content-Type": "application/json" },
+      data: {
+        filter: {},
+        message: {
+          type: "image",
+          text: "Hi {{name}}, {{product}} is back.",
+          product: {
+            name: "Example Soap",
+            url: "https://example.com/product/example-soap",
+            image: "https://example.com/wp-content/uploads/example-soap.jpg",
+            category: "Skin Care",
+          },
+        },
+      },
+    });
+    expect(res.status()).not.toBe(422);
+    expect([409, 200]).toContain(res.status());
+
+    // And the other half of the contract: an empty string is not a URL, and is
+    // meant to be rejected. The caller omits the field; it does not blank it.
+    const blank = await request.post("/api/whatsapp/preview", {
+      headers: { "Content-Type": "application/json" },
+      data: { filter: {}, message: { type: "image", text: "hi", mediaUrl: "" } },
+    });
+    expect(blank.status()).toBe(422);
+  });
+
   test("a malformed body is rejected before any work happens", async ({ request }) => {
     const res = await request.post("/api/whatsapp/preview", {
       headers: { "Content-Type": "application/json" },
