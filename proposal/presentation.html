@@ -1135,6 +1135,68 @@
 </section>
 
 <section class="slide">
+  <div class="eyebrow">Messaging · automation</div>
+  <h2>Campaigns that run themselves</h2>
+  <div class="rule"></div>
+  <p class="tiny" style="margin-top:10px;">A campaign is one message, now. A flow is a sequence that runs over days, so a customer receives the right message at the right point rather than whenever somebody remembered to send one.</p>
+  <div class="grid g3" style="margin-top:16px; gap:14px;">
+    <div>
+      <h3 style="margin-bottom:7px;">A worked example</h3>
+      <p class="tiny">A customer goes quiet past their own usual reorder gap.<br><br>
+      <b>Day 0</b> — a reminder naming the product they actually buy, with its photo and a link.<br><br>
+      <b>Day 3</b> — a 10% code, created in WooCommerce, restricted to that product, expiring in a fortnight.<br><br>
+      <b>Day 10</b> — a last note before the code lapses.<br><br>
+      They order on day 4. Steps two and three never send.</p>
+    </div>
+    <div>
+      <h3 style="margin-bottom:7px;">How it behaves</h3>
+      <p class="tiny"><b>Customers join as they qualify.</b> The audience is re-checked on every run, so whoever lapses next month enters next month. A flow keeps working rather than sending once to whoever matched on the day.</p>
+      <p class="tiny" style="margin-top:11px;"><b>Nobody enters twice</b>, for the life of the flow.</p>
+      <p class="tiny" style="margin-top:11px;"><b>They leave the moment it works.</b> A customer who buys stops receiving the rest. A win-back that keeps nagging someone who already came back is worse than not running at all.</p>
+    </div>
+    <div>
+      <h3 style="margin-bottom:7px;">Why the timing holds</h3>
+      <p class="tiny">Each wait is measured from when the previous message actually sent, not from when the customer joined — so a delayed run never bunches two messages together.</p>
+      <p class="tiny" style="margin-top:11px;">A run that is missed delays a step. It cannot lose one, and it cannot send one twice.</p>
+      <h3 style="margin:14px 0 7px;">Before a customer sees it</h3>
+      <p class="tiny">A flow can be pointed at one test number, so a whole sequence is checked on your own phone first. Flows are created as drafts; starting one is a separate, deliberate act.</p>
+    </div>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Automated flows</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Messaging · inbound</div>
+  <h2>Answering before anyone is at a desk</h2>
+  <div class="rule"></div>
+  <p class="tiny" style="margin-top:10px;">Everything above reaches out. This is the other direction: a customer who messages at three in the morning currently waits until morning.</p>
+  <div class="grid g3" style="margin-top:16px; gap:14px;">
+    <div>
+      <h3 style="margin-bottom:7px;">The menu</h3>
+      <p class="tiny">A customer sends an agreed word — <b>&ldquo;hi&rdquo;</b> — and receives a numbered menu straight away:</p>
+      <p class="tiny" style="margin-top:9px;"><b>1</b> &nbsp;Order &nbsp;→&nbsp; shop link and order tracking<br>
+      <b>2</b> &nbsp;Contact us &nbsp;→&nbsp; how to reach a person<br>
+      <b>3</b> &nbsp;Feedback &nbsp;→&nbsp; an invitation to just type it</p>
+      <p class="tiny" style="margin-top:9px;">Menus nest as deeply as needed. Each conversation remembers where it is and forgets after fifteen minutes, so a stray number the next day is never read as a menu choice.</p>
+    </div>
+    <div>
+      <h3 style="margin-bottom:7px;">It never intercepts a real question</h3>
+      <p class="tiny">Only the exact trigger word starts the menu. Anything else is left for a person to answer, so a customer asking a genuine question reaches your team rather than a robot.</p>
+      <p class="tiny" style="margin-top:11px;">It runs on the gateway itself, which is why it answers whether or not anything else is running.</p>
+      <h3 style="margin:14px 0 7px;">Included, not extra</h3>
+      <p class="tiny">This is part of the private-gateway option. There is no further charge from us for any extension listed here.</p>
+    </div>
+    <div>
+      <h3 style="margin-bottom:7px;">What else the gateway can take</h3>
+      <p class="tiny">Ten extensions are installed and available, each switched off until you want it:</p>
+      <p class="tiny" style="margin-top:9px;">Numbered menu bot · after-hours away message · keyword FAQ replies · voice-note transcription · group translation · logging to Google Sheets · calling your own systems on an inbound message · connectors for Chatwoot, Typebot and Supabase</p>
+      <p class="tiny" style="margin-top:11px;">Listed so the ceiling is visible, not because all of them are wanted. Several need outside services or paid APIs; those costs would be yours and are noted where they apply.*</p>
+    </div>
+  </div>
+  <div class="foot"><span>PulseCommerce</span><span>Inbound automation</span></div>
+</section>
+
+<section class="slide">
   <div class="eyebrow">Complete feature list · 1 of 2</div>
   <h2>Everything included, analytics</h2>
   <div class="rule"></div>
@@ -1170,7 +1232,9 @@
       <h3 style="margin-bottom:7px;">Campaigns</h3>
       <p class="tiny">Audience builder with live reach · six goal presets · filters on segment, tier, recency, spend, orders, churn risk, country, account type, product bought and contactability · revenue and predicted value at stake · CSV export for email and ads platforms · campaign performance from UTM tags · coupon return on discount</p>
       <h3 style="margin:14px 0 7px;">WhatsApp</h3>
-      <p class="tiny">Text, image and video · nine templates · ten personalisation variables · per-customer product photos · catalogue product picker · coupon creation and attachment · dry run · test send · typed confirmation · opt-out list · paced sending with jitter · resumable jobs · automatic recovery · live progress and stop control</p>
+      <p class="tiny">Text, image and video · ten templates · ten personalisation variables · per-customer product photos · catalogue product picker · coupon creation and attachment · dry run · test send · typed confirmation · opt-out list · paced sending with jitter · resumable jobs · automatic recovery · live progress and stop control</p>
+      <h3 style="margin:14px 0 7px;">Automation</h3>
+      <p class="tiny">Multi-step flows up to ten messages · waits measured in days from the previous send · customers join as they qualify · nobody enters twice · exit the moment they order · test a whole sequence against one number · created as drafts · advanced by a scheduled job, so no browser need be open · inbound numbered menu bot answering out of hours</p>
     </div>
     <div>
       <h3 style="margin-bottom:7px;">Inbox</h3>

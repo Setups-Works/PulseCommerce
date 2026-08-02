@@ -52,9 +52,12 @@ never reach a third-party messaging service.
 - [Architecture](#architecture)
 - [Data pipeline](#data-pipeline)
 - [Broadcast pipeline](#broadcast-pipeline)
+- [Flow pipeline](#flow-pipeline)
 - [Quick start](#quick-start)
 - [Connecting a store](#connecting-a-store)
 - [WhatsApp campaigns](#whatsapp-campaigns)
+- [Automated flows](#automated-flows)
+- [Gateway plugins and the menu bot](#gateway-plugins-and-the-menu-bot)
 - [Multiple stores](#multiple-stores)
 - [Optional password protection](#optional-password-protection)
 - [Environment variables](#environment-variables)
@@ -171,6 +174,12 @@ never reach a third-party messaging service.
 - **Test send** to a number you type; it cannot reach a customer
 - **Typed confirmation** of the deliverable count before anything goes out
 - **Opt-out list**, applied server-side after the audience is built
+- **Multi-step flows** — up to ten messages, days apart, advanced by a scheduled
+  job; customers join as they qualify and leave the moment they order
+- **Flow test mode** — point a whole sequence at one number so it can never
+  reach a customer
+- **Gateway plugins**, including an inbound numbered menu bot that answers when
+  nobody is at a desk
 - **Paced sending** with jitter, as a resumable job with live progress
 - **Automatic recovery** when the gateway restarts mid-broadcast
 - Link a number by scanning a **QR inside Settings**
@@ -802,6 +811,56 @@ says `ready` while the engine is gone, and a send in that state fails for every
 recipient. Both must agree before anything is dispatched.
 
 ---
+## Flow pipeline
+
+A broadcast is one message now. A flow waits days between steps, which no
+serverless request can sit through — so the waiting lives in storage and a
+scheduled job advances it.
+
+```mermaid
+sequenceDiagram
+    participant V as Vercel Cron
+    participant P as PulseCommerce
+    participant K as Storage
+    participant W as Gateway
+
+    Note over V: once a day
+    V->>P: POST /api/cron/flows (bearer CRON_SECRET)
+    P->>K: read active flows and their state
+    P->>P: resolve entry audience from the snapshot
+    P->>K: enrol anyone new, skipping everyone seen before
+    P->>P: drop anyone whose exit condition now holds
+    P->>P: select enrolments whose dueAt has passed
+    loop each due enrolment
+        P->>W: send this step
+        W-->>P: accepted
+        P->>K: advance to the next step, due N days from now
+    end
+    P->>K: write state
+    P-->>V: what each flow did
+```
+
+**Time, not wakefulness, decides what sends.** Every due date is stored. A tick
+that is skipped, retried or runs late therefore sends the same messages, once,
+whenever it does run — a missed run delays a step rather than losing it, and an
+enrolment advances only after its send returns, so it cannot double one.
+
+**Each wait is measured from the send, not from enrolment.** If a run is four
+days late, step two is still three days after step one *went out*, not three days
+after the customer joined. Measuring from enrolment would fire two messages
+within seconds to catch up. There is a test for exactly this.
+
+**The tick is bounded.** At most 500 enrolments and 60 sends per run, 5,000 in
+flight per flow. Whatever is left is picked up next time: a flow that enrols
+slowly is correct, just slower, whereas a tick that times out mid-send leaves
+state nobody can reason about.
+
+**The cron route is closed when its secret is unset.** `CRON_SECRET` missing
+returns 503 rather than running open — the failure mode of a missing environment
+variable must never be "anyone on the internet can trigger the sends".
+
+---
+
 ## Quick start
 
 ```bash
@@ -1060,6 +1119,138 @@ page itself. Two things affect it:
 > appeal path. Do not link the number your business runs on. Messaging your own
 > past customers is the safest workload; cold-blasting strangers is what gets
 > numbers banned.
+
+---
+
+## Automated flows
+
+A broadcast is one message to a list, now. A flow is a sequence that runs itself
+over days. Build one at `/flows`.
+
+```
+entry audience  ->  step 1  --wait 3 days-->  step 2  --wait 7 days-->  step 3
+                      |                         |                         |
+                      +-------------------------+-------------------------+
+                                        |
+                              exits the moment they order
+```
+
+**Customers join as they qualify.** The entry filter is re-evaluated every run,
+so someone who lapses next month enters next month. A flow keeps working rather
+than sending once to whoever matched on the day it was built. Nobody enters twice
+for the life of the flow — every enrolled key is remembered.
+
+**They leave the moment it works.** With `exitOn: "ordered"`, a customer whose
+order count rises above what it was when they joined stops receiving the rest.
+Compared against the count at entry rather than a date, so there is no timezone
+or snapshot-lag question to get wrong.
+
+**Flows are created as drafts.** Designing a sequence and starting to send it to
+thousands of people are two decisions.
+
+**Steps and the entry filter are immutable once created.** People are already
+part-way through; changing step 3 under someone who has had steps 1 and 2 gives
+them a sequence nobody designed. Build a new flow instead.
+
+### Testing a flow without touching a customer
+
+Set a test number on a flow and it ignores its entry audience entirely — every
+step goes to that one number. It is stored on the flow rather than being a
+runtime toggle, so a sequence built as a test cannot later be started against an
+audience by accident, and the list badges it as a test flow.
+
+The opt-out list still applies, and a number that cannot be parsed yields no
+recipient at all: a mistyped test sends nothing rather than sending somewhere
+unintended.
+
+### Scheduling
+
+The tick runs on Vercel Cron. `vercel.json` sets the schedule; **Vercel's Hobby
+plan permits one run a day** and rejects anything more often — not by downgrading
+it, but by failing the whole deployment:
+
+```
+Hobby accounts are limited to daily cron jobs.
+This cron expression (0 * * * *) would run more than once per day.
+```
+
+So a step is sent on the first run after it comes due, which makes `waitDays` the
+real granularity available. Pro restores finer schedules.
+
+`CRON_SECRET` must be set, and Vercel sends it as a bearer token automatically.
+Unset, the route returns 503 and nothing advances.
+
+---
+
+## Gateway plugins and the menu bot
+
+A self-hosted OpenWA gateway takes installable extensions, which run inside the
+gateway rather than in this application. They are relevant here because one of
+them closes the gap this app cannot: **answering an inbound message.**
+
+Everything in PulseCommerce is outbound. Flows and broadcasts send; the inbox
+lets a person reply. Nothing replies automatically, because nothing here is
+running when a customer messages at 3am.
+
+### The menu bot
+
+`chat-flow` answers immediately with a numbered menu:
+
+```
+customer sends "hi"
+        |
+        v
+  1  Order        ->  shop link, order tracking
+  2  Contact us   ->  how to reach a person
+  3  Feedback     ->  invitation to just type it
+```
+
+Menus nest to any depth. State is per conversation and expires after 15 minutes,
+so a stray `1` the next day is never read as a menu choice.
+
+**Set a trigger word.** The match is exact —
+`input.toLowerCase() === trigger.toLowerCase()` — so `hi` opens the menu while
+`this` and `hi there` are ignored. Left empty, the trigger matches *any* text
+message, which on a real business line means every customer gets a menu instead
+of a person.
+
+### What else is available
+
+| Plugin | What it does |
+|---|---|
+| `chat-flow` | Numbered menu bot, stateful per conversation |
+| `after-hours` | Away message outside configured business hours |
+| `faq-bot` | Keyword-matched auto-replies |
+| `http-action` | Calls an HTTP endpoint on an inbound message |
+| `voice-transcription` | Transcribes voice notes (beta; needs a paid API) |
+| `group-translate` | Translates group messages |
+| `gsheets-logger` | Logs messages to Google Sheets |
+| `chatwoot-adapter` | Bridges to a Chatwoot helpdesk |
+| `typebot-connector` | Bridges to Typebot |
+| `supabase-otp-hook` | Sends Supabase auth OTPs (beta) |
+
+Install from the gateway's catalogue, which indexes the plugin repository:
+
+```bash
+curl -X POST "$GATEWAY/api/plugins/install-url" \
+  -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"url":"https://github.com/.../chat-flow.zip"}'
+```
+
+**Installed is not enabled.** A plugin lands inert and only runs once enabled —
+which matters, because four of these reply to customers automatically. Configure
+before enabling:
+
+```bash
+curl -X PUT  "$GATEWAY/api/plugins/chat-flow/config" ... # menu tree
+curl -X POST "$GATEWAY/api/plugins/chat-flow/enable" ... # now live
+```
+
+### What the gateway cannot do
+
+No buttons and no product cards — OpenWA drives a reverse-engineered client, not
+Meta's Business API, and those are Business API features. A menu is numbers typed
+as text, and a flow branches on free text rather than tapped replies.
 
 ---
 

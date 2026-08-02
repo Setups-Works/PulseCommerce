@@ -365,6 +365,35 @@ Every excluded recipient is counted and categorised — no phone number on file,
 number that cannot be read, a duplicate shared with another record, or someone on
 the opt-out list — so a result of "sent 9,800 of 11,224" always has an explanation.
 
+### Automated flows
+
+A campaign is one message, now. A flow is a sequence that runs itself over days,
+so a customer receives the right message at the right point rather than whenever
+somebody remembered to send one.
+
+- **Multi-step sequences** — up to ten messages, each waiting a set number of
+  days after the one before it
+- **Customers join as they qualify.** The audience is re-checked on every run,
+  so a customer who lapses next month enters the win-back sequence next month.
+  A flow keeps working rather than sending once to whoever matched on the day
+- **Nobody enters twice**, for the life of the flow
+- **They leave the moment it works.** With "exit when they order" set, a customer
+  who buys stops receiving the rest of the sequence. A win-back that keeps
+  nagging someone who already came back is worse than not running at all
+- **A test number**, so a whole sequence can be checked on your own phone before
+  a customer ever sees it. A flow built as a test cannot later be pointed at an
+  audience by mistake
+- **Created as a draft.** Designing a sequence and starting to send it to
+  thousands of people are two separate decisions
+- **Steps are fixed once it runs.** People are already part-way through, and
+  changing a later step under someone who has had the earlier ones would give
+  them a sequence nobody designed
+
+Timing is honest rather than approximate. Each wait is measured from when the
+previous message actually sent, so a delayed run never bunches two messages
+together. A run that is missed delays a step; it cannot lose one, and it cannot
+send one twice.
+
 ## 7. Shared WhatsApp inbox
 
 Replies to a campaign land somewhere the business can see them, alongside who
@@ -381,6 +410,21 @@ sent them.
 - Unread counts and search across names and numbers
 - The opt-out list applies here too: someone who asked the business to stop is
   not messaged, whether by a campaign or by hand
+
+### Answering before anyone is at a desk
+
+A customer who messages the business out of hours currently waits until morning.
+An optional menu answers immediately.
+
+- A customer sends an agreed word — **"hi"** — and receives a numbered menu:
+  order, contact, feedback
+- Their reply selects an option, and menus can nest as deeply as needed
+- Each conversation remembers where it is, and forgets after fifteen minutes,
+  so a stray number the next day is never read as a menu choice
+- **Only the trigger word starts it.** Anything else is left for a person to
+  answer, so the menu never intercepts a real question
+- Runs on the gateway itself, which means it answers at three in the morning
+  whether or not anything else is running
 
 The value is context. Answering "is this back in stock?" is a different
 conversation when the person asking has ordered eleven times.
@@ -437,6 +481,20 @@ Support for connecting more than one store and switching between them, a search
 palette covering customers, products, and orders, keyboard navigation, light and
 dark themes, and optional password protection.
 
+**A documented interface.** Every endpoint the platform exposes is described in a
+published specification and browsable in the application itself, so a future
+developer — or another system of yours — can work against it without reading the
+source. An automated check fails the build if a route exists that the
+documentation does not describe, which is what keeps it true over time.
+
+**An extendable gateway.** The private gateway option supports installed
+extensions, ten of which are available and already in place: the menu bot
+described above, an after-hours auto-reply, an FAQ responder, voice-note
+transcription, group translation, logging to Google Sheets, and connectors for
+Chatwoot, Typebot and Supabase. Each is off until deliberately switched on and
+configured, and each can be removed again. Nothing here is a further cost from
+us; they are listed so the ceiling is visible.
+
 ---
 
 # How it is built
@@ -480,6 +538,12 @@ mistake in the interface cannot expose the customer list.
 pace. It runs as a job that records its position, so closing the page pauses it
 rather than losing it, and a restart of the gateway costs a short delay rather
 than the remainder of the audience.
+
+**Waiting is resumable too.** A flow spends most of its life between steps, which
+no web request can sit through. A scheduled job runs each day and works out what
+is due from the record rather than from having been running at the right moment.
+Nobody needs a browser open, and an interruption delays a message rather than
+losing it.
 
 ---
 
