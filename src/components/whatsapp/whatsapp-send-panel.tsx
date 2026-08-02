@@ -80,12 +80,15 @@ export function WhatsAppSendPanel({
   range,
   audienceSize,
   allCustomers = [],
+  className,
 }: {
   filter: AudienceFilter;
   range?: { from: string; to: string };
   audienceSize: number;
   /** Every customer in range, for picking specific recipients. */
   allCustomers?: { key: string; name: string; email: string; orders: number }[];
+  /** Lets the page place this in its grid. */
+  className?: string;
 }) {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [ready, setReady] = useState(false);
@@ -223,6 +226,24 @@ export function WhatsAppSendPanel({
   };
 
   const activeTemplate = MESSAGE_TEMPLATES.find((t) => t.id === templateId) ?? null;
+
+  /**
+   * Choosing a product with a photo makes this an image message.
+   *
+   * Leaving the type at "text" silently dropped the photo — the send went out
+   * as words with a link, which is not what picking a product means. The
+   * checkbox below can still turn it off deliberately.
+   */
+  const chooseProduct = (next: PickedProduct | null) => {
+    setProduct(next);
+    if (next?.image) {
+      setType("image");
+      setUseProductImage(false);
+      setMediaUrl("");
+    } else if (product?.image && !next) {
+      setType("text");
+    }
+  };
 
   const runPreview = async () => {
     setBusy("preview");
@@ -372,7 +393,7 @@ export function WhatsAppSendPanel({
 
   if (connected === false) {
     return (
-      <Card>
+      <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <MessageCircle className="size-4 text-muted-foreground" />
@@ -394,7 +415,7 @@ export function WhatsAppSendPanel({
   const running = progress?.status === "sending";
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
@@ -639,10 +660,13 @@ export function WhatsAppSendPanel({
 
             <div className="space-y-1.5">
               <Label>Campaign product</Label>
-              <ProductPicker selected={product} onSelect={setProduct} disabled={running} />
+              <ProductPicker selected={product} onSelect={chooseProduct} disabled={running} />
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Optional. Sends everyone this product instead of whatever each customer
-                bought most, and its photo overrides the per-customer one.
+                {product?.image
+                  ? "Its photo will be attached, with your caption and the buy link beneath."
+                  : product
+                    ? "This product has no photo in WooCommerce, so it sends as text with the link."
+                    : "Optional. Sends everyone this product instead of whatever each customer bought most."}
               </p>
             </div>
           </div>
@@ -665,7 +689,15 @@ export function WhatsAppSendPanel({
 
           {type !== "text" ? (
             <div className="space-y-2">
-              {type === "image" ? (
+              {type === "image" && product?.image ? (
+                <div className="rounded-md border bg-muted/40 p-2">
+                  <p className="text-xs font-medium">Sending {product.name}&apos;s photo</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                    Everyone receives this image with the caption below it. Remove the
+                    campaign product to send text instead.
+                  </p>
+                </div>
+              ) : type === "image" ? (
                 <label className="flex items-start gap-2 text-xs">
                   <input
                     type="checkbox"
@@ -691,7 +723,7 @@ export function WhatsAppSendPanel({
                 </label>
               ) : null}
 
-              {!useProductImage ? (
+              {!useProductImage && !product?.image ? (
                 <div className="space-y-1.5">
                   <Label htmlFor="wa-media">Media URL</Label>
                   <Input

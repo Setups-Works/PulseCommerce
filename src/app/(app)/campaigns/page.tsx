@@ -148,7 +148,7 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
         />
       </StatStrip>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {/* --- Filters ---------------------------------------------------- */}
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -355,6 +355,7 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
         </Card>
 
         <WhatsAppSendPanel
+          className="lg:col-span-2 xl:col-span-1"
           filter={filter}
           audienceSize={audience.length}
           allCustomers={records.map((c) => ({
@@ -366,7 +367,7 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
         />
 
         {/* --- Preview ---------------------------------------------------- */}
-        <div className="space-y-4 lg:col-span-2">
+        <div className="space-y-4 lg:col-span-3 xl:col-span-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <ChartCard title="Who is in this audience" description="By RFM segment">
               {summary.topSegments.length === 0 ? (

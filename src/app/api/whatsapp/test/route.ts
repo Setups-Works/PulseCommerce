@@ -92,32 +92,41 @@ export async function POST(request: Request) {
     const { message } = parsed.data;
 
     /*
-     * A test has no customer behind it, so template variables are filled with
-     * obvious stand-ins rather than left to collapse. Seeing "Sample Product"
-     * in the right place is what proves the template is wired up; an empty gap
-     * would look identical to a variable that silently does not resolve.
+     * A test has no customer behind it, so per-customer variables are filled
+     * with obvious stand-ins. Seeing "Sample Product" in position is what
+     * proves the template is wired up; an empty gap would look identical to a
+     * variable that silently fails to resolve.
+     *
+     * A campaign product and coupon are real, though, and are used as given —
+     * the point of a test is to see what will actually be sent, and swapping a
+     * chosen product for a placeholder would hide the thing being checked.
      */
     const body = renderTemplate(message.text, {
       name: "there",
-      product: "Sample Product",
-      product_url: "https://example.com/product",
-      category: "Sample Category",
+      product: message.product?.name || "Sample Product",
+      product_url: message.product?.url || "https://example.com/product",
+      category: message.product?.category || "Sample Category",
+      coupon: message.coupon?.code || "",
+      coupon_value: message.coupon?.value || "",
       last_order: "1 January",
       orders: "3",
       spend: "1,500",
       store: "your store",
     });
 
-    // useProductImage has no product to draw on here, so a test falls back to
-    // any explicit media URL, and otherwise to text.
-    const media = message.mediaUrl ?? null;
+    /*
+     * A chosen product's photo is what a real recipient would receive, so it
+     * takes precedence. useProductImage has no customer to draw on in a test,
+     * which is why a product has to be picked to see a photo here.
+     */
+    const media = message.product?.image || message.mediaUrl || null;
+    const asMedia = message.type !== "text" && Boolean(media);
 
-    const sent =
-      message.type === "image" && media
-        ? await client.sendImage(chatId, media, body)
-        : message.type === "video" && media
-          ? await client.sendVideo(chatId, media, body)
-          : await client.sendText(chatId, body);
+    const sent = asMedia
+      ? message.type === "video"
+        ? await client.sendVideo(chatId, media!, body)
+        : await client.sendImage(chatId, media!, body)
+      : await client.sendText(chatId, body);
 
     return NextResponse.json({ sent: true, ...sent });
   } catch (error) {
