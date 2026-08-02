@@ -1,7 +1,17 @@
 "use client";
 
-import { ArrowUp, Check, Loader2, Search, ShieldCheck, Sparkles, X } from "lucide-react";
-import { useRef, useState } from "react";
+import {
+  ArrowUp,
+  Check,
+  Loader2,
+  MessageSquarePlus,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Attachment,
@@ -59,6 +69,48 @@ interface Turn {
   settled?: Record<string, "approved" | "rejected">;
 }
 
+interface Chat {
+  id: string;
+  title: string;
+  turns: Turn[];
+  updatedAt: number;
+}
+
+/**
+ * Conversations live in the browser, not on the server.
+ *
+ * They contain the operator's questions about their own store and nothing the
+ * server needs; keeping them local means no extra copy of business data to
+ * store, secure or delete. The cost is that history does not follow you to
+ * another machine, which is the right trade for a single-operator tool.
+ */
+const STORE_KEY = "pulsecommerce-assistant-chats";
+const MAX_CHATS = 30;
+
+function loadChats(): Chat[] {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Chat[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveChats(chats: Chat[]) {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(chats.slice(0, MAX_CHATS)));
+  } catch {
+    // A full quota is not worth breaking the conversation over.
+  }
+}
+
+/** The first question, trimmed — what the person actually asked, not a summary. */
+function titleFrom(text: string): string {
+  const clean = text.trim().replace(/\s+/g, " ");
+  return clean.length > 48 ? `${clean.slice(0, 48)}…` : clean || "New chat";
+}
+
 const SUGGESTIONS = [
   "How did revenue do this month against last?",
   "Which customers are about to churn, and what are they worth?",
@@ -67,18 +119,71 @@ const SUGGESTIONS = [
 ];
 
 export default function AssistantPage() {
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
   const [approving, setApproving] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
+  useEffect(() => {
+    // Deferred a tick so the first state update is not synchronous in the
+    // effect body, which causes a cascading render.
+    const start = setTimeout(() => setChats(loadChats()), 0);
+    return () => clearTimeout(start);
+  }, []);
+
+  /** Writes the live conversation back into its chat, creating one if needed. */
+  const remember = useCallback(
+    (next: Turn[], id: string | null) => {
+      setChats((current) => {
+        const chatId = id ?? crypto.randomUUID();
+        const existing = current.find((c) => c.id === chatId);
+        const chat: Chat = {
+          id: chatId,
+          title: existing?.title ?? titleFrom(next[0]?.content ?? ""),
+          turns: next,
+          updatedAt: Date.now(),
+        };
+        // Most recent first, which is the order anyone looks for a chat in.
+        const updated = [chat, ...current.filter((c) => c.id !== chatId)];
+        saveChats(updated);
+        return updated;
+      });
+    },
+    [],
+  );
+
+  const openChat = (chat: Chat) => {
+    setActiveId(chat.id);
+    setTurns(chat.turns);
+  };
+
+  const newChat = () => {
+    setActiveId(null);
+    setTurns([]);
+    box.current?.focus();
+  };
+
+  const deleteChat = (id: string) => {
+    setChats((current) => {
+      const updated = current.filter((c) => c.id !== id);
+      saveChats(updated);
+      return updated;
+    });
+    if (activeId === id) newChat();
+  };
+
   const ask = async (text: string) => {
     const question = text.trim();
     if (!question || thinking) return;
 
     const next: Turn[] = [...turns, { role: "user", content: question }];
+    const id = activeId ?? crypto.randomUUID();
+    setActiveId(id);
     setTurns(next);
+    remember(next, id);
     setDraft("");
     setThinking(true);
 
@@ -93,7 +198,7 @@ export default function AssistantPage() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "The assistant could not answer.");
 
-      setTurns([
+      const answered: Turn[] = [
         ...next,
         {
           role: "assistant",
@@ -102,10 +207,17 @@ export default function AssistantPage() {
           proposals: body.proposals ?? [],
           settled: {},
         },
-      ]);
+      ];
+      setTurns(answered);
+      remember(answered, id);
     } catch (error) {
       const message = error instanceof Error ? error.message : "The assistant could not answer.";
-      setTurns([...next, { role: "assistant", content: message, toolsUsed: [], proposals: [] }]);
+      const failed: Turn[] = [
+        ...next,
+        { role: "assistant", content: message, toolsUsed: [], proposals: [] },
+      ];
+      setTurns(failed);
+      remember(failed, id);
     } finally {
       setThinking(false);
       box.current?.focus();

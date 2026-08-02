@@ -148,8 +148,22 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
         />
       </StatStrip>
 
-      <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="space-y-4">
+        {/* Full width, first: sending is what this page is for, and the
+            audience controls below feed it. */}
+        <WhatsAppSendPanel
+          filter={filter}
+          audienceSize={audience.length}
+          allCustomers={records.map((c) => ({
+            key: c.key,
+            name: c.name,
+            email: c.email,
+            orders: c.orders,
+          }))}
+        />
+
         {/* --- Filters ---------------------------------------------------- */}
+        <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Define the audience</CardTitle>
@@ -354,20 +368,8 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
           </CardContent>
         </Card>
 
-        <WhatsAppSendPanel
-          className="lg:col-span-2 xl:col-span-1"
-          filter={filter}
-          audienceSize={audience.length}
-          allCustomers={records.map((c) => ({
-            key: c.key,
-            name: c.name,
-            email: c.email,
-            orders: c.orders,
-          }))}
-        />
-
         {/* --- Preview ---------------------------------------------------- */}
-        <div className="space-y-4 lg:col-span-3 xl:col-span-2">
+        <div className="space-y-4 lg:col-span-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <ChartCard title="Who is in this audience" description="By RFM segment">
               {summary.topSegments.length === 0 ? (
@@ -417,6 +419,7 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
               />
             </CardContent>
           </Card>
+        </div>
         </div>
       </div>
     </>

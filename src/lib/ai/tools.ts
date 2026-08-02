@@ -158,6 +158,24 @@ export const ACTION_TOOLS = [
     }),
   },
   {
+    name: "propose_customer_batch",
+    description:
+      "Propose messaging a named list of customers you have already read — e.g. the " +
+      "top customers from get_top_customers. Every recipient is listed on the approval " +
+      "card by name and approved together. Use for 'message my top 5 customers'. " +
+      "Maximum 25; this is not a way to reach the whole customer base.",
+    schema: z.object({
+      customers: z
+        .array(z.object({ customerKey: z.string(), name: z.string() }))
+        .max(25)
+        .describe("From get_top_customers. Keys, never phone numbers."),
+      text: z.string().describe("The message body, the same for everyone."),
+      productUrl: z.string().optional().describe("A buy link from find_product."),
+      imageUrl: z.string().optional().describe("A photo URL from find_product."),
+      reason: z.string().describe("Who these are and why, for the approval card."),
+    }),
+  },
+  {
     name: "propose_menu_toggle",
     description:
       "Propose turning the menu bot on or off.",
@@ -226,5 +244,7 @@ PROPOSING
   then say in one sentence what it will do. Never claim it is done — a person must
   approve it.
 - Call get_audience_size before quoting any audience number.
+- To message several named customers, call get_top_customers first, then
+  propose_customer_batch with the customerKeys it returned. Never guess a key.
 
 If no store is connected or the gateway is not linked, say which and stop.`;
