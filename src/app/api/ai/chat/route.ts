@@ -27,10 +27,21 @@ export const maxDuration = 120;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 /**
- * Chosen for tool calling rather than prose. It is the largest Groq model that
- * lists `tools` among its supported features, which is the whole job here.
+ * Chosen for tool calling rather than prose, and overridable.
+ *
+ * gpt-oss-120b, not a Llama model, and the reason is tool calling rather than
+ * prose. With fifteen tools in play the Llama models intermittently emit their
+ * *text* call format instead of a real one —
+ * `<function=find_product{"query": "…"}</function>` — which Groq rejects
+ * outright as "Failed to call a function". gpt-oss produced a clean call every
+ * time under the same load.
+ *
+ * The fallback exists because Groq caps each model separately per day, and a
+ * day of real use reaches those caps. A plainer answer beats no answer, and the
+ * response reports which model gave it so nobody wonders why quality moved.
  */
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+const FALLBACK_MODEL = process.env.GROQ_FALLBACK_MODEL || "llama-3.3-70b-versatile";
 
 /** Enough hops to read two or three things and then answer. */
 const MAX_TOOL_ROUNDS = 4;
@@ -42,7 +53,7 @@ const MAX_TOOL_ROUNDS = 4;
  * question. Results are trimmed to this before going back into the
  * conversation; the model needs enough to answer, not the whole table.
  */
-const MAX_RESULT_CHARS = 2400;
+const MAX_RESULT_CHARS = 1600;
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant", "tool"]),
@@ -101,9 +112,12 @@ export async function POST(request: Request) {
   /** Everything the model looked at, so the UI can show its working. */
   const used: { name: string; input: unknown; result: unknown }[] = [];
 
+  /** Swapped to the fallback for the rest of the turn once quota is hit. */
+  const model = { name: MODEL, degraded: false };
+
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-      const reply = await callGroq(key, conversation);
+      const reply = await callGroq(key, conversation, model);
       const calls = (reply.tool_calls ?? []) as ToolCall[];
 
       if (calls.length === 0) {
@@ -111,6 +125,8 @@ export async function POST(request: Request) {
           message: typeof reply.content === "string" ? reply.content : "",
           toolsUsed: used,
           proposals: [],
+          model: model.name,
+          degraded: model.degraded,
         });
       }
 
@@ -125,11 +141,12 @@ export async function POST(request: Request) {
         return NextResponse.json({
           message: typeof reply.content === "string" ? reply.content : "",
           toolsUsed: used,
-          proposals: actions.map((c) => ({
-            id: c.id,
-            tool: c.function.name,
-            input: safeParse(c.function.arguments),
-          })),
+          proposals: actions.map((c) => {
+            const { input, dropped } = vetUrls(safeParse(c.function.arguments), used);
+            return { id: c.id, tool: c.function.name, input, droppedUrls: dropped };
+          }),
+          model: model.name,
+          degraded: model.degraded,
         });
       }
 
@@ -168,6 +185,7 @@ export async function POST(request: Request) {
 async function callGroq(
   key: string,
   messages: Record<string, unknown>[],
+  model: { name: string; degraded: boolean },
 ): Promise<{ content?: string | null; tool_calls?: unknown }> {
   /*
    * Rate limits are the normal case on Groq's free tier, not an exception: a
@@ -182,29 +200,43 @@ async function callGroq(
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: MODEL,
+        model: model.name,
         messages,
         tools: toolSpecs(),
         tool_choice: "auto",
         // Low, deliberately. This answers questions about a real business from
         // real figures; inventiveness is not a quality anyone wants here.
         temperature: 0.2,
-        max_tokens: 1200,
+        max_tokens: 700,
       }),
       cache: "no-store",
     });
 
     if (response.status !== 429) break;
 
+    const detail = await response.clone().text().catch(() => "");
+
+    /*
+     * A daily cap is not something waiting solves. Drop to the smaller model
+     * once and carry on; only a short per-minute cooldown is worth sleeping
+     * through.
+     */
+    if (/per day|TPD/i.test(detail) && model.name !== FALLBACK_MODEL) {
+      model.name = FALLBACK_MODEL;
+      model.degraded = true;
+      continue;
+    }
+
     const wait = retryAfterMs(response);
-    // Only worth waiting for a short cooldown. A minute-long one is a quota
-    // problem, and telling the operator that beats silently hanging.
     if (wait > 12_000 || attempt === 2) break;
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
 
   if (!response || !response.ok) {
     const detail = response ? await response.text().catch(() => "") : "";
+    // Logged in full: Groq's failed_generation says exactly which tool call it
+    // could not produce, and that never survives into a user-facing message.
+    console.error("[groq]", response?.status, detail.slice(0, 2000));
     throw new Error(describeGroqError(response?.status ?? 0, detail));
   }
 
@@ -229,11 +261,19 @@ function retryAfterMs(response: Response): number {
 function describeGroqError(status: number, detail: string): string {
   if (status === 401) return "Groq rejected the API key. Check GROQ_API_KEY.";
   if (status === 429) {
-    return (
-      "Groq's rate limit for this key is still in effect after retrying. " +
-      "Free-tier keys allow only a few requests a minute — wait a minute, or " +
-      "use a key with a higher limit."
-    );
+    /*
+     * Groq's own message distinguishes a per-minute cooldown from an exhausted
+     * daily quota, and says how much is left. Paraphrasing it lost that: an
+     * earlier version told people to "wait a minute" when the real answer was
+     * "this key is done until tomorrow".
+     */
+    try {
+      const parsed = JSON.parse(detail) as { error?: { message?: string } };
+      if (parsed.error?.message) return `Groq rate limit — ${parsed.error.message}`;
+    } catch {
+      // Fall through.
+    }
+    return "Groq is rate-limiting this key. Wait a moment and try again.";
   }
 
   try {
@@ -255,6 +295,39 @@ function toolSpecs() {
       parameters: z.toJSONSchema(tool.schema, { io: "input" }),
     },
   }));
+}
+
+/**
+ * Removes any URL the model did not get from a tool.
+ *
+ * Enforced here rather than asked for in the prompt, because asking does not
+ * work: told plainly never to invent a link, the smaller model still proposed
+ * "https://example.com/manjistha-powder.jpg" without calling find_product at
+ * all. A prompt is a request; this is a rule.
+ *
+ * Anything not present in this turn's tool results is dropped, and the drop is
+ * reported so the UI can say a link was removed rather than quietly shipping a
+ * message that is missing the thing it was about.
+ */
+function vetUrls(
+  input: Record<string, unknown>,
+  used: { result: unknown }[],
+): { input: Record<string, unknown>; dropped: string[] } {
+  const seen = JSON.stringify(used.map((u) => u.result));
+  const dropped: string[] = [];
+  const vetted = { ...input };
+
+  for (const field of ["imageUrl", "productUrl"]) {
+    const value = vetted[field];
+    if (typeof value !== "string" || !value) continue;
+
+    if (!seen.includes(value)) {
+      dropped.push(value);
+      delete vetted[field];
+    }
+  }
+
+  return { input: vetted, dropped };
 }
 
 /**

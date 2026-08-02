@@ -32,9 +32,9 @@ export async function runReadTool(name: string, input: Json): Promise<Json> {
       case "get_customer_segments":
         return await segments();
       case "get_top_customers":
-        return await topCustomers(num(input.limit, 5, 25));
+        return await topCustomers(sizeOf(input.size), input.sortBy === "orders");
       case "get_products":
-        return await products(num(input.limit, 5, 25), input.slowMovers === true);
+        return await products(sizeOf(input.size), input.rank === "worst");
       case "find_product":
         return await findProduct(String(input.query ?? ""));
       case "get_inventory_risk":
@@ -63,9 +63,11 @@ export async function runReadTool(name: string, input: Json): Promise<Json> {
   }
 }
 
-function num(value: unknown, fallback: number, max: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), max) : fallback;
+/** Enum sizes, because a model gets "few" right far more reliably than 5. */
+function sizeOf(size: unknown): number {
+  if (size === "one") return 1;
+  if (size === "many") return 25;
+  return 5;
 }
 
 async function withAnalytics(range?: { from?: string; to?: string }) {
@@ -123,10 +125,12 @@ async function segments(): Promise<Json> {
   };
 }
 
-async function topCustomers(limit: number): Promise<Json> {
+async function topCustomers(limit: number, byOrders = false): Promise<Json> {
   const a = await withAnalytics();
+  // "Most valuable" and "orders most often" are usually different people, and
+  // answering one when asked the other is the kind of wrong that sounds right.
   const rows = [...a.customers.records]
-    .sort((x, y) => y.netRevenue - x.netRevenue)
+    .sort((x, y) => (byOrders ? y.orders - x.orders : y.netRevenue - x.netRevenue))
     .slice(0, limit)
     // No email, no phone. The model gets what a leaderboard shows and nothing
     // that identifies a person beyond their name.
@@ -145,7 +149,7 @@ async function topCustomers(limit: number): Promise<Json> {
       recencyDays: c.recencyDays,
     }));
 
-  return { currency: a.meta.currency, customers: rows };
+  return { currency: a.meta.currency, rankedBy: byOrders ? "orders" : "spend", customers: rows };
 }
 
 async function products(limit: number, slowMovers: boolean): Promise<Json> {

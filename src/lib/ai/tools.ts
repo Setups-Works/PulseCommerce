@@ -1,16 +1,18 @@
 import { z } from "zod";
 
 /*
- * Models routinely send "10" where a number was asked for, and Groq validates
- * the call against this schema before it ever reaches us — so a strict number
- * type turns a perfectly good tool call into "expected number, but got string"
- * and the turn dies. These accept either and the executor coerces, which costs
- * nothing and removes a whole class of failure.
+ * No numeric or boolean parameters anywhere in this file, deliberately.
+ *
+ * Groq validates each tool call against these schemas before we ever see it.
+ * A strict `number` fails when the model sends "10" as text, which it often
+ * does. Widening to a union of number-or-string fixed that and broke something
+ * worse: the model started failing to produce a call at all ("Failed to call a
+ * function"), because anyOf schemas confuse it.
+ *
+ * So the ambiguity is removed rather than tolerated. Counts have fixed sensible
+ * defaults, choices are enums, and the few genuine numbers are strings that the
+ * executor coerces. Strings and enums are the two shapes every model gets right.
  */
-const loose = {
-  number: () => z.union([z.number(), z.string()]),
-  boolean: () => z.union([z.boolean(), z.string()]),
-};
 
 /**
  * What the assistant is allowed to do.
@@ -37,10 +39,8 @@ export const READ_TOOLS = [
   {
     name: "get_analytics",
     description:
-      "Headline metrics for the connected store: net revenue, orders, average order " +
-      "value, customer count, repeat rate, cancellation rate, and the change against " +
-      "the previous equal-length period. Use this for any question about how the " +
-      "business is performing.",
+      "Store KPIs: revenue, orders, AOV, customers, repeat rate, refunds, each with " +
+      "its previous-period comparison. Use for any 'how are we doing' question.",
     schema: z.object({
       from: z.string().optional().describe("ISO date, inclusive. Omit for the default window."),
       to: z.string().optional().describe("ISO date, inclusive."),
@@ -49,37 +49,35 @@ export const READ_TOOLS = [
   {
     name: "get_customer_segments",
     description:
-      "RFM segments and value tiers with how many customers and how much revenue sit " +
-      "in each. Use for questions about who the customers are, who is at risk, or " +
-      "where the revenue is concentrated.",
+      "RFM segments and value tiers: customers and revenue in each.",
     schema: z.object({}),
   },
   {
     name: "get_top_customers",
     description:
-      "The highest-value customers, with orders, spend, segment and churn risk. Never " +
-      "returns phone numbers or email addresses.",
+      "Leading customers with orders, spend, segment, churn risk and a customerKey. " +
+      "sortBy=spend for 'best/most valuable'; sortBy=orders for 'most ordered/buys " +
+      "most often' — usually different people. No phone numbers or emails.",
     schema: z.object({
-      limit: loose.number().optional().describe("How many to return. Up to 50."),
+      sortBy: z.enum(["spend", "orders"]).optional().describe("Ranking. Defaults to spend."),
+      size: z.enum(["one", "few", "many"]).optional().describe("one=1, few=5, many=25."),
     }),
   },
   {
     name: "get_products",
     description:
-      "Product performance: revenue, units, refund rate and ABC class per product, " +
-      "best sellers and slow movers.",
+      "Product performance: revenue, units, refund rate, ABC class.",
     schema: z.object({
-      limit: loose.number().optional().describe("How many to return. Up to 50."),
-      slowMovers: loose.boolean().optional().describe("Return the worst performers instead."),
+      rank: z.enum(["best", "worst"]).optional().describe("Best sellers or slow movers."),
+      size: z.enum(["one", "few", "many"]).optional().describe("one=1, few=5, many=25."),
     }),
   },
   {
     name: "find_product",
     description:
-      "Look up a real product in the catalogue by name, SKU or category. Returns its " +
-      "exact name, its buy link and its photo URL. You MUST call this before " +
-      "proposing any message that mentions a product, links to one, or attaches an " +
-      "image — the URLs it returns are the only real ones you have.",
+      "Find a real product by name, SKU or category; returns its buy link and photo " +
+      "URL. MUST be called before proposing any message that names, links to or " +
+      "pictures a product. Its URLs are the only real ones you have.",
     schema: z.object({
       query: z.string().describe("Part of the product name, SKU or category."),
     }),
@@ -87,43 +85,39 @@ export const READ_TOOLS = [
   {
     name: "get_inventory_risk",
     description:
-      "Products that are out of stock, critical or low, with days of cover and the " +
-      "revenue at risk behind each.",
+      "Products out of stock, critical or low, with days of cover.",
     schema: z.object({}),
   },
   {
     name: "get_audience_size",
     description:
-      "How many customers match a set of filters, and how many of those are reachable " +
-      "on WhatsApp. Resolves the real list and sends nothing. Use this before " +
-      "proposing any campaign, so the numbers quoted are real.",
+      "How many customers match filters and how many are reachable on WhatsApp. " +
+      "Sends nothing. Call before quoting any audience number.",
     schema: z.object({
       segments: z.array(z.string()).optional().describe("RFM segment names."),
       tiers: z.array(z.string()).optional().describe("VIP, High, Mid, Low, One-time."),
-      minOrders: loose.number().nullish(),
-      minSpend: loose.number().nullish(),
-      churnRiskMin: loose.number().nullish().describe("0 to 1."),
-      recencyMin: loose.number().nullish().describe("Days since last order, lower bound."),
+      minOrders: z.string().optional().describe('A whole number as text, e.g. "3".'),
+      minSpend: z.string().optional().describe('A number as text, e.g. "5000".'),
+      churnRiskMin: z.string().optional().describe('0 to 1 as text, e.g. "0.65".'),
+      recencyMin: z.string().optional().describe('Days since last order, as text.'),
     }),
   },
   {
     name: "get_flows",
     description:
-      "Every automated flow: its name, status, step count, how many customers are in " +
-      "it, and what it has sent.",
+      "Automated flows: name, id, status, steps, how many are in each.",
     schema: z.object({}),
   },
   {
     name: "get_menu",
     description:
-      "The inbound menu bot: its trigger word, greeting, options, and whether it is " +
-      "currently answering customers.",
+      "The inbound menu bot: trigger, greeting, options, and whether it is on.",
     schema: z.object({}),
   },
   {
     name: "get_whatsapp_status",
     description:
-      "Whether the WhatsApp gateway is connected and its session is able to send.",
+      "Whether the WhatsApp gateway is connected and able to send.",
     schema: z.object({}),
   },
 ] as const;
@@ -139,9 +133,8 @@ export const ACTION_TOOLS = [
   {
     name: "propose_test_message",
     description:
-      "Propose sending one WhatsApp message to a single phone number typed by the " +
-      "operator, for testing. Cannot reach a customer list. Use this when asked to " +
-      "'send me' or 'test' a message.",
+      "Propose sending one message to a phone number the operator typed. For tests. " +
+      "Cannot reach a customer list.",
     schema: z.object({
       phone: z.string().describe("The number to send to, as the operator gave it."),
       text: z.string().describe("The message body. Template variables are not resolved here."),
@@ -154,10 +147,8 @@ export const ACTION_TOOLS = [
   {
     name: "propose_customer_message",
     description:
-      "Propose sending a WhatsApp message to ONE named customer, identified by the " +
-      "customerKey returned by get_top_customers. Their phone number is resolved on " +
-      "the server at send time and is never shown to you. Use for 'message my top " +
-      "customer' or 'ask this customer to reorder'.",
+      "Propose messaging ONE customer by the customerKey from get_top_customers. " +
+      "Their number is resolved server-side and never shown to you.",
     schema: z.object({
       customerKey: z.string().describe("The key from get_top_customers. Not a phone number."),
       customerName: z.string().describe("Their name, for the approval card."),
@@ -169,8 +160,7 @@ export const ACTION_TOOLS = [
   {
     name: "propose_menu_toggle",
     description:
-      "Propose turning the inbound menu bot on or off. Turning it on means every " +
-      "customer who sends the trigger word gets an automatic reply.",
+      "Propose turning the menu bot on or off.",
     schema: z.object({
       enabled: z.boolean(),
       reason: z.string().describe("Why, in one sentence, for the approval card."),
@@ -179,8 +169,7 @@ export const ACTION_TOOLS = [
   {
     name: "propose_flow_status",
     description:
-      "Propose starting, pausing or drafting an existing flow. Starting a flow means " +
-      "it begins messaging everyone who matches its entry audience.",
+      "Propose starting, pausing or drafting an existing flow.",
     schema: z.object({
       flowId: z.string(),
       status: z.enum(["active", "paused", "draft"]),
@@ -190,8 +179,7 @@ export const ACTION_TOOLS = [
   {
     name: "propose_menu_update",
     description:
-      "Propose a new menu for the inbound bot: trigger word, greeting and options. " +
-      "Use when asked to write or change what customers see when they message first.",
+      "Propose a new menu: trigger, greeting and options.",
     schema: z.object({
       trigger: z.string(),
       greeting: z.string(),
@@ -213,38 +201,30 @@ export const ACTION_TOOL_NAMES: string[] = ACTION_TOOLS.map((t) => t.name);
  * Written to be specific about the two things that go wrong with an assistant
  * over a real business: inventing numbers, and being agreeable about sending.
  */
-export const SYSTEM_PROMPT = `You are the assistant inside PulseCommerce, an analytics and WhatsApp
-platform for a WooCommerce store. You are talking to the person who runs the store.
+export const SYSTEM_PROMPT = `You are the assistant inside PulseCommerce, an analytics and WhatsApp platform for a
+WooCommerce store. You are talking to the person who runs the store.
 
-HOW YOU ANSWER
-- Never state a figure you have not read from a tool in this conversation. If you
-  do not have it, call the tool. If a tool cannot give it, say so plainly.
-- Prefer one concrete number with its context over a paragraph of hedging.
-- Currency is Indian rupees. Write large numbers readably (₹70.7L, not 7070000).
-- Be brief. This is a working tool, not a chat companion.
+ANSWERING
+- Never state a figure you have not read from a tool in this conversation. Call the
+  tool, or say you cannot get it.
+- Currency is rupees; write large numbers readably (₹70.7L). Be brief.
 
-URLS AND PRODUCTS
-- Never write a URL you did not receive from a tool. No example.com, no guessed
-  product links, no placeholder image addresses. If you want to mention or
-  attach a product, call find_product first and use exactly what it returns.
-- If find_product returns nothing, say the product was not found and propose the
-  message without a link or image rather than inventing either.
+URLS
+- Never write a URL a tool did not give you. No example.com, no guessed links or
+  image addresses. Call find_product first and use exactly what it returns; if it
+  finds nothing, say so and propose the message without a link or image.
 
-WHAT YOU MUST NOT DO
-- Do not invent customer names, phone numbers, order counts or revenue.
-- You cannot send to an audience. There is no tool for it and you must not imply
-  you have one. If asked to "message all customers", explain that a broadcast is
-  started from the Campaigns screen by a person, and offer to draft the message
-  and check the audience size instead.
-- Phone numbers are never available to you. Do not claim to know one.
+LIMITS
+- You cannot send to an audience and have no tool for it. If asked to message all
+  customers, say a broadcast starts from the Campaigns screen, and offer to draft
+  the message and check the audience size instead.
+- You never see phone numbers. Address a customer by their customerKey.
+- Do not invent customer names, orders or revenue.
 
-PROPOSING ACTIONS
-- Anything that changes something or sends a message is a proposal. Call the
-  matching propose_* tool, then tell the operator in one sentence what you have
-  proposed and what it will do. Do not claim it is done — a person still has to
+PROPOSING
+- Anything that sends or changes something is a proposal: call the propose_* tool,
+  then say in one sentence what it will do. Never claim it is done — a person must
   approve it.
-- Before proposing anything involving an audience, call get_audience_size so the
-  numbers you quote are real ones.
+- Call get_audience_size before quoting any audience number.
 
-If the store is not connected, or the gateway is not linked, say which and stop
-rather than guessing.`;
+If no store is connected or the gateway is not linked, say which and stop.`;

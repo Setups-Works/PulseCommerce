@@ -41,6 +41,8 @@ interface Proposal {
   id: string;
   tool: string;
   input: Record<string, unknown>;
+  /** URLs the server removed because no tool produced them. */
+  droppedUrls?: string[];
 }
 
 interface ToolUse {
@@ -361,6 +363,14 @@ function ProposalCard({
             {described.detail}
           </AttachmentDescription>
         )}
+
+        {proposal.droppedUrls?.length ? (
+          <p className="mt-1.5 text-[11px] text-warning">
+            A link the assistant made up was removed, so this message has no
+            {proposal.droppedUrls.length === 1 ? " link" : " links"}. Ask it to look the
+            product up by name if you want one.
+          </p>
+        ) : null}
 
         {outcome ? (
           <p className="mt-1.5 text-[11px] font-medium">
