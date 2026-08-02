@@ -65,6 +65,11 @@ export default defineConfig({
           KV_REST_API_TOKEN: "",
           UPSTASH_REDIS_REST_URL: "",
           UPSTASH_REDIS_REST_TOKEN: "",
+          // Same reasoning for the assistant: a real key here would spend the
+          // developer's Groq credit on every test run and, worse, make the
+          // "unavailable without a key" test pass or fail depending on whose
+          // machine it ran on.
+          GROQ_API_KEY: "",
           WHATSAPP_API_URL: "",
           WHATSAPP_API_KEY: "",
           APP_PASSWORD: "",
