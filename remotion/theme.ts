@@ -1,24 +1,20 @@
 /**
- * The video's palette, taken from the application's own tokens.
+ * Monochrome, deliberately.
  *
- * `globals.css` states these in oklch, which no video encoder understands, so
- * they are written here as the hex the tokens were converted from — the same
- * Setups Works blue the interface uses. Keeping the source in the comment means
- * a future change to the theme has an obvious counterpart here rather than the
- * video quietly drifting away from the product it advertises.
+ * A film that is only black, white and grey cannot be undermined by a bad
+ * screen or a compressed feed, and it reads as a product rather than a poster.
+ * Emphasis has to come from weight, scale and motion instead of from colour,
+ * which is a harder discipline and a better result.
  */
 export const theme = {
-  /** --primary, light mode: oklch(0.552 0.206 263.7) */
-  brand: "#2f66e8",
-  /** --primary, dark mode: oklch(0.639 0.179 262.4) */
-  brandLight: "#4d86f7",
-  brandDeep: "#1e3670",
-  /** --foreground: oklch(0.145 0 0) */
-  ink: "#0d1017",
-  muted: "#616b7d",
-  line: "#e2e8f2",
+  ink: "#0a0a0b",
+  /** Panel surfaces, lifted off the black by a few percent. */
+  raise: "rgba(255,255,255,.06)",
+  edge: "rgba(255,255,255,.16)",
   paper: "#ffffff",
-  tint: "#f5f8ff",
+  /** Body copy on black. Never pure white — it strobes at this size. */
+  soft: "#c9cbd1",
+  muted: "#8b8f99",
 } as const;
 
 /** The interface is set in Geist; the video follows it. */
