@@ -53,6 +53,8 @@ never reach a third-party messaging service.
 - [Data pipeline](#data-pipeline)
 - [Broadcast pipeline](#broadcast-pipeline)
 - [Flow pipeline](#flow-pipeline)
+- [Assistant pipeline](#assistant-pipeline)
+- [Inbound pipeline](#inbound-pipeline)
 - [Quick start](#quick-start)
 - [Connecting a store](#connecting-a-store)
 - [WhatsApp campaigns](#whatsapp-campaigns)
@@ -528,7 +530,8 @@ pleasant to use.
 
 ## Architecture
 
-Three systems, each on infrastructure you control, and one of them is this app.
+Four systems. Three run on infrastructure you control; the fourth is a model
+provider that never sees a customer.
 
 ```mermaid
 graph TB
@@ -554,8 +557,10 @@ graph TB
         LIB --- SSR
     end
 
-    KV[("Redis or disk<br/>snapshot chunks<br/>store config · gateway config<br/>broadcast jobs · opt-outs")]
+    KV[("Redis or disk<br/>snapshot chunks · store config<br/>gateway config · broadcast jobs<br/>flow state · opt-outs")]
 
+    CRON["Vercel Cron<br/>daily"]
+    GROQ(["Groq<br/>counts and names only"])
     BROWSER["Browser"]
     WA(["WhatsApp"])
     CUST(["Customer phones"])
@@ -564,7 +569,10 @@ graph TB
     ROUTES -->|"POST coupons<br/>the only write"| WC
     ROUTES <-->|"read + write"| KV
     ROUTES -->|"X-API-Key over HTTPS"| OWA
+    ROUTES -->|"tool results:<br/>no phones, no emails"| GROQ
+    CRON -->|"bearer CRON_SECRET"| ROUTES
     ENGINE <-->|"persistent socket"| WA
+    OWA -->|"plugins answer inbound"| WA
     WA --> CUST
     SSR --> BROWSER
     BROWSER -->|"filters, never numbers"| ROUTES
@@ -576,6 +584,12 @@ Two properties hold by construction rather than by care:
   the socket. Move the gateway and nothing here changes but a URL.
 - **The browser never receives a phone number.** The analytics payload carries a
   `hasPhone` boolean. Numbers are resolved server-side at send time.
+- **The model never receives one either.** Its tools return counts, names and
+  keys; a customer is addressed by key and the number is resolved at send time,
+  so nothing it can read could appear in something it writes.
+- **Nothing waits in a request.** A broadcast paces itself over hours and a flow
+  over days. Both keep their position in storage and are advanced by ticks — one
+  driven by the browser, one by cron.
 
 ### Inside the app
 
@@ -588,13 +602,17 @@ graph LR
         R4["auth/woo"]
         R5["settings"]
         R6["whatsapp/*"]
+        R7["whatsapp/flows · menu"]
+        R8["ai/chat"]
+        R9["cron/flows"]
     end
 
     subgraph libs["lib"]
         W["woo/<br/>client · slim<br/>attribution · entities"]
         S["store/<br/>config · kv<br/>snapshot · snapshot-cache"]
         A["analytics/<br/>engine · customers · cohorts<br/>acquisition · products<br/>inventory · operations"]
-        M["whatsapp/<br/>client · phone · templates<br/>recipients · broadcast<br/>opt-out · config"]
+        M["whatsapp/<br/>client · phone · templates<br/>recipients · broadcast<br/>flows · menu · opt-out · config"]
+        AI["ai/<br/>tools · execute"]
         E["export/<br/>csv · xlsx · pdf"]
         AU["auth/<br/>session · pending"]
     end
@@ -864,6 +882,109 @@ state nobody can reason about.
 **The cron route is closed when its secret is unset.** `CRON_SECRET` missing
 returns 503 rather than running open — the failure mode of a missing environment
 variable must never be "anyone on the internet can trigger the sends".
+
+---
+
+## Assistant pipeline
+
+The loop is the safety model. Reads run; actions stop and wait for a person.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant P as PulseCommerce
+    participant G as Groq
+    participant K as Snapshot
+    participant W as Gateway
+
+    B->>P: question
+    P->>P: pick the tools this question could need (max 8)
+    P->>G: question + those schemas
+
+    loop up to 4 rounds
+        G-->>P: tool call
+        alt a read
+            P->>K: run it
+            K-->>P: counts and names, no phones
+            P->>P: truncate to 1600 chars
+            P->>G: result, loop continues
+        else an action
+            P-->>B: proposal, unexecuted
+            Note over P,B: the loop ends here
+        end
+    end
+
+    G-->>P: answer
+    P-->>B: answer + what it read
+
+    Note over B: a person reads the card
+    B->>P: approve
+    P->>W: the ordinary endpoint, with its own guards
+```
+
+**The model holds no power of its own.** An action tool is never executed
+server-side. It comes back as a card, and approving it calls the same REST
+endpoint the matching screen calls — so the assistant is a route to those
+endpoints, not a way around the checks they already have.
+
+**A proposal ends the turn even if reads were requested alongside it.** Running
+them and looping would let the model revise or withdraw its own proposal before
+anyone saw it, and the point is that a person sees exactly what was proposed.
+
+**Invented URLs are stripped, not merely discouraged.** Any `imageUrl` or
+`productUrl` absent from this turn's tool results is removed before the proposal
+is shown, and the removal is stated on the card. Told plainly not to invent a
+link, a smaller model still proposed `https://example.com/…` without calling the
+catalogue at all — a prompt is a request, this is a rule.
+
+**Three things keep a question inside a metered budget:** only relevant tools are
+sent, results are truncated with the truncation announced, and optional
+parameters accept `null` (widened via `type`, never `anyOf` — unions made the
+model fail to produce a call at all).
+
+---
+
+## Inbound pipeline
+
+Everything else here reaches out. This is the one path that starts with the
+customer, and it does not run in this application at all.
+
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant W as WhatsApp
+    participant G as Gateway
+    participant PL as chat-flow plugin
+    participant S as Plugin storage
+
+    C->>W: "hi"
+    W->>G: inbound message
+    G->>PL: message:received hook
+
+    alt exactly the trigger word
+        PL->>S: start this chat at the menu root
+        PL-->>C: greeting + numbered options
+    else a reply while a menu is open
+        PL->>S: read where this chat is
+        S-->>PL: current node
+        PL-->>C: that option's reply, or the next submenu
+    else anything else
+        PL-->>G: ignored, left for a person
+    end
+
+    Note over S: state expires after 15 minutes
+```
+
+**It runs on the gateway, not here**, which is why it answers at three in the
+morning whether or not this application is running.
+
+**The trigger is matched exactly** — `input.toLowerCase() === trigger` — so `hi`
+opens the menu while `this` and `hi there` do not. Left empty it matches *any*
+text message, which on a live business line means every customer gets a menu
+instead of a person; the editor warns rather than quietly accepting it.
+
+**State expires after fifteen minutes**, so a stray `1` the next day is never
+read as a menu choice.
 
 ---
 
