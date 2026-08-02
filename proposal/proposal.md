@@ -24,6 +24,12 @@ party, and without anyone modelling a database first. It also closes the loop:
 an audience identified in the platform can be messaged on WhatsApp from the
 same screen, through a gateway Nature's Joy owns.
 
+That messaging need not be manual. A sequence can be set to run itself over
+days — a reminder, then a discount, then a last note — with customers joining
+as they qualify and leaving the moment they buy. In the other direction, a
+customer who writes to the business out of hours is answered straight away
+rather than waiting until morning.
+
 This document sets out the proposed scope, how the platform connects to your
 store, what is delivered, and commercial terms. Two routes are offered: ₹35,000
 once with a private WhatsApp gateway and no per-message cost, or ₹25,000 once
@@ -241,9 +247,10 @@ discounts used, what they buy, order value over time, and complete order history
   is the number that matters for paid acquisition
 - **Coupon performance**, reporting revenue returned per unit of discount given
 
-## 6. WhatsApp campaigns
+## 6. WhatsApp campaigns and automated flows
 
-Reaching an audience directly, from the same place it is defined.
+Reaching an audience directly, from the same place it is defined — once, or as a
+sequence that runs itself over days.
 
 - Send a **text, image, or video** message to any audience built above
 - **Nine ready-made templates**, each written for a specific job: reorder the
@@ -394,10 +401,10 @@ previous message actually sent, so a delayed run never bunches two messages
 together. A run that is missed delays a step; it cannot lose one, and it cannot
 send one twice.
 
-## 7. Shared WhatsApp inbox
+## 7. Shared WhatsApp inbox and automatic replies
 
 Replies to a campaign land somewhere the business can see them, alongside who
-sent them.
+sent them — and a customer who writes out of hours is answered immediately.
 
 - Every conversation shown with **the customer behind the number**, not a bare
   phone number, together with how many times they have ordered and what they
@@ -561,7 +568,8 @@ removes the stored key and every cached order.
 ---
 
 # Deliverables
-1. **The platform**, covering the thirteen modules above.
+1. **The platform**, covering the thirteen modules above, including automated
+   multi-step flows and the out-of-hours menu bot.
 2. **Source code**, in a repository Nature's Joy owns.
 3. **Deployment** to the agreed hosting, configured and verified against the live
    store.
