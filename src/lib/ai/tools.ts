@@ -202,6 +202,10 @@ export const ACTION_TOOLS = [
         ),
       from: z.string().optional().describe("ISO date. Omit for the current window."),
       to: z.string().optional().describe("ISO date."),
+      limit: z
+        .string()
+        .optional()
+        .describe('Keep only the leading rows, as text — "10" for "my top 10 customers". Omit for everything.'),
       reason: z.string().describe("What the report covers, for the approval card."),
     }),
   },

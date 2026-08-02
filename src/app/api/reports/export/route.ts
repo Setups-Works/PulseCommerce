@@ -20,6 +20,12 @@ const schema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   granularity: z.enum(["day", "week", "month"]).optional(),
+  /**
+   * Keeps only the leading rows of each report — "the top 10 customers" rather
+   * than every customer. Applied after the sheet is built, so the ordering is
+   * whatever that report already sorts by and the cap cannot change the ranking.
+   */
+  limit: z.number().int().min(1).max(1000).optional(),
 });
 
 export async function POST(request: Request) {
@@ -35,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues.map((i) => i.message).join(" ") }, { status: 422 });
   }
 
-  const { format, reports, from, to, granularity } = parsed.data;
+  const { format, reports, from, to, granularity, limit } = parsed.data;
 
   try {
     const snapshot = await loadSnapshot();
@@ -48,7 +54,21 @@ export async function POST(request: Request) {
       includeHistory: true,
     });
 
-    const sheets: Sheet[] = (reports as ReportId[]).map((id) => buildSheet(id, result));
+    const sheets: Sheet[] = (reports as ReportId[]).map((id) => {
+      const sheet = buildSheet(id, result);
+      if (!limit || sheet.rows.length <= limit) return sheet;
+
+      /*
+       * Truncated, and the description says so. A ten-row report that reads
+       * like the whole customer base is worse than no report: someone totals
+       * the column and quotes a figure for the business.
+       */
+      return {
+        ...sheet,
+        description: `${sheet.description} Showing the top ${limit} of ${sheet.rows.length.toLocaleString()}.`,
+        rows: sheet.rows.slice(0, limit),
+      };
+    });
     const stamp = `${result.meta.range.from}_${result.meta.range.to}`;
     const slug = slugify(result.meta.storeName);
     const single = sheets.length === 1 ? sheets[0].id : "analytics";

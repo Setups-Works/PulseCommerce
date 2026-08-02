@@ -609,7 +609,9 @@ function describe(p: Proposal): {
       const sections = Array.isArray(input.reports) ? (input.reports as string[]) : [];
       return {
         title: `Generate a ${String(input.format ?? "pdf").toUpperCase()} report`,
-        detail: `${input.reason ?? ""}\n\nSections: ${sections.join(", ") || "executive"}`,
+        detail:
+          `${input.reason ?? ""}\n\nSections: ${sections.join(", ") || "executive"}` +
+          (Number(input.limit) > 0 ? `\nTop ${Math.floor(Number(input.limit))} rows only.` : ""),
       };
     }
     case "propose_customer_batch": {
@@ -793,6 +795,7 @@ async function requestFor(p: Proposal): Promise<
         body: {
           format: input.format ?? "pdf",
           reports: input.reports ?? ["executive"],
+          ...(Number(input.limit) > 0 ? { limit: Math.floor(Number(input.limit)) } : {}),
           ...(input.from ? { from: input.from } : {}),
           ...(input.to ? { to: input.to } : {}),
         },
