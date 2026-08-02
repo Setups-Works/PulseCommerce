@@ -1,23 +1,18 @@
 "use client";
 
-import {
-  Check,
-  Loader2,
-  MessageSquare,
-  Search,
-  Send,
-  ShieldAlert,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowUp, Check, Loader2, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Attachment, AttachmentContent, AttachmentDescription, AttachmentTitle } from "@/components/ui/attachment";
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentTitle,
+} from "@/components/ui/attachment";
 import { Bubble, BubbleContent, BubbleGroup } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
-import { Message, MessageContent } from "@/components/ui/message";
+import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -26,15 +21,20 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
-import { Textarea } from "@/components/ui/textarea";
 
 /**
  * The assistant.
  *
+ * Laid out as a conversation rather than a dashboard panel: one centred column,
+ * the composer pinned beneath it, no card chrome between the reader and the
+ * text. That is the shape people already know from every other chat they use,
+ * and a familiar shape is one less thing to learn on a screen whose whole job is
+ * answering questions.
+ *
  * It reads the store and proposes actions; it never performs one. A proposal
  * arrives as a card with an Approve button, and approving calls the ordinary
- * endpoint for that action — the same one the corresponding screen calls, with
- * the same guards. Nothing on this page is a shortcut around those.
+ * endpoint for that action — the same one the matching screen calls, with the
+ * same guards.
  */
 
 interface Proposal {
@@ -54,7 +54,6 @@ interface Turn {
   content: string;
   toolsUsed?: ToolUse[];
   proposals?: Proposal[];
-  /** Set once a proposal on this turn has been dealt with. */
   settled?: Record<string, "approved" | "rejected">;
 }
 
@@ -62,7 +61,7 @@ const SUGGESTIONS = [
   "How did revenue do this month against last?",
   "Which customers are about to churn, and what are they worth?",
   "What is about to run out of stock?",
-  "Write a win-back message and tell me how many it would reach",
+  "Draft a win-back message and tell me how many it would reach",
 ];
 
 export default function AssistantPage() {
@@ -107,18 +106,12 @@ export default function AssistantPage() {
       setTurns([...next, { role: "assistant", content: message, toolsUsed: [], proposals: [] }]);
     } finally {
       setThinking(false);
+      box.current?.focus();
     }
   };
 
-  /**
-   * Carries out an approved proposal.
-   *
-   * Each maps to the endpoint the matching screen uses. The model's arguments
-   * are passed through unchanged, so what was shown on the card is what runs.
-   */
   const approve = async (turnIndex: number, proposal: Proposal) => {
     setApproving(proposal.id);
-
     try {
       const request = await requestFor(proposal);
       if (!request) throw new Error("That proposal cannot be carried out from here.");
@@ -149,176 +142,174 @@ export default function AssistantPage() {
   };
 
   return (
-    <div className="grid h-[calc(100vh-9rem)] gap-4 lg:grid-cols-3 xl:grid-cols-4">
-      <Card className="flex min-h-0 flex-col lg:col-span-2 xl:col-span-3">
-        <CardHeader className="shrink-0">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="size-4 text-muted-foreground" />
-            Assistant
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Reads your store and drafts messages. It proposes; you approve. It cannot
-            send to an audience.
-          </CardDescription>
-        </CardHeader>
+    <div className="flex h-[calc(100vh-8rem)] flex-col">
+      <MessageScrollerProvider>
+        <MessageScroller className="min-h-0 flex-1">
+          <MessageScrollerViewport>
+            <MessageScrollerContent className="mx-auto w-full max-w-3xl gap-8 px-4 pt-2 pb-6">
+              {turns.length === 0 ? (
+                <MessageScrollerItem>
+                  <div className="flex flex-col items-center gap-5 py-14 text-center">
+                    <span className="flex size-11 items-center justify-center rounded-full bg-muted">
+                      <Sparkles className="size-5 text-muted-foreground" />
+                    </span>
 
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-          <MessageScrollerProvider>
-          <MessageScroller className="min-h-0 flex-1">
-            <MessageScrollerViewport>
-              <MessageScrollerContent className="gap-4 pb-2">
-                {turns.length === 0 ? (
-                  <MessageScrollerItem>
-                    <div className="space-y-2 py-6">
+                    <div className="space-y-1.5">
+                      <h1 className="text-xl font-semibold tracking-tight">
+                        What would you like to know?
+                      </h1>
                       <p className="text-sm text-muted-foreground">
-                        Ask about the store, or ask for a message to be written.
+                        Ask about your store, or have a message drafted. It proposes; you
+                        approve.
                       </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {SUGGESTIONS.map((s) => (
-                          <Button
-                            key={s}
-                            size="sm"
-                            variant="outline"
-                            className="h-auto py-1.5 text-left text-[11px] whitespace-normal"
-                            onClick={() => void ask(s)}
-                          >
-                            {s}
-                          </Button>
-                        ))}
-                      </div>
                     </div>
-                  </MessageScrollerItem>
-                ) : null}
 
-                {turns.map((turn, i) => (
-                  <MessageScrollerItem key={i} scrollAnchor={i === turns.length - 1}>
-                    <Message align={turn.role === "user" ? "end" : "start"}>
-                      <MessageContent>
-                        <BubbleGroup>
-                          {turn.toolsUsed?.length ? (
-                            <div className="mb-1.5 flex flex-wrap gap-1">
-                              {turn.toolsUsed.map((t, j) => (
-                                <Marker key={j}>
-                                  <MarkerIcon>
-                                    <Search className="size-3" />
-                                  </MarkerIcon>
-                                  <MarkerContent>{readable(t.name)}</MarkerContent>
-                                </Marker>
-                              ))}
-                            </div>
-                          ) : null}
+                    <div className="mt-1 grid w-full gap-1.5 sm:grid-cols-2">
+                      {SUGGESTIONS.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => void ask(s)}
+                          className="rounded-lg border p-2.5 text-left text-xs leading-relaxed text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
 
-                          {turn.content ? (
-                            <Bubble variant={turn.role === "user" ? "default" : "ghost"}>
-                              <BubbleContent className="whitespace-pre-wrap">
-                                {turn.content}
-                              </BubbleContent>
-                            </Bubble>
-                          ) : null}
+                    <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <ShieldCheck className="size-3.5" />
+                      It cannot send to an audience, and never sees a phone number.
+                    </p>
+                  </div>
+                </MessageScrollerItem>
+              ) : null}
 
-                          {turn.proposals?.map((p) => (
-                            <ProposalCard
-                              key={p.id}
-                              proposal={p}
-                              outcome={turn.settled?.[p.id]}
-                              busy={approving === p.id}
-                              onApprove={() => void approve(i, p)}
-                              onReject={() => settle(i, p.id, "rejected")}
-                            />
-                          ))}
-                        </BubbleGroup>
-                      </MessageContent>
-                    </Message>
-                  </MessageScrollerItem>
-                ))}
+              {turns.map((turn, i) => (
+                <MessageScrollerItem key={i} scrollAnchor={i === turns.length - 1}>
+                  <Message align={turn.role === "user" ? "end" : "start"}>
+                    {turn.role === "assistant" ? (
+                      <MessageAvatar className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border bg-background">
+                        <Sparkles className="size-3.5 text-muted-foreground" />
+                      </MessageAvatar>
+                    ) : null}
 
-                {thinking ? (
-                  <MessageScrollerItem scrollAnchor>
-                    <Marker>
-                      <MarkerIcon>
-                        <Loader2 className="size-3 animate-spin" />
-                      </MarkerIcon>
-                      <MarkerContent>Reading your store…</MarkerContent>
-                    </Marker>
-                  </MessageScrollerItem>
-                ) : null}
-              </MessageScrollerContent>
-            </MessageScrollerViewport>
-            <MessageScrollerButton />
-          </MessageScroller>
-          </MessageScrollerProvider>
+                    <MessageContent>
+                      <BubbleGroup>
+                        {turn.toolsUsed?.length ? (
+                          <div className="mb-2 flex flex-wrap gap-1">
+                            {turn.toolsUsed.map((t, j) => (
+                              <Marker key={j}>
+                                <MarkerIcon>
+                                  <Search className="size-3" />
+                                </MarkerIcon>
+                                <MarkerContent>{readable(t.name)}</MarkerContent>
+                              </Marker>
+                            ))}
+                          </div>
+                        ) : null}
 
-          <div className="flex shrink-0 items-end gap-2">
-            <Textarea
+                        {turn.content ? (
+                          <Bubble variant={turn.role === "user" ? "default" : "ghost"}>
+                            {/* The assistant's own words carry no bubble: it is
+                                prose to read, not a message in a thread. */}
+                            <BubbleContent
+                              className={
+                                turn.role === "assistant"
+                                  ? "px-0 text-[13px] leading-relaxed whitespace-pre-wrap"
+                                  : "whitespace-pre-wrap"
+                              }
+                            >
+                              {turn.content}
+                            </BubbleContent>
+                          </Bubble>
+                        ) : null}
+
+                        {turn.proposals?.map((p) => (
+                          <ProposalCard
+                            key={p.id}
+                            proposal={p}
+                            outcome={turn.settled?.[p.id]}
+                            busy={approving === p.id}
+                            onApprove={() => void approve(i, p)}
+                            onReject={() => settle(i, p.id, "rejected")}
+                          />
+                        ))}
+                      </BubbleGroup>
+                    </MessageContent>
+                  </Message>
+                </MessageScrollerItem>
+              ))}
+
+              {thinking ? (
+                <MessageScrollerItem scrollAnchor>
+                  <Message align="start">
+                    <MessageAvatar className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border bg-background">
+                      <Sparkles className="size-3.5 text-muted-foreground" />
+                    </MessageAvatar>
+                    <MessageContent>
+                      <Marker>
+                        <MarkerIcon>
+                          <Loader2 className="size-3 animate-spin" />
+                        </MarkerIcon>
+                        <MarkerContent>Reading your store…</MarkerContent>
+                      </Marker>
+                    </MessageContent>
+                  </Message>
+                </MessageScrollerItem>
+              ) : null}
+            </MessageScrollerContent>
+          </MessageScrollerViewport>
+          <MessageScrollerButton />
+        </MessageScroller>
+      </MessageScrollerProvider>
+
+      {/* Pinned composer, on the same centred column as the conversation. */}
+      <div className="shrink-0 px-4 pb-1">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="flex items-end gap-2 rounded-2xl border bg-card p-2 shadow-sm focus-within:ring-1 focus-within:ring-ring">
+            <textarea
               ref={box}
-              rows={2}
+              rows={1}
               value={draft}
               disabled={thinking}
               placeholder="Ask about revenue, customers, stock — or ask for a message"
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                // Grows with the text the way a chat composer is expected to.
+                // Reset first, so it shrinks again when text is deleted.
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   void ask(draft);
                 }
               }}
+              className="max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-60"
             />
             <Button
-              className="gap-1.5"
+              size="icon"
+              className="size-8 shrink-0 rounded-full"
+              aria-label="Send"
               disabled={thinking || draft.trim().length === 0}
               onClick={() => void ask(draft)}
             >
-              {thinking ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Ask
+              {thinking ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ArrowUp className="size-4" />
+              )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldAlert className="size-4 text-muted-foreground" />
-            What it may do
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-[11px] leading-relaxed text-muted-foreground">
-          <div>
-            <p className="font-medium text-foreground">Reads, freely</p>
-            <p>
-              Revenue and KPIs, customer segments, top customers, products, stock risk,
-              audience sizes, your flows, the menu bot, and the gateway&apos;s status.
-              All from the same cached snapshot the dashboards use, so it cannot quote a
-              number the screens disagree with.
-            </p>
-          </div>
-
-          <div>
-            <p className="font-medium text-foreground">Proposes, never performs</p>
-            <p>
-              Sending a test message, turning the menu bot on or off, starting or pausing
-              a flow, rewriting the menu. Each arrives as a card you approve, and
-              approving calls the same endpoint the matching screen calls.
-            </p>
-          </div>
-
-          <div>
-            <p className="font-medium text-foreground">Cannot broadcast</p>
-            <p>
-              There is no tool for sending to an audience, however it is asked. That
-              starts from Campaigns, by a person, behind a typed confirmation.
-            </p>
-          </div>
-
-          <div>
-            <p className="font-medium text-foreground">Never sees a phone number</p>
-            <p>
-              Numbers and email addresses are not in anything it can read, so they cannot
-              appear in a reply.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+            Reads your store directly. Anything that sends or changes something needs your
+            approval first.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -335,10 +326,10 @@ function ProposalCard({
   const described = describe(proposal);
 
   return (
-    <Attachment className="w-full max-w-full">
+    <Attachment className="mt-1 w-full max-w-full">
       <AttachmentContent>
         <AttachmentTitle className="flex items-center gap-1.5">
-          <MessageSquare className="size-3.5" />
+          <ShieldCheck className="size-3.5" />
           {described.title}
         </AttachmentTitle>
         <AttachmentDescription className="whitespace-pre-wrap">
@@ -351,11 +342,11 @@ function ProposalCard({
           </p>
         ) : (
           <div className="mt-2 flex gap-1.5">
-            <Button size="sm" className="h-7 gap-1 px-2 text-[11px]" disabled={busy} onClick={onApprove}>
+            <Button size="sm" className="h-7 gap-1 px-2.5 text-[11px]" disabled={busy} onClick={onApprove}>
               {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
               Approve
             </Button>
-            <Button size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11px]" disabled={busy} onClick={onReject}>
+            <Button size="sm" variant="outline" className="h-7 gap-1 px-2.5 text-[11px]" disabled={busy} onClick={onReject}>
               <X className="size-3" />
               Reject
             </Button>
@@ -404,10 +395,9 @@ function describe(p: Proposal): { title: string; detail: string } {
 /**
  * The real request an approval turns into.
  *
- * The menu endpoint replaces the whole menu, so a proposal that only changes
- * one part of it is merged onto what is currently saved. Sending the fragment
- * alone would either be rejected as incomplete or, worse, wipe the parts the
- * proposal did not mention.
+ * The menu endpoint replaces the whole menu, so a proposal that only changes one
+ * part of it is merged onto what is currently saved. Sending the fragment alone
+ * would either be rejected as incomplete or wipe the parts it did not mention.
  */
 async function requestFor(p: Proposal): Promise<
   { url: string; method: string; body?: unknown; done: string } | null
