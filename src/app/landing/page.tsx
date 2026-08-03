@@ -100,6 +100,19 @@ const STACK = [
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[#fdfbf5] text-black">
+      {/* ---- Announcement -------------------------------------------------- */}
+      <div className="border-b-[3px] border-black bg-[#2f66e8]">
+        <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-6 py-2.5 text-center text-sm font-extrabold text-white">
+          <span className="rounded-full border-2 border-black bg-[#ffd93d] px-2.5 py-0.5 text-black">
+            New
+          </span>
+          Automated flows and the AI assistant are live
+          <Link href="#demo" className="underline decoration-2 underline-offset-4">
+            See what&rsquo;s new
+          </Link>
+        </div>
+      </div>
+
       {/* ---- Nav ---------------------------------------------------------- */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-3">
@@ -108,6 +121,19 @@ export default function LandingPage() {
           </span>
           <span className="text-xl font-extrabold tracking-tighter">PulseCommerce</span>
         </div>
+
+        <nav className="hidden items-center gap-7 text-base font-extrabold lg:flex">
+          {[
+            ["Features", "#features"],
+            ["How it works", "#how"],
+            ["Pricing", "#pricing"],
+            ["FAQ", "#faq"],
+          ].map(([label, href]) => (
+            <Link key={label} href={href} className="hover:underline decoration-[3px] underline-offset-4">
+              {label}
+            </Link>
+          ))}
+        </nav>
         <div className="flex items-center gap-3">
           <NeoButton href="#demo" tint="bg-white" className="hidden px-5 py-2 text-base sm:inline-flex">
             See a demo
@@ -166,6 +192,25 @@ export default function LandingPage() {
         />
       </section>
 
+      {/* ---- What is in it -------------------------------------------------- */}
+      <section className="mx-auto max-w-6xl px-6 pb-16">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["13", "Modules, all included", COLOURS.yellow],
+            ["10", "Report types, as PDF, Excel or CSV", COLOURS.pink],
+            ["10", "Message templates, personalised per customer", COLOURS.green],
+            ["0", "Customer records sent to a third party", COLOURS.blue],
+          ].map(([n, label, tint], i) => (
+            <NeoCard key={label} tint={tint} className="flex flex-col gap-1">
+              <span className="text-5xl font-extrabold tracking-tighter">{n}</span>
+              <span className={`text-base font-bold ${i === 3 ? "text-white/85" : "text-black/75"}`}>
+                {label}
+              </span>
+            </NeoCard>
+          ))}
+        </div>
+      </section>
+
       {/* ---- Integrations -------------------------------------------------- */}
       <section className="mx-auto max-w-6xl px-6 py-16">
         <NeoHeading>Connects to the store you already run</NeoHeading>
@@ -209,7 +254,7 @@ export default function LandingPage() {
       </section>
 
       {/* ---- Modules ------------------------------------------------------ */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section id="features" className="mx-auto max-w-6xl px-6 py-16">
         <NeoHeading>Thirteen modules. One price.</NeoHeading>
         <p className="mt-4 max-w-2xl text-lg font-medium">
           Nothing here is a placeholder. Every figure is computed from your own orders — there
@@ -246,7 +291,7 @@ export default function LandingPage() {
       </section>
 
       {/* ---- How it works -------------------------------------------------- */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section id="how" className="mx-auto max-w-6xl px-6 py-16">
         <NeoHeading>Running in an afternoon</NeoHeading>
         <div className="mt-9 grid gap-5 md:grid-cols-4">
           {[
@@ -349,7 +394,7 @@ export default function LandingPage() {
       </section>
 
       {/* ---- Two ways to send ---------------------------------------------- */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section id="pricing" className="mx-auto max-w-6xl px-6 py-16">
         <NeoHeading>Two ways to send. Same platform.</NeoHeading>
         <p className="mt-4 max-w-3xl text-lg font-medium">
           The analytics, the flows, the assistant and the inbox are identical either way. The
@@ -449,12 +494,88 @@ export default function LandingPage() {
         </NeoPanel>
       </section>
 
-      <footer className="border-t-[3px] border-black">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-base font-bold">
-          <span>PulseCommerce — analytics and WhatsApp for WooCommerce</span>
-          <Link href="/api-docs" className="underline decoration-[3px] underline-offset-4">
-            API reference
-          </Link>
+      {/* ---- FAQ ------------------------------------------------------------ */}
+      <section id="faq" className="mx-auto max-w-6xl px-6 py-16">
+        <NeoHeading>Everything you need to know</NeoHeading>
+        <div className="mt-9 grid gap-5 md:grid-cols-2">
+          {[
+            [
+              "What access does it need to my store?",
+              "Read-only, approved by you inside your own WordPress admin through WooCommerce's app-authorization screen. No password is shared and no key is emailed. The one thing written back is a coupon, and only when you create one.",
+            ],
+            [
+              "Where does my customer data go?",
+              "Nowhere. Orders are cached on your own deployment and every metric is computed from that cache. Phone numbers are never sent to the browser and are resolved server-side at the moment a message is sent.",
+            ],
+            [
+              "Can the assistant message my customers on its own?",
+              "No. It reads freely and changes nothing. Sending anything arrives as a card you approve, and approving runs the same guarded route a person would use. There is no tool for messaging your whole customer base.",
+            ],
+            [
+              "How long does the first load take?",
+              "One pull of your full order history, which takes a few minutes on a large store. After that every figure is instant, including changing the date range, because nothing is fetched again.",
+            ],
+            [
+              "What if WhatsApp restricts my number?",
+              "On the self-hosted route that is a real risk, which is why a dedicated number is essential — never your main business line. The Cloud API route removes the risk and adds a per-conversation charge instead.",
+            ],
+            [
+              "Is Shopify supported?",
+              "Not yet. The engine reads a normalised snapshot rather than WooCommerce directly, so adding a platform is an adapter rather than a rewrite — but it is honest to say it does not exist today.",
+            ],
+          ].map(([q, a], i) => (
+            <NeoCard key={q} tint={i % 2 ? "bg-white" : COLOURS.yellow} className="flex flex-col gap-2">
+              <h3 className="text-xl font-extrabold tracking-tight">{q}</h3>
+              <p className="text-base leading-relaxed font-medium text-black/75">{a}</p>
+            </NeoCard>
+          ))}
+        </div>
+      </section>
+
+      {/* ---- Footer --------------------------------------------------------- */}
+      <footer className="border-t-[3px] border-black bg-black text-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl border-[3px] border-white bg-[#2f66e8]">
+                <Sparkles className="size-5" />
+              </span>
+              <span className="text-xl font-extrabold tracking-tighter">PulseCommerce</span>
+            </div>
+            <p className="mt-4 max-w-xs text-base font-medium text-white/70">
+              Analytics and WhatsApp for WooCommerce stores that would rather act on their
+              numbers than read them.
+            </p>
+          </div>
+
+          {[
+            ["Product", [["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ["API reference", "/api-docs"]]],
+            ["Platform", [["WooCommerce", "#"], ["Shopify — soon", "#"], ["Your own WhatsApp host", "#pricing"], ["WhatsApp Cloud API", "#pricing"]]],
+            ["Start", [["Get started", "/login"], ["See a demo", "#demo"], ["Open the app", "/dashboard"], ["FAQ", "#faq"]]],
+          ].map(([title, links]) => (
+            <div key={title as string}>
+              <h4 className="text-base font-extrabold tracking-tight">{title as string}</h4>
+              <ul className="mt-4 space-y-2.5 text-base font-medium text-white/70">
+                {(links as string[][]).map(([label, href]) => (
+                  <li key={label}>
+                    <Link href={href} className="hover:text-white hover:underline decoration-2 underline-offset-4">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t-[3px] border-white/20">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-sm font-bold text-white/70">
+            <span>© 2026 PulseCommerce. Self-hosted, and yours.</span>
+            <span className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-[#7bdc9b]" />
+              Your data never leaves your deployment
+            </span>
+          </div>
         </div>
       </footer>
     </main>
