@@ -97,6 +97,121 @@ const STACK = [
   ["04", "The model", "Sees counts and names. Never a phone number."],
 ] as const;
 
+
+/**
+ * A feature row: words on one side, a working-looking thing on the other.
+ *
+ * The mock is built from the same primitives as the rest of the page rather
+ * than being a screenshot, so it stays legible at phone width where a scaled
+ * capture becomes unreadable. Rows alternate sides on desktop and stack in
+ * reading order on mobile — copy first, always, so the point arrives before
+ * the illustration.
+ */
+function FeatureRow({
+  eyebrow, title, body, points, children, flip, tint,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  points: string[];
+  children: React.ReactNode;
+  flip?: boolean;
+  tint: string;
+}) {
+  return (
+    <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
+      <div className={flip ? "lg:order-2" : ""}>
+        <NeoBadge tint={tint}>{eyebrow}</NeoBadge>
+        <h3 className="mt-5 text-3xl font-extrabold tracking-tighter sm:text-4xl">{title}</h3>
+        <p className="mt-4 text-lg leading-relaxed font-medium text-black/75">{body}</p>
+        <ul className="mt-6 space-y-3 text-base font-bold sm:text-lg">
+          {points.map((t) => (
+            <li key={t} className="flex gap-3">
+              <Check className="mt-1 size-5 shrink-0" strokeWidth={3} />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className={flip ? "lg:order-1" : ""}>{children}</div>
+    </div>
+  );
+}
+
+/** Segment bars, as the customers screen draws them. */
+function SegmentMock() {
+  const rows: [string, number, string][] = [
+    ["Champions", 95, "bg-[#2f66e8]"],
+    ["Loyal", 74, "bg-[#7bdc9b]"],
+    ["At risk", 52, "bg-[#ffd93d]"],
+    ["Hibernating", 31, "bg-[#ff8fab]"],
+    ["Lost", 18, "bg-[#ff6b5a]"],
+  ];
+  return (
+    <NeoCard className="flex flex-col gap-4">
+      <div className="flex items-baseline justify-between">
+        <span className="text-lg font-extrabold tracking-tight">Customer segments</span>
+        <span className="text-sm font-bold text-black/60">RFM</span>
+      </div>
+      {rows.map(([label, w, colour]) => (
+        <div key={label} className="flex items-center gap-3">
+          <span className="w-28 shrink-0 text-sm font-bold sm:w-32 sm:text-base">{label}</span>
+          <span
+            className={`h-7 rounded-md border-[3px] border-black ${colour}`}
+            style={{ width: `${w}%` }}
+          />
+        </div>
+      ))}
+    </NeoCard>
+  );
+}
+
+/** The message a customer actually receives. */
+function MessageMock() {
+  return (
+    <NeoCard tint="bg-[#7bdc9b]" className="flex flex-col gap-3">
+      <span className="text-lg font-extrabold tracking-tight">On their phone</span>
+      <div className="rounded-lg border-[3px] border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+        <div className="mb-2 h-24 rounded-md border-[3px] border-black bg-[#ffd93d]" />
+        <p className="text-sm leading-relaxed font-bold sm:text-base">
+          Hi Priya, your Rose Clay is running low.
+          <br />
+          Reorder here: your-store.com/rose-clay
+        </p>
+      </div>
+      <div className="self-end rounded-lg border-[3px] border-black bg-white px-3 py-2 text-sm font-bold shadow-[4px_4px_0_0_#000]">
+        Yes please — can you send two?
+      </div>
+    </NeoCard>
+  );
+}
+
+/** The assistant proposing, and waiting. */
+function AssistantMock() {
+  return (
+    <NeoCard tint="bg-[#ff8fab]" className="flex flex-col gap-3">
+      <span className="text-lg font-extrabold tracking-tight">The assistant</span>
+      <div className="rounded-lg border-[3px] border-black bg-white p-3 text-sm font-bold shadow-[4px_4px_0_0_#000] sm:text-base">
+        Which customers are about to churn?
+      </div>
+      <div className="rounded-lg border-[3px] border-black bg-white p-3 text-sm font-medium shadow-[4px_4px_0_0_#000] sm:text-base">
+        214 customers are past their own usual reorder gap, worth ₹4.2L in predicted value.
+      </div>
+      <div className="rounded-lg border-[3px] border-black bg-[#2f66e8] p-3 text-white shadow-[4px_4px_0_0_#000]">
+        <p className="text-sm font-extrabold sm:text-base">Proposal · win-back to 214 customers</p>
+        <div className="mt-2 flex gap-2">
+          <span className="rounded-md border-[3px] border-black bg-white px-3 py-1 text-sm font-extrabold text-black">
+            Approve
+          </span>
+          <span className="rounded-md border-[3px] border-black bg-white px-3 py-1 text-sm font-extrabold text-black">
+            Reject
+          </span>
+        </div>
+      </div>
+    </NeoCard>
+  );
+}
+
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[#fdfbf5] text-black">
@@ -151,13 +266,13 @@ export default function LandingPage() {
           For WooCommerce stores
         </NeoBadge>
 
-        <h1 className="mt-6 max-w-4xl text-5xl leading-[1.02] font-extrabold tracking-tighter md:text-7xl">
+        <h1 className="mt-6 max-w-4xl text-4xl leading-[1.04] font-extrabold tracking-tighter sm:text-5xl md:text-7xl">
           WooCommerce tells you <NeoMark tint="bg-white">what</NeoMark> sold.
           <br />
           We tell you <NeoMark tint={COLOURS.yellow}>who bought it.</NeoMark>
         </h1>
 
-        <p className="mt-7 max-w-2xl text-xl leading-relaxed font-medium md:text-2xl">
+        <p className="mt-7 max-w-2xl text-lg leading-relaxed font-medium sm:text-xl md:text-2xl">
           Which customers are slipping away, what they buy together, and what is about to run
           out — then message them on WhatsApp from the same screen, through a gateway you own.
         </p>
@@ -261,19 +376,78 @@ export default function LandingPage() {
           is no sample data anywhere in the product.
         </p>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {MODULES.map(({ icon: Icon, tint, title, body }) => (
-            <NeoCard key={title} className="flex flex-col gap-3">
+        {/* Bento: the two that carry the product get the room. */}
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {MODULES.map(({ icon: Icon, tint, title, body }, i) => (
+            <NeoCard
+              key={title}
+              tint={tint}
+              className={`flex flex-col gap-3 ${i === 0 ? "lg:col-span-2" : ""} ${i === 3 ? "md:col-span-2 lg:col-span-1 lg:row-span-2" : ""}`}
+            >
               <span
-                className={`flex size-12 items-center justify-center rounded-xl border-[3px] border-black ${tint}`}
+                className={`flex size-12 items-center justify-center rounded-xl border-[3px] border-black ${
+                  tint === COLOURS.blue ? "bg-white" : "bg-white"
+                }`}
               >
-                <Icon className={`size-6 ${tint === COLOURS.blue ? "text-white" : ""}`} strokeWidth={2.5} />
+                <Icon className="size-6" strokeWidth={2.5} />
               </span>
               <h3 className="text-2xl font-extrabold tracking-tight">{title}</h3>
-              <p className="text-base leading-relaxed font-medium text-black/75">{body}</p>
+              <p
+                className={`text-base leading-relaxed font-medium ${
+                  tint === COLOURS.blue ? "text-white/85" : "text-black/75"
+                }`}
+              >
+                {body}
+              </p>
             </NeoCard>
           ))}
         </div>
+      </section>
+
+      {/* ---- Feature rows --------------------------------------------------- */}
+      <section className="mx-auto max-w-6xl space-y-20 px-6 py-16 sm:space-y-24">
+        <FeatureRow
+          eyebrow="Know who matters"
+          tint={COLOURS.yellow}
+          title="Ten segments, scored on your own base"
+          body="Not industry averages. Recency, frequency and monetary value are quintiled across your customers, so a Champion in your store is defined by your store."
+          points={[
+            "Predicted lifetime value, discounted by churn risk",
+            "Churn judged against each customer's own reorder cadence",
+            "Every customer listed, not a capped slice",
+          ]}
+        >
+          <SegmentMock />
+        </FeatureRow>
+
+        <FeatureRow
+          flip
+          eyebrow="Reach them"
+          tint={COLOURS.green}
+          title="The message names the product they actually buy"
+          body="Personalised from each customer's own history — the item they spend most on, its photograph, and a link straight to it. Write once; everyone gets their own."
+          points={[
+            "Ten templates for reorder, win-back, restock and review",
+            "Coupons created in WooCommerce, restricted to the product",
+            "A dry run that resolves the real list and sends nothing",
+          ]}
+        >
+          <MessageMock />
+        </FeatureRow>
+
+        <FeatureRow
+          eyebrow="Ask anything"
+          tint={COLOURS.pink}
+          title="An assistant that proposes, never performs"
+          body="Ask about the business in plain English. It reads your figures, drafts the message, and then stops — nothing is sent until you approve the card in front of you."
+          points={[
+            "Reads revenue, segments, stock, flows and the gateway",
+            "No tool for messaging your whole customer base",
+            "Phone numbers are absent from everything it can read",
+          ]}
+        >
+          <AssistantMock />
+        </FeatureRow>
       </section>
 
       {/* ---- More of the product ------------------------------------------ */}

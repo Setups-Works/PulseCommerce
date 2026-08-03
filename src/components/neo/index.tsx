@@ -70,7 +70,7 @@ export function NeoButton({
     <a
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-xl border-[3px] border-black",
-        "px-7 py-3.5 text-lg font-extrabold tracking-tight",
+        "px-5 py-3 text-base font-extrabold tracking-tight sm:px-7 sm:py-3.5 sm:text-lg",
         SHADOW,
         "transition-all duration-100",
         "hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0_0_#000]",
@@ -88,7 +88,7 @@ export function NeoButton({
 export function NeoPanel({ className, children, tint, ...props }: React.ComponentProps<"div"> & { tint?: string }) {
   return (
     <div
-      className={cn("rounded-2xl border-[3px] border-black p-8 md:p-12", SHADOW_LG, tint ?? "bg-white", className)}
+      className={cn("rounded-2xl border-[3px] border-black p-6 sm:p-8 md:p-12", SHADOW_LG, tint ?? "bg-white", className)}
       {...props}
     >
       {children}
@@ -131,7 +131,7 @@ export function NeoShot({
 /** A section heading with the marker underline the style is known for. */
 export function NeoHeading({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <h2 className={cn("text-4xl font-extrabold tracking-tighter md:text-5xl", className)}>
+    <h2 className={cn("text-3xl font-extrabold tracking-tighter sm:text-4xl md:text-5xl", className)}>
       {children}
     </h2>
   );
