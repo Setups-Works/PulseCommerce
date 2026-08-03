@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@remotion/cli": "^4.0.504",
+    "@remotion/tailwind-v4": "^4.0.504",
     "@shadcn/react": "^0.2.1",
     "@tanstack/ai": "^0.42.0",
     "@tanstack/ai-groq": "^0.5.3",
