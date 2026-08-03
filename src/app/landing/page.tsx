@@ -8,11 +8,12 @@ import {
   CalendarClock,
   Check,
   MessageCircle,
+  PlayCircle,
   ShieldCheck,
   Sparkles,
   Users,
 } from "lucide-react";
-import { NeoBadge, NeoButton, NeoCard, NeoHeading, NeoMark, NeoPanel } from "@/components/neo";
+import { NeoBadge, NeoButton, NeoCard, NeoHeading, NeoMark, NeoPanel, NeoShot } from "@/components/neo";
 
 export const metadata: Metadata = {
   title: "PulseCommerce — Analytics and WhatsApp for WooCommerce",
@@ -107,9 +108,14 @@ export default function LandingPage() {
           </span>
           <span className="text-xl font-extrabold tracking-tighter">PulseCommerce</span>
         </div>
-        <NeoButton href="/login" tint="bg-white" className="px-5 py-2 text-base">
-          Open the app
-        </NeoButton>
+        <div className="flex items-center gap-3">
+          <NeoButton href="#demo" tint="bg-white" className="hidden px-5 py-2 text-base sm:inline-flex">
+            See a demo
+          </NeoButton>
+          <NeoButton href="/login" className="px-5 py-2 text-base">
+            Get started
+          </NeoButton>
+        </div>
       </header>
 
       {/* ---- Hero --------------------------------------------------------- */}
@@ -132,11 +138,12 @@ export default function LandingPage() {
 
         <div className="mt-9 flex flex-wrap gap-4">
           <NeoButton href="/login">
-            Connect your store
+            Get started free
             <ArrowRight className="size-5" />
           </NeoButton>
-          <NeoButton href="/api-docs" tint="bg-white">
-            Read the API
+          <NeoButton href="#demo" tint="bg-white">
+            <PlayCircle className="size-5" />
+            See a demo
           </NeoButton>
         </div>
 
@@ -147,6 +154,57 @@ export default function LandingPage() {
               {t}
             </span>
           ))}
+        </div>
+      </section>
+
+      {/* ---- The product itself ------------------------------------------- */}
+      <section id="demo" className="mx-auto max-w-6xl px-6 pb-16">
+        <NeoShot
+          src="/shots/dashboard.png"
+          alt="The PulseCommerce dashboard"
+          caption="pulsecommerce.app/dashboard"
+        />
+      </section>
+
+      {/* ---- Integrations -------------------------------------------------- */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <NeoHeading>Connects to the store you already run</NeoHeading>
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
+          <NeoCard tint={COLOURS.green} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-extrabold tracking-tight">WooCommerce</h3>
+              <NeoBadge tint="bg-white">Available now</NeoBadge>
+            </div>
+            <p className="text-base leading-relaxed font-medium">
+              Authorised through WooCommerce&rsquo;s own app-authorization screen inside your
+              WordPress admin. You approve <b>read-only</b> access; no password is shared and no
+              key is emailed. Coupons are the single thing written back, and only when you
+              create one.
+            </p>
+            <ul className="mt-1 space-y-2 text-base font-bold">
+              {["Orders, products, customers, coupons", "One pull, then every metric is instant", "Disconnecting wipes every cached order"].map((t) => (
+                <li key={t} className="flex gap-2">
+                  <Check className="mt-0.5 size-5 shrink-0" strokeWidth={3} />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </NeoCard>
+
+          <NeoCard tint="bg-white" className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-extrabold tracking-tight">Shopify</h3>
+              <NeoBadge tint={COLOURS.yellow}>Coming soon</NeoBadge>
+            </div>
+            <p className="text-base leading-relaxed font-medium text-black/75">
+              The analytics engine reads a normalised snapshot rather than WooCommerce
+              directly, so a second platform is an adapter rather than a rewrite. Shopify is
+              next; every module above works unchanged once orders arrive in the same shape.
+            </p>
+            <p className="mt-1 text-base font-bold">
+              Want it sooner? Tell us and we will prioritise it.
+            </p>
+          </NeoCard>
         </div>
       </section>
 
@@ -168,6 +226,45 @@ export default function LandingPage() {
               </span>
               <h3 className="text-2xl font-extrabold tracking-tight">{title}</h3>
               <p className="text-base leading-relaxed font-medium text-black/75">{body}</p>
+            </NeoCard>
+          ))}
+        </div>
+      </section>
+
+      {/* ---- More of the product ------------------------------------------ */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <NeoHeading>Every screen, working on your own data</NeoHeading>
+        <p className="mt-4 max-w-2xl text-lg font-medium">
+          These are captures of the running application, not mockups.
+        </p>
+        <div className="mt-9 grid gap-6 md:grid-cols-2">
+          <NeoShot src="/shots/customers.png" alt="Customer segmentation" caption="Customers — RFM segments and tiers" />
+          <NeoShot src="/shots/campaigns.png" alt="Campaign builder" caption="Campaigns — build an audience, then send" />
+          <NeoShot src="/shots/assistant.png" alt="The assistant" caption="Assistant — ask, then approve" />
+          <NeoShot src="/shots/inventory.png" alt="Inventory planning" caption="Inventory — days of cover and reorder points" />
+        </div>
+      </section>
+
+      {/* ---- How it works -------------------------------------------------- */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <NeoHeading>Running in an afternoon</NeoHeading>
+        <div className="mt-9 grid gap-5 md:grid-cols-4">
+          {[
+            ["1", "Connect", "Enter your store address and approve read-only access in your own admin."],
+            ["2", "Pull once", "The order history is fetched and cached. Every figure comes from that snapshot."],
+            ["3", "Find who matters", "Filter to the customers slipping away, or the ones worth thanking."],
+            ["4", "Message them", "Write once, personalised per customer, and send from the same screen."],
+          ].map(([n, title, body], i) => (
+            <NeoCard
+              key={n}
+              tint={[COLOURS.yellow, COLOURS.pink, COLOURS.green, COLOURS.blue][i]}
+              className="flex flex-col gap-2"
+            >
+              <span className="flex size-11 items-center justify-center rounded-lg border-[3px] border-black bg-white text-xl font-extrabold text-black">
+                {n}
+              </span>
+              <h3 className="text-xl font-extrabold tracking-tight">{title}</h3>
+              <p className={`text-base font-medium ${i === 3 ? "text-white/85" : "text-black/75"}`}>{body}</p>
             </NeoCard>
           ))}
         </div>
@@ -248,6 +345,85 @@ export default function LandingPage() {
               </p>
             </NeoCard>
           </div>
+        </div>
+      </section>
+
+      {/* ---- Two ways to send ---------------------------------------------- */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <NeoHeading>Two ways to send. Same platform.</NeoHeading>
+        <p className="mt-4 max-w-3xl text-lg font-medium">
+          The analytics, the flows, the assistant and the inbox are identical either way. The
+          only difference is what carries the messages — and that choice is a genuine
+          trade-off, not an upsell.
+        </p>
+
+        <div className="mt-9 grid gap-6 lg:grid-cols-2">
+          <NeoCard tint="bg-white" className="flex flex-col gap-4">
+            <NeoBadge tint={COLOURS.green}>Guaranteed delivery</NeoBadge>
+            <h3 className="text-3xl font-extrabold tracking-tighter">
+              PulseCommerce + official WhatsApp Cloud API
+            </h3>
+            <p className="text-base leading-relaxed font-medium text-black/75">
+              Meta&rsquo;s own API. Messages are delivered under their terms, tappable buttons
+              and product cards work, and your number cannot be restricted for using it as
+              intended.
+            </p>
+            <ul className="space-y-2.5 text-base font-bold">
+              {[
+                "Delivery backed by Meta",
+                "Buttons and product cards available",
+                "Template approval required before sending",
+                "Meta charges per conversation, ongoing",
+              ].map((t) => (
+                <li key={t} className="flex gap-2.5">
+                  <Check className="mt-0.5 size-5 shrink-0" strokeWidth={3} />
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 border-t-[3px] border-black pt-4 text-base font-bold">
+              Best when delivery matters more than cost, or you send to people who have not
+              bought from you before.
+            </p>
+          </NeoCard>
+
+          <NeoCard tint={COLOURS.blue} className="flex flex-col gap-4">
+            <NeoBadge tint="bg-white">No per-message fee</NeoBadge>
+            <h3 className="text-3xl font-extrabold tracking-tighter">
+              PulseCommerce + your own WhatsApp host
+            </h3>
+            <p className="text-base leading-relaxed font-medium text-white/85">
+              A messaging server on infrastructure you control. Your number, your message
+              history, nobody in the middle, and no charge per message however many you send.
+            </p>
+            <ul className="space-y-2.5 text-base font-bold text-white">
+              {[
+                "No per-message cost, ever",
+                "Your number and your history stay yours",
+                "No template approval, no waiting",
+                "Delivery is not guaranteed; use a dedicated number",
+              ].map((t) => (
+                <li key={t} className="flex gap-2.5">
+                  <Check className="mt-0.5 size-5 shrink-0" strokeWidth={3} />
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 border-t-[3px] border-black pt-4 text-base font-bold text-white">
+              Best for messaging your own past customers at volume, where a per-message fee
+              would dominate the cost.
+            </p>
+          </NeoCard>
+        </div>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <NeoButton href="/login">
+            Get started
+            <ArrowRight className="size-5" />
+          </NeoButton>
+          <NeoButton href="#demo" tint={COLOURS.yellow}>
+            Not sure which? See the demo
+          </NeoButton>
         </div>
       </section>
 

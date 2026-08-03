@@ -96,6 +96,38 @@ export function NeoPanel({ className, children, tint, ...props }: React.Componen
   );
 }
 
+/**
+ * A product screenshot, framed.
+ *
+ * Browser chrome around a real capture, on the same heavy border and hard
+ * shadow as everything else — so an image sits in the page as an object rather
+ * than floating on it.
+ */
+export function NeoShot({
+  src, alt, caption, className,
+}: {
+  src: string;
+  alt: string;
+  caption?: string;
+  className?: string;
+}) {
+  return (
+    <figure className={cn("overflow-hidden rounded-xl border-[3px] border-black bg-white", SHADOW, className)}>
+      <div className="flex items-center gap-2 border-b-[3px] border-black bg-[#ffd93d] px-4 py-2.5">
+        <span className="size-3 rounded-full border-2 border-black bg-[#ff6b5a]" />
+        <span className="size-3 rounded-full border-2 border-black bg-white" />
+        <span className="size-3 rounded-full border-2 border-black bg-[#7bdc9b]" />
+        {caption ? (
+          <span className="ml-2 truncate text-sm font-extrabold tracking-tight">{caption}</span>
+        ) : null}
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element -- static captures
+          under public/, sized by the layout rather than by the optimiser. */}
+      <img src={src} alt={alt} className="block w-full" />
+    </figure>
+  );
+}
+
 /** A section heading with the marker underline the style is known for. */
 export function NeoHeading({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
