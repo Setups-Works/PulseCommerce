@@ -145,7 +145,11 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      {/* `relative` anchors the mega menu: the panel is wider than the trigger
+          it hangs from, so it is positioned against this container and centred
+          in it rather than against the trigger's left edge, which pushed it off
+          the right of the viewport. */}
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Activity className="size-4.5" strokeWidth={2.5} />
