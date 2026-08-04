@@ -14,11 +14,11 @@ import { storageIsDurable } from "@/lib/store/kv";
 export const dynamic = "force-dynamic";
 
 /**
- * The root is the authorization page, not a marketing landing page.
+ * Onboarding: the step between signing up and having a dashboard.
  *
- * This is a tool: the only thing a first-time visitor can usefully do is
- * connect a store, and once one is connected the root has no reason to exist,
- * so it hands straight over to the dashboard.
+ * The marketing site owns `/`, so this route exists purely to turn a visitor
+ * into a connected store. Once one is connected it has no reason to exist and
+ * hands straight over to the dashboard.
  */
 export default async function ConnectPage({
   searchParams,
@@ -62,6 +62,8 @@ export default async function ConnectPage({
               </p>
             </div>
           </div>
+
+          <OnboardingSteps />
 
           {outcome ? <AuthOutcome outcome={outcome} /> : null}
 
@@ -118,6 +120,10 @@ export default async function ConnectPage({
             <Link href="/dashboard" className="text-foreground hover:underline">
               Open the dashboard
             </Link>
+            {" · "}
+            <Link href="/" className="text-foreground hover:underline">
+              Back to the site
+            </Link>
           </p>
         </div>
       </main>
@@ -162,6 +168,44 @@ function resolveOutcome(outcome: string | null): string | null {
   if (outcome === "no_storage" && storageIsDurable()) return null;
   if (outcome === "missing_auth_secret" && authConfigured()) return null;
   return outcome;
+}
+
+/**
+ * Where the merchant is in getting to a dashboard.
+ *
+ * Only the first step happens on this page; the other two are what the wait
+ * afterwards is for. Showing all three stops the authorization round trip from
+ * looking like the whole of setup.
+ */
+function OnboardingSteps() {
+  const steps = [
+    { n: 1, label: "Authorize", detail: "Approve read-only access" },
+    { n: 2, label: "First pull", detail: "Order history is cached" },
+    { n: 3, label: "Dashboard", detail: "Every metric, instant" },
+  ];
+
+  return (
+    <ol className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      {steps.map((step, i) => (
+        <li
+          key={step.n}
+          className={`flex items-center gap-2.5 rounded-lg border p-3 ${i === 0 ? "bg-muted/50" : ""}`}
+        >
+          <span
+            className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+              i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {step.n}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-semibold">{step.label}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">{step.detail}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 function Point({

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
 
   const redirect = (path: string) => NextResponse.redirect(new URL(path, request.url));
 
-  if (declined) return redirect("/?auth=denied");
+  if (declined) return redirect("/connect?auth=denied");
 
   // The callback POST and this redirect race. Woo normally sends the callback
   // first, but give it a moment before concluding it never arrived.
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     config = await readStoreConfig();
   }
 
-  if (!config) return redirect("/?auth=no_credentials");
+  if (!config) return redirect("/connect?auth=no_credentials");
 
   const response = redirect("/dashboard?auth=connected");
 

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const fail = (code: string, detail?: string) =>
     NextResponse.redirect(
       new URL(
-        `/?auth=${code}${detail ? `&detected=${encodeURIComponent(detail)}` : ""}`,
+        `/connect?auth=${code}${detail ? `&detected=${encodeURIComponent(detail)}` : ""}`,
         request.url,
       ),
     );

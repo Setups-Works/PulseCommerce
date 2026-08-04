@@ -11,15 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-export default function LoginPage() {
+export function LoginForm({ passwordEnabled }: { passwordEnabled: boolean }) {
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      <LoginFields passwordEnabled={passwordEnabled} />
     </Suspense>
   );
 }
 
-function LoginForm() {
+function LoginFields({ passwordEnabled }: { passwordEnabled: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") ?? "/dashboard";
@@ -63,44 +63,53 @@ function LoginForm() {
         <CardHeader>
           <CardTitle className="text-base">Sign in</CardTitle>
           <CardDescription className="text-xs">
-            This dashboard is protected because a password is configured on the server.
+            {passwordEnabled
+              ? "This dashboard is protected because a password is configured on the server."
+              : "No password is configured on this deployment, so the dashboard is open. Authorize a store to continue."}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-5">
-          <form onSubmit={signIn} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                autoFocus
-                required
-              />
-            </div>
+          {/* A password box that the server will always reject is worse than no
+              password box: it reads as a wrong password rather than as a
+              deployment that never had one. */}
+          {passwordEnabled ? (
+            <>
+              <form onSubmit={signIn} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    autoFocus
+                    required
+                  />
+                </div>
 
-            {error ? (
-              <Alert>
-                <Lock />
-                <AlertTitle>Could not sign in</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
+                {error ? (
+                  <Alert>
+                    <Lock />
+                    <AlertTitle>Could not sign in</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ) : null}
 
-            <Button type="submit" className="w-full gap-1.5" disabled={pending || !password}>
-              {pending ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
-              Sign in
-            </Button>
-          </form>
+                <Button type="submit" className="w-full gap-1.5" disabled={pending || !password}>
+                  {pending ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
+                  Sign in
+                </Button>
+              </form>
 
-          <div className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-[11px] text-muted-foreground">or</span>
-            <Separator className="flex-1" />
-          </div>
+              <div className="flex items-center gap-3">
+                <Separator className="flex-1" />
+                <span className="text-[11px] text-muted-foreground">or</span>
+                <Separator className="flex-1" />
+              </div>
+            </>
+          ) : null}
 
           {/* Completing the WooCommerce authorization proves store access, so it
               signs you in as well as connecting the store. */}
@@ -130,8 +139,12 @@ function LoginForm() {
       </Card>
 
       <p className="mt-6 text-xs text-muted-foreground">
+        <Link href="/dashboard" className="hover:text-foreground">
+          Open the dashboard
+        </Link>
+        {" · "}
         <Link href="/" className="hover:text-foreground">
-          Back to the overview
+          Back to the site
         </Link>
       </p>
     </main>
