@@ -8,6 +8,18 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
  * which is what makes "clone and run" work. Set both and every analytics route
  * requires a session.
  */
+/**
+ * Every route behind the sidebar.
+ *
+ * This list has to match the app's routes exactly — a page that exists but is
+ * missing here is served to anybody who knows the URL, which is how
+ * `/assistant`, `/flows`, `/inbox` and `/menu` were reachable unauthenticated.
+ * If you add a route under `(app)`, add it here in the same commit.
+ *
+ * `/connect` is deliberately absent: it is the page that failed authorizations
+ * redirect back to with their error, and gating it would bounce the merchant to
+ * a login screen that cannot explain what went wrong.
+ */
 const PROTECTED = [
   "/dashboard",
   "/forecast",
@@ -17,7 +29,11 @@ const PROTECTED = [
   "/products",
   "/inventory",
   "/orders",
+  "/assistant",
   "/campaigns",
+  "/flows",
+  "/menu",
+  "/inbox",
   "/reports",
   "/settings",
 ];

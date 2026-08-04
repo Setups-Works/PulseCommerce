@@ -163,8 +163,11 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
         />
 
         {/* --- Filters ---------------------------------------------------- */}
-        <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+        {/* `min-w-0` on the children is load-bearing: a grid item defaults to
+            min-width:auto, so the wide table in the third column refused to
+            shrink and pushed the whole page to 769px on a 375px screen. */}
+        <div className="grid gap-4 *:min-w-0 lg:grid-cols-3">
+          <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Define the audience</CardTitle>
             <CardDescription className="text-xs">
