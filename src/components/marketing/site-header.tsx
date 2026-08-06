@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   ArrowRight,
   BarChart3,
+  Bot,
   Boxes,
+  ChartColumnBig,
   Clock,
+  Code2,
   Inbox,
   Megaphone,
-  MessageCircle,
   Menu,
-  Plug,
+  MessageCircle,
   Sparkles,
   Users,
   Workflow,
@@ -30,10 +32,11 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
 import { cn } from "@/lib/utils";
 
 /**
- * The marketing header, built from the product's own components.
+ * The marketing header.
  *
  * Two navigations, not one responsive navigation. A mega menu is a pointer
  * idiom — it opens on hover, spans more width than a phone has, and relies on
@@ -43,6 +46,21 @@ import { cn } from "@/lib/utils";
  *
  * Both are driven by the same MENU constant, so a link added for one appears in
  * the other and the two cannot drift apart.
+ *
+ * Alignment, which is most of the work here:
+ *
+ *   - The panel is a four-column grid whose first three columns are equal
+ *     fractions and whose fourth is a fixed width. Equal fractions mean the
+ *     three link columns share a left edge and a gutter regardless of how long
+ *     the longest label in each is.
+ *   - Every row uses the same 28px icon box and the same two-line text block,
+ *     so labels across all three columns sit on a shared baseline grid rather
+ *     than drifting by a few pixels per column.
+ *   - Column headers are one row of their own above the lists, so the first
+ *     link in each column starts at the same y.
+ *   - The panel is positioned against the header's `relative` container and
+ *     centred in it — it is wider than the trigger it hangs from, and anchoring
+ *     it to the trigger's left edge pushed it off the right of the viewport.
  */
 
 type MenuItem = {
@@ -70,6 +88,12 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
         icon: BarChart3,
       },
       {
+        label: "Cohorts & retention",
+        href: "/features#revenue",
+        description: "Every acquisition month, followed forward",
+        icon: ChartColumnBig,
+      },
+      {
         label: "Products & stock",
         href: "/features#products",
         description: "ABC classes, days of cover, affinity",
@@ -88,7 +112,7 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
         icon: Megaphone,
       },
       {
-        label: "AI assistant",
+        label: "AI commerce agent",
         href: "/features/ai",
         description: "Proposes; you approve",
         icon: Sparkles,
@@ -98,6 +122,12 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
         href: "/features#flows",
         description: "Sequences that stop when they buy",
         icon: Workflow,
+      },
+      {
+        label: "Audience builder",
+        href: "/features/campaigns#audience",
+        description: "A filter, not a list you maintain",
+        icon: Bot,
       },
     ],
   },
@@ -123,6 +153,12 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
         description: "Every reply, with their history",
         icon: Inbox,
       },
+      {
+        label: "API reference",
+        href: "/api-docs",
+        description: "OpenAPI schema, browsable",
+        icon: Code2,
+      },
     ],
   },
 ];
@@ -135,6 +171,23 @@ const LINKS: [string, string][] = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  /*
+   * Transparent over the hero, glass once the page moves under it.
+   *
+   * A header that is glass from the first pixel puts a seam across the top of
+   * a hero that has its own background; one that never changes disappears into
+   * the content below. `passive` because the handler never calls
+   * preventDefault, and reading a boolean off a threshold keeps this to one
+   * state change per crossing rather than one per scroll event.
+   */
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // A drawer that survives navigation would cover the page it just opened, so
   // every link inside it closes on the way out. Done on the link rather than in
@@ -144,11 +197,14 @@ export function SiteHeader() {
   const close = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* `relative` anchors the mega menu: the panel is wider than the trigger
-          it hangs from, so it is positioned against this container and centred
-          in it rather than against the trigger's left edge, which pushed it off
-          the right of the viewport. */}
+    <header
+      className={cn(
+        "sticky top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300",
+        scrolled
+          ? "border-b bg-background/75 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
+          : "border-b border-transparent bg-transparent",
+      )}
+    >
       <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -163,24 +219,31 @@ export function SiteHeader() {
             <NavigationMenuItem>
               <NavigationMenuTrigger>Product</NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="w-232 max-w-[calc(100vw-3rem)] p-2">
-                  <div className="grid grid-cols-[repeat(3,1fr)_15rem] gap-2">
+                <div className="w-[56rem] max-w-[calc(100vw-3rem)] p-3">
+                  <div className="grid grid-cols-[repeat(3,minmax(0,1fr))_16rem] gap-x-4 gap-y-0">
                     {MENU.map((column) => (
-                      <div key={column.label}>
-                        <p className="px-2 pt-1.5 pb-1 text-xs font-medium text-muted-foreground">
+                      <div key={column.label} className="flex flex-col">
+                        {/* Its own row above the list, so the first link in
+                            every column starts at the same y. */}
+                        <p className="px-2 pb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
                           {column.label}
                         </p>
-                        <ul>
+                        <ul className="flex flex-col gap-0.5">
                           {column.items.map((item) => (
                             <li key={item.label}>
                               <NavigationMenuLink asChild>
-                                <Link href={item.href} className="flex-row items-start gap-2.5">
-                                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/50">
+                                <Link
+                                  href={item.href}
+                                  className="flex flex-row items-start gap-2.5 rounded-lg p-2"
+                                >
+                                  <span className="mt-px flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/50">
                                     <item.icon className="size-3.5 text-primary" />
                                   </span>
-                                  <span className="min-w-0">
-                                    <span className="block text-sm font-medium">{item.label}</span>
-                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm leading-5 font-medium">
+                                      {item.label}
+                                    </span>
+                                    <span className="block text-xs leading-4 text-muted-foreground">
                                       {item.description}
                                     </span>
                                   </span>
@@ -194,38 +257,52 @@ export function SiteHeader() {
 
                     {/* The featured pane. A mega menu with four equal columns
                         is a sitemap; one column that sells something makes it
-                        a menu with a point of view. */}
-                    <div className="rounded-lg border bg-muted/40 p-4">
-                      <Badge variant="secondary" className="gap-1.5">
+                        a menu with a point of view. Spans the header row too,
+                        so its top edge lines up with the column labels rather
+                        than with the first link. */}
+                    <div className="row-span-1 flex flex-col rounded-xl border bg-muted/40 p-4">
+                      <Badge variant="secondary" className="w-fit gap-1.5">
                         <Sparkles className="size-3" />
                         New
                       </Badge>
-                      <p className="mt-3 text-sm font-medium">Flows and the assistant are live</p>
+                      <p className="mt-3 text-sm font-medium">Flows and the agent are live</p>
                       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                         Ask which customers are slipping away, and have the win-back drafted for you
                         to approve.
                       </p>
-                      <Button size="sm" asChild className="mt-4 w-full">
+                      <Button size="sm" asChild className="mt-auto w-full">
                         <Link href="/features/ai">
-                          See the assistant
+                          See the agent
                           <ArrowRight className="size-3" />
                         </Link>
                       </Button>
                     </div>
                   </div>
 
-                  <Separator className="my-2" />
+                  <Separator className="my-3" />
 
-                  <Link
-                    href="/features"
-                    className="flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
-                  >
-                    <span className="font-medium">All thirteen modules</span>
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      Every figure from your own orders
-                      <ArrowRight className="size-3" />
+                  {/* Footer rail. Same horizontal padding as the link rows
+                      above it, so its text lines up with the first column. */}
+                  <div className="flex items-center justify-between gap-4 px-2">
+                    <Link
+                      href="/features"
+                      className="group flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      All thirteen modules
+                      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+
+                    <span className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <BrandMark icon={BRANDS.woocommerce} className="size-3.5" />
+                        WooCommerce
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <BrandMark icon={BRANDS.whatsapp} className="size-3.5" />
+                        WhatsApp
+                      </span>
                     </span>
-                  </Link>
+                  </div>
                 </div>
               </NavigationMenuContent>
             </NavigationMenuItem>
@@ -299,7 +376,7 @@ export function SiteHeader() {
                   className="mt-6 flex items-center gap-2.5 rounded-lg border bg-muted/40 p-3 transition-colors hover:bg-muted"
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background">
-                    <Plug className="size-4 text-primary" />
+                    <BrandMark icon={BRANDS.woocommerce} className="size-4" />
                   </span>
                   <span className="min-w-0">
                     <span className="block text-sm font-medium">Connects to WooCommerce</span>
