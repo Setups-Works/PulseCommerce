@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check, Eye, Lock, MessageSquare, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, Eye, Lock, MessageSquare, ShieldCheck, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MagicCard } from "@/components/ui/magic-card";
+import { Ripple } from "@/components/ui/ripple";
+import { Safari } from "@/components/ui/safari";
 import { Separator } from "@/components/ui/separator";
 import {
   AssistantThreadMock,
@@ -11,13 +15,17 @@ import {
   FeatureRow,
   Section,
   SectionHeading,
-  SegmentMock,
 } from "@/components/marketing/sections";
+import { Cta } from "@/components/marketing/landing/cta";
+import { PageHero } from "@/components/marketing/landing/page-hero";
+import { ProductScreen } from "@/components/marketing/landing/product-screen";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "AI assistant",
   description:
     "Ask about your store in plain English. The assistant reads your real figures, drafts the message, and stops — nothing sends until you approve it. Phone numbers are never in its scope.",
+  alternates: { canonical: "/features/ai" },
 };
 
 /**
@@ -27,6 +35,11 @@ export const metadata: Metadata = {
  * can message your customers unsupervised is a liability, so most of this page
  * is about what it deliberately cannot do. Anything claimed here maps to a real
  * guard in `lib/ai/tools.ts` and the approval route.
+ *
+ * The two scope cards are deliberately asymmetric — the "cannot" column gets no
+ * pointer glow and no accent colour. Giving both the same treatment would make
+ * the restriction look like a feature being sold rather than a limit being
+ * stated, which is the opposite of the point.
  */
 
 const CAN_READ = [
@@ -54,89 +67,96 @@ const ASKS = [
   "Draft a win-back message for the at-risk segment",
 ];
 
+const PRIVACY = [
+  "Phone numbers are resolved server-side at send time",
+  "Emails are never included in a tool result",
+  "Personalisation happens after approval, outside the model",
+  "Disconnecting the store deletes every cached order",
+];
+
 export default function AiPage() {
   return (
     <main>
-      <section className="mx-auto max-w-6xl px-4 pt-14 pb-16 sm:px-6 md:pt-20">
-        <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-14">
-          <div>
-            <Badge variant="outline" className="gap-1.5">
-              <Sparkles className="size-3" />
-              The assistant
-            </Badge>
-            <h1 className="mt-6 max-w-2xl text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl">
-              It proposes. You approve.
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Ask about the business in plain English. The assistant reads your real figures, drafts
-              the message, and then stops — nothing leaves until you approve the card in front of
-              you.
-            </p>
-            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:gap-3">
-              <Button size="lg" asChild className="h-10 px-5 text-sm">
-                <Link href="/connect">
-                  Get started free
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="h-10 px-5 text-sm">
-                <Link href="/features/campaigns">See campaigns</Link>
-              </Button>
-            </div>
-          </div>
-
-          <div className="w-full lg:w-96">
+      <PageHero
+        id="ai"
+        eyebrow="The assistant"
+        title="It proposes."
+        accent="You approve."
+        body="Ask about the business in plain English. The assistant reads your real figures, drafts the message, and then stops — nothing leaves until you approve the card in front of you."
+        secondary={{ label: "See campaigns", href: "/features/campaigns" }}
+        aside={
+          <div className="relative">
             <AssistantThreadMock />
+            <BorderBeam
+              size={140}
+              duration={10}
+              colorFrom="var(--primary)"
+              colorTo="color-mix(in oklch, var(--chart-3) 70%, transparent)"
+            />
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* ---- The boundary ---------------------------------------------------- */}
-      <Section className="bg-muted/30">
-        <SectionHeading
-          eyebrow="Scope"
-          title="What it can read, and what it cannot do"
-          body="The interesting part of an assistant that touches real customers is the second list. It is enforced by which tools exist, not by asking the model nicely."
+      <Section className="relative overflow-hidden bg-muted/20">
+        <Ripple
+          className="[mask-image:radial-gradient(circle_at_center,white,transparent_70%)] opacity-30"
+          mainCircleSize={240}
+          mainCircleOpacity={0.12}
+          numCircles={5}
         />
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
-                <Eye className="size-4.5 text-primary" />
-              </span>
-              <CardTitle className="mt-3 text-base">It can read</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2.5">
-                {CAN_READ.map((item) => (
-                  <li key={item} className="flex gap-2.5 text-sm">
-                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+        <div className="relative">
+          <SectionHeading
+            eyebrow="Scope"
+            title="What it can read, and what it cannot do"
+            body="The interesting part of an assistant that touches real customers is the second list. It is enforced by which tools exist, not by asking the model nicely."
+          />
 
-          <Card>
-            <CardHeader>
-              <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
-                <Lock className="size-4.5 text-muted-foreground" />
-              </span>
-              <CardTitle className="mt-3 text-base">It cannot</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2.5">
-                {CANNOT.map((item) => (
-                  <li key={item} className="flex gap-2.5 text-sm text-muted-foreground">
-                    <X className="mt-0.5 size-4 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <BlurFade inView className="h-full">
+              <MagicCard
+                className="h-full rounded-xl ring-1 ring-foreground/10"
+                gradientFrom="var(--primary)"
+                gradientTo="var(--chart-3)"
+                gradientColor="color-mix(in oklch, var(--primary) 9%, transparent)"
+                gradientOpacity={1}
+              >
+                <div className="p-6">
+                  <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
+                    <Eye className="size-4.5 text-primary" />
+                  </span>
+                  <h3 className="mt-3 font-heading text-base font-medium">It can read</h3>
+                  <ul className="mt-4 space-y-2.5">
+                    {CAN_READ.map((item) => (
+                      <li key={item} className="flex gap-2.5 text-sm">
+                        <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </MagicCard>
+            </BlurFade>
+
+            {/* No glow, no accent. A limit is stated, not sold. */}
+            <BlurFade delay={0.08} inView className="h-full">
+              <div className="h-full rounded-xl border border-dashed bg-card/40 p-6">
+                <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
+                  <Lock className="size-4.5 text-muted-foreground" />
+                </span>
+                <h3 className="mt-3 font-heading text-base font-medium">It cannot</h3>
+                <ul className="mt-4 space-y-2.5">
+                  {CANNOT.map((item) => (
+                    <li key={item} className="flex gap-2.5 text-sm text-muted-foreground">
+                      <X className="mt-0.5 size-4 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </BlurFade>
+          </div>
         </div>
       </Section>
 
@@ -167,69 +187,87 @@ export default function AiPage() {
             "It reports missing data rather than filling the gap",
           ]}
         >
-          <SegmentMock />
+          {/* The screen it reads from, in the frame it reads it in. */}
+          <div
+            aria-hidden
+            className="overflow-hidden rounded-xl ring-1 ring-foreground/10 shadow-[0_16px_50px_-20px_rgb(0_0_0/0.3)]"
+          >
+            <Safari url="app.pulsecommerce.io/customers" className="w-full">
+              <ProductScreen view="customers" />
+            </Safari>
+          </div>
         </FeatureRow>
       </Section>
 
       {/* ---- Things to ask ------------------------------------------------------- */}
-      <Section className="bg-muted/30">
+      <Section className="bg-muted/20">
         <SectionHeading
+          eyebrow="Prompts"
           title="Things worth asking it"
           body="Plain English, no query language, no saved-report builder to learn first."
         />
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ASKS.map((ask) => (
-            <Card key={ask}>
-              <CardContent className="flex items-start gap-2.5">
-                <MessageSquare className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <span className="text-sm">{ask}</span>
-              </CardContent>
-            </Card>
+          {ASKS.map((ask, i) => (
+            <BlurFade key={ask} delay={Math.min(i * 0.05, 0.3)} inView>
+              <MagicCard
+                className="h-full rounded-xl ring-1 ring-foreground/10"
+                gradientFrom="var(--primary)"
+                gradientTo="var(--chart-7)"
+                gradientColor="color-mix(in oklch, var(--primary) 8%, transparent)"
+                gradientOpacity={1}
+                gradientSize={200}
+              >
+                <div className="flex items-start gap-2.5 p-4">
+                  <MessageSquare className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm">{ask}</span>
+                </div>
+              </MagicCard>
+            </BlurFade>
           ))}
         </div>
       </Section>
 
       {/* ---- Privacy -------------------------------------------------------------- */}
       <Section>
-        <Card>
-          <CardContent className="py-10">
-            <div className="flex flex-col gap-3">
-              <span className="flex size-10 items-center justify-center rounded-lg border bg-muted/50">
-                <ShieldCheck className="size-5 text-primary" />
-              </span>
-              <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-                The model never sees a customer
-              </h2>
-              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-                Counts, names of segments and product titles go to the model. Phone numbers and email
-                addresses are absent from every tool it can call, so there is no path by which a
-                customer&rsquo;s contact details reach a third party.
-              </p>
-            </div>
+        <BlurFade inView>
+          <div className={cn("relative overflow-hidden rounded-2xl bg-card p-8 ring-1 ring-foreground/10 md:p-10")}>
+            <BorderBeam
+              size={180}
+              duration={13}
+              colorFrom="var(--primary)"
+              colorTo="color-mix(in oklch, var(--chart-3) 70%, transparent)"
+            />
+
+            <span className="flex size-10 items-center justify-center rounded-lg border bg-muted/50">
+              <ShieldCheck className="size-5 text-primary" />
+            </span>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+              The model never sees a customer
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+              Counts, names of segments and product titles go to the model. Phone numbers and email
+              addresses are absent from every tool it can call, so there is no path by which a
+              customer&rsquo;s contact details reach a third party.
+            </p>
 
             <Separator className="my-8" />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                "Phone numbers are resolved server-side at send time",
-                "Emails are never included in a tool result",
-                "Personalisation happens after approval, outside the model",
-                "Disconnecting the store deletes every cached order",
-              ].map((item) => (
+              {PRIVACY.map((item) => (
                 <div key={item} className="flex items-start gap-2.5">
                   <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                   <span className="text-sm">{item}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </BlurFade>
       </Section>
 
-      {/* ---- Close ------------------------------------------------------------------ */}
+      {/* ---- Next ------------------------------------------------------------------ */}
       <Section>
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-14">
-          <div>
+          <BlurFade inView>
             <Badge variant="secondary">Next</Badge>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
               What it proposes, the campaign builder sends
@@ -244,12 +282,19 @@ export default function AiPage() {
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-          </div>
-          <div className="w-full lg:w-80">
+          </BlurFade>
+
+          <BlurFade delay={0.1} inView className="w-full lg:w-80">
             <CampaignBuilderMock />
-          </div>
+          </BlurFade>
         </div>
       </Section>
+
+      <Cta
+        id="ai-cta"
+        title="Ask it something on your own data"
+        body="Connect a store and the assistant is reading your real figures within minutes. It still cannot send anything without you."
+      />
     </main>
   );
 }

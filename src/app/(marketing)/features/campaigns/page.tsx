@@ -1,25 +1,32 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, Check, Clock, Filter, Megaphone, ShieldCheck, Ticket, Users } from "lucide-react";
+import { Check, Clock, Filter, ShieldCheck, Ticket, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { Iphone } from "@/components/ui/iphone";
+import { MagicCard } from "@/components/ui/magic-card";
+import { Marquee } from "@/components/ui/marquee";
+import { Safari } from "@/components/ui/safari";
 import { Separator } from "@/components/ui/separator";
 import {
   AssistantThreadMock,
   CampaignBuilderMock,
   FeatureRow,
   FlowMock,
-  MessageMock,
   Section,
   SectionHeading,
-  SegmentMock,
 } from "@/components/marketing/sections";
+import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
+import { Cta } from "@/components/marketing/landing/cta";
+import { PageHero } from "@/components/marketing/landing/page-hero";
+import { PhoneScreen } from "@/components/marketing/landing/phone-screen";
+import { ProductScreen } from "@/components/marketing/landing/product-screen";
 
 export const metadata: Metadata = {
   title: "Campaigns",
   description:
     "Build an audience from your real analytics, personalise every message from that customer's own history, dry-run the list, and send on WhatsApp through a gateway you own.",
+  alternates: { canonical: "/features/campaigns" },
 };
 
 /**
@@ -32,6 +39,13 @@ export const metadata: Metadata = {
  * Names and products in every mock are generic placeholders; this page is
  * public and a real catalogue on it would leak a real store's data.
  */
+
+const STEPS: [typeof Users, string, string][] = [
+  [Filter, "1 · Filter", "Segment, value tier, product and recency, stacked."],
+  [Users, "2 · Resolve", "See who it reaches, and who opted out."],
+  [ShieldCheck, "3 · Dry run", "The real list, resolved. Nothing sent."],
+  [Clock, "4 · Send", "Now, or as steps days apart."],
+];
 
 const TEMPLATES: [string, string][] = [
   ["Reorder reminder", "Their usual item, timed to their own cadence"],
@@ -66,68 +80,53 @@ const GUARDS = [
 export default function CampaignsPage() {
   return (
     <main>
-      <section className="mx-auto max-w-6xl px-4 pt-14 pb-16 sm:px-6 md:pt-20">
-        <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-14">
-          <div>
-            <Badge variant="outline" className="gap-1.5">
-              <Megaphone className="size-3" />
-              Campaigns
-            </Badge>
-            <h1 className="mt-6 max-w-2xl text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl">
-              An audience is a filter, not a list you maintain.
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Stack segment, value tier, product and recency filters over your live analytics. The
-              count updates as you go, nothing is exported, and the list resolves at send time — so
-              it can never be stale.
-            </p>
-            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:gap-3">
-              <Button size="lg" asChild className="h-10 px-5 text-sm">
-                <Link href="/connect">
-                  Get started free
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="h-10 px-5 text-sm">
-                <Link href="/features/ai">See the assistant</Link>
-              </Button>
-            </div>
-          </div>
-
-          <div className="w-full lg:w-80">
+      <PageHero
+        id="campaigns"
+        eyebrow="Campaigns"
+        title="An audience is a filter,"
+        accent="not a list you maintain."
+        body="Stack segment, value tier, product and recency filters over your live analytics. The count updates as you go, nothing is exported, and the list resolves at send time — so it can never be stale."
+        secondary={{ label: "See the assistant", href: "/features/ai" }}
+        aside={
+          <div className="relative mx-auto w-full max-w-80">
             <CampaignBuilderMock />
+            <BorderBeam
+              size={130}
+              duration={10}
+              colorFrom="var(--primary)"
+              colorTo="color-mix(in oklch, var(--chart-3) 70%, transparent)"
+            />
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* ---- The four steps ---------------------------------------------------- */}
-      <Section className="bg-muted/30">
+      <Section className="bg-muted/20">
         <SectionHeading
+          eyebrow="The shape of a send"
           title="Four steps, and a stop before the last one"
           body="The dry run exists because a send to real customers cannot be taken back."
         />
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            [Filter, "1 · Filter", "Segment, value tier, product and recency, stacked."],
-            [Users, "2 · Resolve", "See who it reaches, and who opted out."],
-            [ShieldCheck, "3 · Dry run", "The real list, resolved. Nothing sent."],
-            [Clock, "4 · Send", "Now, or as steps days apart."],
-          ].map(([Icon, title, body]) => {
-            const Ico = Icon as typeof Users;
-            return (
-              <Card key={title as string} className="h-full">
-                <CardHeader>
+          {STEPS.map(([Icon, title, body], i) => (
+            <BlurFade key={title} delay={i * 0.07} inView className="h-full">
+              <MagicCard
+                className="h-full rounded-xl ring-1 ring-foreground/10"
+                gradientFrom="var(--primary)"
+                gradientTo="var(--chart-7)"
+                gradientColor="color-mix(in oklch, var(--primary) 8%, transparent)"
+                gradientOpacity={1}
+              >
+                <div className="p-5">
                   <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
-                    <Ico className="size-4.5 text-primary" />
+                    <Icon className="size-4.5 text-primary" strokeWidth={1.75} />
                   </span>
-                  <CardTitle className="mt-3 text-base">{title as string}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{body as string}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <h3 className="mt-3 font-heading text-base font-medium">{title}</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{body}</p>
+                </div>
+              </MagicCard>
+            </BlurFade>
+          ))}
         </div>
       </Section>
 
@@ -145,7 +144,15 @@ export default function CampaignsPage() {
             "Opt-outs removed automatically",
           ]}
         >
-          <SegmentMock />
+          {/* The screen the filters live on, not a diagram of it. */}
+          <div
+            aria-hidden
+            className="overflow-hidden rounded-xl ring-1 ring-foreground/10 shadow-[0_16px_50px_-20px_rgb(0_0_0/0.3)]"
+          >
+            <Safari url="app.pulsecommerce.io/campaigns" className="w-full">
+              <ProductScreen view="customers" />
+            </Safari>
+          </div>
         </FeatureRow>
 
         <FeatureRow
@@ -161,7 +168,12 @@ export default function CampaignsPage() {
             "A preview rendered against a real customer before you send",
           ]}
         >
-          <MessageMock />
+          {/* A phone, because this is the half the customer sees. */}
+          <div aria-hidden className="mx-auto w-full max-w-64">
+            <Iphone>
+              <PhoneScreen conversation="campaign" />
+            </Iphone>
+          </div>
         </FeatureRow>
 
         <FeatureRow
@@ -196,44 +208,56 @@ export default function CampaignsPage() {
       </Section>
 
       {/* ---- Templates ------------------------------------------------------------ */}
-      <Section id="templates" className="bg-muted/30">
+      <Section id="templates" className="overflow-hidden bg-muted/20">
         <SectionHeading
+          eyebrow="Templates"
           title="Ten templates, personalised per customer"
           body="Each fills itself from that customer's own history. You write the shape; the product writes the specifics."
         />
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {TEMPLATES.map(([name, blurb]) => (
-            <Card key={name}>
-              <CardContent>
-                <h3 className="text-sm font-semibold">{name}</h3>
+
+        {/* A marquee rather than a grid: ten near-identical cards in rows read
+            as a wall of text, where a moving band reads as a set to browse. */}
+        <div className="relative mt-10">
+          <Marquee pauseOnHover className="[--duration:46s] [--gap:1rem]">
+            {TEMPLATES.map(([name, blurb]) => (
+              <div
+                key={name}
+                className="w-64 shrink-0 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-shadow hover:shadow-[0_8px_28px_-12px_rgb(0_0_0/0.22)]"
+              >
+                <BrandMark icon={BRANDS.whatsapp} className="size-4 text-muted-foreground" />
+                <h3 className="mt-2.5 text-sm font-semibold">{name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{blurb}</p>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            ))}
+          </Marquee>
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-linear-to-r from-background to-transparent sm:w-24" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-background to-transparent sm:w-24" />
         </div>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-base">The tokens every template understands</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+        <BlurFade delay={0.1} inView>
+          <div className="mt-8 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+            <div className="border-b px-5 py-3.5">
+              <h3 className="font-heading text-base font-medium">
+                The tokens every template understands
+              </h3>
+            </div>
             {TOKENS.map(([token, meaning], i) => (
               <div key={token}>
                 {i > 0 ? <Separator /> : null}
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-6 py-2.5">
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-5 py-2.5">
                   <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{token}</code>
                   <span className="text-sm text-muted-foreground">{meaning}</span>
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </BlurFade>
       </Section>
 
       {/* ---- Coupons --------------------------------------------------------------- */}
       <Section>
         <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
-          <div>
+          <BlurFade inView>
             <Badge variant="secondary" className="gap-1.5">
               <Ticket className="size-3" />
               Coupons
@@ -259,61 +283,53 @@ export default function CampaignsPage() {
                 </li>
               ))}
             </ul>
-          </div>
-          <CampaignBuilderMock />
+
+            <div className="mt-6 flex items-center gap-2.5 rounded-lg border border-dashed bg-card/40 p-3">
+              <BrandMark icon={BRANDS.woocommerce} className="size-5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                Written through the same WooCommerce REST API everything else is read from.
+              </p>
+            </div>
+          </BlurFade>
+
+          <BlurFade delay={0.1} inView>
+            <CampaignBuilderMock />
+          </BlurFade>
         </div>
       </Section>
 
       {/* ---- Guards ------------------------------------------------------------------ */}
-      <Section className="bg-muted/30">
-        <div className="flex flex-col gap-3">
+      <Section className="bg-muted/20">
+        <BlurFade inView>
           <span className="flex size-10 items-center justify-center rounded-lg border bg-background">
             <ShieldCheck className="size-5 text-primary" />
           </span>
-          <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
             Nothing sends by accident
           </h2>
-          <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Messaging real customers is the one thing in this product that cannot be undone, so every
             path to it is guarded.
           </p>
-        </div>
+        </BlurFade>
+
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          {GUARDS.map((guard) => (
-            <Card key={guard}>
-              <CardContent className="flex items-start gap-2.5">
+          {GUARDS.map((guard, i) => (
+            <BlurFade key={guard} delay={Math.min(i * 0.05, 0.3)} inView>
+              <div className="flex items-start gap-2.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
                 <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span className="text-sm">{guard}</span>
-              </CardContent>
-            </Card>
+              </div>
+            </BlurFade>
           ))}
         </div>
       </Section>
 
-      <Section>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              Send your first campaign today
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base text-pretty text-muted-foreground">
-              Connect a store, build an audience from your real customers, and dry-run it before a
-              single message leaves.
-            </p>
-            <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row sm:gap-3">
-              <Button size="lg" asChild className="h-10 px-5 text-sm">
-                <Link href="/connect">
-                  Connect your store
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="h-10 px-5 text-sm">
-                <Link href="/whatsapp">See how it arrives</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </Section>
+      <Cta
+        id="campaigns-cta"
+        title="Send your first campaign today"
+        body="Connect a store, build an audience from your real customers, and dry-run it before a single message leaves."
+      />
     </main>
   );
 }

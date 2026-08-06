@@ -1,26 +1,28 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Check, FileDown } from "lucide-react";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { MagicCard } from "@/components/ui/magic-card";
+import { Safari } from "@/components/ui/safari";
 import {
   AssistantMock,
   CampaignMock,
-  CohortMock,
   FeatureRow,
   FlowMock,
-  MessageMock,
   Section,
   SectionHeading,
-  SegmentMock,
-  StockMock,
 } from "@/components/marketing/sections";
+import { Cta } from "@/components/marketing/landing/cta";
+import { PageHero } from "@/components/marketing/landing/page-hero";
+import { PhoneScreen } from "@/components/marketing/landing/phone-screen";
+import { ProductScreen } from "@/components/marketing/landing/product-screen";
+import { Iphone } from "@/components/ui/iphone";
 
 export const metadata: Metadata = {
   title: "Features",
   description:
     "Thirteen modules: RFM segmentation, predicted lifetime value, cohort retention, acquisition channels, ABC product classes, days of cover, WhatsApp campaigns, automated flows and an assistant that proposes.",
+  alternates: { canonical: "/features" },
 };
 
 /**
@@ -30,6 +32,12 @@ export const metadata: Metadata = {
  * the product act for you. Each anchor here is a target the header's Product
  * menu already points at, so the two files have to agree — the ids are the
  * contract between them.
+ *
+ * The analysis rows show real screens inside a browser frame rather than the
+ * small card mocks they used to; the acting rows keep the card mocks, because
+ * a campaign builder is a panel rather than a page. The WhatsApp row is the one
+ * that gets a phone: it is the half of the product that leaves the merchant's
+ * browser, and a desktop frame around it would say the wrong thing.
  */
 
 const REPORTS = [
@@ -45,24 +53,57 @@ const REPORTS = [
   "B2B accounts rolled up by company",
 ];
 
+/** A product screen in a browser frame, sized for a feature row. */
+function ScreenFrame({
+  view,
+  url,
+  beam = false,
+}: {
+  view: React.ComponentProps<typeof ProductScreen>["view"];
+  url: string;
+  beam?: boolean;
+}) {
+  return (
+    <div
+      aria-hidden
+      className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10 shadow-[0_16px_50px_-20px_rgb(0_0_0/0.3)]"
+    >
+      <Safari url={url} className="w-full">
+        <ProductScreen view={view} />
+      </Safari>
+      {beam ? (
+        <BorderBeam
+          size={160}
+          duration={11}
+          colorFrom="var(--primary)"
+          colorTo="color-mix(in oklch, var(--chart-7) 70%, transparent)"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export default function FeaturesPage() {
   return (
     <main>
-      <section className="mx-auto max-w-6xl px-4 pt-14 pb-12 sm:px-6 md:pt-20">
-        <Badge variant="outline" className="gap-1.5">
-          <span className="size-1.5 rounded-full bg-primary" />
-          Thirteen modules, all included
-        </Badge>
-        <h1 className="mt-6 max-w-3xl text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl">
-          Everything is computed from your own orders.
-        </h1>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          There is no sample data anywhere in the product. Connect a store and every figure below is
-          derived from one cached snapshot of your real order history.
-        </p>
-      </section>
+      <PageHero
+        id="features"
+        eyebrow="Thirteen modules, all included"
+        title="Everything is computed from"
+        accent="your own orders."
+        body="There is no sample data anywhere in the product. Connect a store and every figure below is derived from one cached snapshot of your real order history."
+        secondary={{ label: "See pricing", href: "/pricing" }}
+        aside={<ScreenFrame view="overview" url="app.pulsecommerce.io/dashboard" beam />}
+      />
 
-      <Section className="space-y-16 pt-0 sm:space-y-20">
+      {/* ---- Analyse ------------------------------------------------------- */}
+      <Section className="space-y-16 sm:space-y-20">
+        <SectionHeading
+          eyebrow="Analyse"
+          title="Understand the base before you touch it"
+          body="Three modules that turn an order table into a picture of who is buying, what they buy and whether they come back."
+        />
+
         <FeatureRow
           id="customers"
           eyebrow="Customer intelligence"
@@ -75,7 +116,7 @@ export default function FeaturesPage() {
             "Every customer listed, not a capped slice",
           ]}
         >
-          <SegmentMock />
+          <ScreenFrame view="customers" url="app.pulsecommerce.io/customers" />
         </FeatureRow>
 
         <FeatureRow
@@ -91,7 +132,7 @@ export default function FeaturesPage() {
             "Cohort retention plotted month by month",
           ]}
         >
-          <CohortMock />
+          <ScreenFrame view="retention" url="app.pulsecommerce.io/cohorts" />
         </FeatureRow>
 
         <FeatureRow
@@ -106,11 +147,11 @@ export default function FeaturesPage() {
             "The revenue at risk behind each shortage",
           ]}
         >
-          <StockMock />
+          <ScreenFrame view="forecast" url="app.pulsecommerce.io/inventory" />
         </FeatureRow>
       </Section>
 
-      <Section className="bg-muted/30">
+      <Section className="bg-muted/20 py-12 md:py-14">
         <SectionHeading
           align="center"
           title="Then act, without leaving the screen"
@@ -118,6 +159,7 @@ export default function FeaturesPage() {
         />
       </Section>
 
+      {/* ---- Act ------------------------------------------------------------ */}
       <Section className="space-y-16 sm:space-y-20">
         <FeatureRow
           id="campaigns"
@@ -131,7 +173,11 @@ export default function FeaturesPage() {
             "A typed confirmation before anything leaves",
           ]}
         >
-          <MessageMock />
+          <div aria-hidden className="mx-auto w-full max-w-64">
+            <Iphone>
+              <PhoneScreen conversation="campaign" />
+            </Iphone>
+          </div>
         </FeatureRow>
 
         <FeatureRow
@@ -180,47 +226,44 @@ export default function FeaturesPage() {
         </FeatureRow>
       </Section>
 
-      <Section className="bg-muted/30">
+      {/* ---- Reports --------------------------------------------------------- */}
+      <Section className="bg-muted/20">
         <SectionHeading
+          eyebrow="Exports"
           title="Ten reports, as PDF, Excel or CSV"
           body="Every screen is also a document. Export what is on it, or schedule the whole set."
         />
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {REPORTS.map((report) => (
-            <Card key={report}>
-              <CardContent className="flex items-start gap-2.5">
-                <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span className="text-sm">{report}</span>
-              </CardContent>
-            </Card>
+          {REPORTS.map((report, i) => (
+            <BlurFade key={report} delay={Math.min(i * 0.04, 0.3)} inView>
+              <MagicCard
+                className="h-full rounded-xl ring-1 ring-foreground/10"
+                gradientFrom="var(--primary)"
+                gradientTo="var(--chart-7)"
+                gradientColor="color-mix(in oklch, var(--primary) 8%, transparent)"
+                gradientOpacity={1}
+                gradientSize={200}
+              >
+                <div className="flex items-start gap-2.5 p-4">
+                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span className="text-sm">{report}</span>
+                </div>
+              </MagicCard>
+            </BlurFade>
           ))}
         </div>
+
+        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+          <FileDown className="size-4 shrink-0" />
+          Same figures, same formatting as the screen they came from.
+        </p>
       </Section>
 
-      <Section>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              See it on your own numbers
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base text-pretty text-muted-foreground">
-              Read-only access, approved inside your own WordPress admin. Disconnecting wipes every
-              cached order.
-            </p>
-            <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row sm:gap-3">
-              <Button size="lg" asChild className="h-10 px-5 text-sm">
-                <Link href="/connect">
-                  Connect your store
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="h-10 px-5 text-sm">
-                <Link href="/pricing">See pricing</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </Section>
+      <Cta
+        id="features-cta"
+        title="See it on your own numbers"
+        body="Read-only access, approved inside your own WordPress admin. Disconnecting wipes every cached order."
+      />
     </main>
   );
 }
