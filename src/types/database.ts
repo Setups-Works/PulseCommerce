@@ -1509,6 +1509,69 @@ export type Database = {
           },
         ]
       }
+      stores: {
+        Row: {
+          connected_by: string | null
+          consumer_key: string
+          consumer_secret_encrypted: string
+          created_at: string
+          history_months: number
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          max_pages: number
+          name: string | null
+          organization_id: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          connected_by?: string | null
+          consumer_key: string
+          consumer_secret_encrypted: string
+          created_at?: string
+          history_months?: number
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          max_pages?: number
+          name?: string | null
+          organization_id: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          connected_by?: string | null
+          consumer_key?: string
+          consumer_secret_encrypted?: string
+          created_at?: string
+          history_months?: number
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          max_pages?: number
+          name?: string | null
+          organization_id?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_connected_by_fkey"
+            columns: ["connected_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       testimonials: {
         Row: {
           author_context: string | null
@@ -1632,14 +1695,108 @@ export type Database = {
           },
         ]
       }
+      whatsapp_gateways: {
+        Row: {
+          api_token_encrypted: string | null
+          base_url: string | null
+          created_at: string
+          id: string
+          is_connected: boolean
+          last_checked_at: string | null
+          organization_id: string
+          phone_number: string | null
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          api_token_encrypted?: string | null
+          base_url?: string | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_checked_at?: string | null
+          organization_id: string
+          phone_number?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          api_token_encrypted?: string | null
+          base_url?: string | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_checked_at?: string | null
+          organization_id?: string
+          phone_number?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_gateways_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      stores_redacted: {
+        Row: {
+          created_at: string | null
+          history_months: number | null
+          id: string | null
+          is_active: boolean | null
+          last_synced_at: string | null
+          max_pages: number | null
+          name: string | null
+          organization_id: string | null
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          history_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          max_pages?: number | null
+          name?: string | null
+          organization_id?: string | null
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          history_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          max_pages?: number | null
+          name?: string | null
+          organization_id?: string | null
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_content_columns: { Args: { target: unknown }; Returns: undefined }
       apply_content_rls: { Args: { target: unknown }; Returns: undefined }
       attach_updated_at: { Args: { target: unknown }; Returns: undefined }
+      current_organization: { Args: never; Returns: string }
       current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
