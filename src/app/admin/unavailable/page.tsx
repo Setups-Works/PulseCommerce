@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import "@/app/heroui.css";
 
 /**
  * Shown when /admin is reached on a deployment with no Supabase project.
@@ -31,8 +30,7 @@ const STEPS: [string, string][] = [
 
 export default function AdminUnavailablePage() {
   return (
-    <div className="heroui-scope">
-      <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground">
+    <main className="flex min-h-screen items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg rounded-xl border border-border bg-surface p-7">
           <h1 className="text-lg font-semibold tracking-tight">The admin panel needs Supabase</h1>
           <p className="mt-2 text-sm text-muted">
@@ -64,7 +62,6 @@ export default function AdminUnavailablePage() {
             </Link>
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }

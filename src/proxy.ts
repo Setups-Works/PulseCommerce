@@ -68,8 +68,21 @@ export async function proxy(request: NextRequest) {
 
   // ---- The admin panel ----------------------------------------------------
   if (pathname.startsWith("/admin")) {
-    // The sign-in screen has to stay reachable, or there is no way back in.
-    if (pathname === "/admin/login" || pathname.startsWith("/admin/auth")) {
+    /*
+     * The signed-out screens, which must stay reachable or there is no way
+     * back in. `/admin/unavailable` is on this list as well as the sign-in
+     * page: it is the destination for a deployment with no Supabase project,
+     * and gating it behind a session it cannot possibly have would bounce the
+     * visitor to a login form that cannot work.
+     *
+     * These pages live outside the (panel) route group, so they do not inherit
+     * the layout that enforces the staff role — see app/admin/layout.tsx.
+     */
+    if (
+      pathname === "/admin/login" ||
+      pathname === "/admin/unavailable" ||
+      pathname.startsWith("/admin/auth")
+    ) {
       return response;
     }
 
