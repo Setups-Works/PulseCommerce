@@ -53,6 +53,32 @@ export function BrandMark({ icon, brandColor = false, className, ...props }: Bra
   );
 }
 
+/**
+ * Resolves a simple-icons slug stored in the CMS to a mark.
+ *
+ * An allow-list rather than a lookup into the whole package: content rows are
+ * editable, and mapping arbitrary strings to icons would mean shipping the
+ * entire three-thousand-icon set to the browser to make it work. Returns null
+ * for an unknown slug so callers can drop the entry rather than draw a
+ * placeholder.
+ */
+export function simpleIconBySlug(slug: string | null | undefined): SimpleIcon | null {
+  if (!slug) return null;
+  return SLUGS[slug.toLowerCase()] ?? null;
+}
+
+const SLUGS: Record<string, SimpleIcon> = {
+  woocommerce: siWoocommerce,
+  wordpress: siWordpress,
+  whatsapp: siWhatsapp,
+  meta: siMeta,
+  stripe: siStripe,
+  razorpay: siRazorpay,
+  googleanalytics: siGoogleanalytics,
+  googlesheets: siGooglesheets,
+  shopify: siShopify,
+};
+
 export const BRANDS = {
   woocommerce: siWoocommerce,
   wordpress: siWordpress,

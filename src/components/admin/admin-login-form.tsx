@@ -3,10 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Card } from "@heroui/react";
+import { Alert, Button, Card, Input, Label, TextField } from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBolt } from "@fortawesome/free-solid-svg-icons";
-import { Field } from "@/components/ui-hero/field";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -83,25 +82,15 @@ export function AdminLoginForm({
       ) : null}
 
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
-        <Field
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          isRequired
-          value={email}
-          onChange={setEmail}
-        />
+        <TextField name="email" type="email" isRequired value={email} onChange={setEmail}>
+          <Label>Email</Label>
+          <Input autoComplete="email" />
+        </TextField>
 
-        <Field
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          isRequired
-          value={password}
-          onChange={setPassword}
-        />
+        <TextField name="password" type="password" isRequired value={password} onChange={setPassword}>
+          <Label>Password</Label>
+          <Input autoComplete="current-password" />
+        </TextField>
 
         {error ? (
           <Alert status="danger">

@@ -1,7 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Alert, Button, Card, Chip, Spinner, Switch } from "@heroui/react";
+import {
+  Alert,
+  Button,
+  Card,
+  Chip,
+  Description,
+  Input,
+  Label,
+  Spinner,
+  Switch,
+  TextField,
+} from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowDown,
@@ -10,7 +21,6 @@ import {
   faPlus,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import { Field } from "@/components/ui-hero/field";
 import {
   createContentRow,
   deleteContentRow,
@@ -163,19 +173,15 @@ function FaqRow({
       <Card className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <Field
-              label="Question"
-              value={question}
-              onChange={setQuestion}
-              isDisabled={!canWrite}
-            />
-            <Field
-              label="Answer"
-              value={answer}
-              onChange={setAnswer}
-              isDisabled={!canWrite}
-              description="Shown verbatim on the page and in the FAQ structured data."
-            />
+            <TextField value={question} onChange={setQuestion} isDisabled={!canWrite}>
+              <Label>Question</Label>
+              <Input />
+            </TextField>
+            <TextField value={answer} onChange={setAnswer} isDisabled={!canWrite}>
+              <Label>Answer</Label>
+              <Input />
+              <Description>Shown verbatim on the page and in the FAQ structured data.</Description>
+            </TextField>
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-2">

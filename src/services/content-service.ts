@@ -84,6 +84,47 @@ export async function getHero(route: string): Promise<HeroContent | null> {
 }
 
 /* ---------------------------------------------------------------------------
+   Features
+   ------------------------------------------------------------------------ */
+
+export interface FeatureItem {
+  title: string;
+  description: string;
+  /** A lucide name, resolved through the allow-list in lib/marketing/icons.ts. */
+  icon: string | null;
+  href: string | null;
+  ctaLabel: string | null;
+  metric: number | null;
+  metricUnit: string | null;
+}
+
+/**
+ * Features in a collection, or the built-in list when the CMS has none.
+ *
+ * Defaults are passed in by the caller rather than held here. Each collection's
+ * fallback is the array that section already shipped with, and keeping it next
+ * to the component means the two cannot describe different products — the
+ * service only decides *whether* to use it.
+ */
+export async function getFeatures(
+  collection: string,
+  fallback: FeatureItem[] = [],
+): Promise<FeatureItem[]> {
+  const rows = await repo.getFeatures(collection);
+  if (rows.length === 0) return fallback;
+
+  return rows.map((row) => ({
+    title: row.title,
+    description: row.description,
+    icon: row.icon,
+    href: row.href,
+    ctaLabel: row.cta_label,
+    metric: row.metric === null ? null : Number(row.metric),
+    metricUnit: row.metric_unit,
+  }));
+}
+
+/* ---------------------------------------------------------------------------
    Pricing
    ------------------------------------------------------------------------ */
 

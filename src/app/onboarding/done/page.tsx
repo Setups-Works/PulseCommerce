@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BarChart3, Megaphone, Sparkles, Users } from "lucide-react";
-import { LinkButton } from "@/components/ui-hero/field";
+import { Link as HeroLink } from "@heroui/react";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { readStoreConfig } from "@/lib/store/config";
 
@@ -67,13 +67,13 @@ export default async function OnboardingDonePage() {
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3 border-t border-border pt-6">
-        <LinkButton href={connected ? "/dashboard" : "/onboarding"} variant="primary" size="lg">
+        <HeroLink href={connected ? "/dashboard" : "/onboarding"}>
           {connected ? "Open the dashboard" : "Connect a store"}
           <ArrowRight className="size-4" />
-        </LinkButton>
-        <LinkButton href="/settings" variant="outline" size="lg">
+        </HeroLink>
+        <HeroLink href="/settings">
           Review settings
-        </LinkButton>
+        </HeroLink>
       </div>
     </OnboardingShell>
   );

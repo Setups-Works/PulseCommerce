@@ -3,11 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Card, Spinner } from "@heroui/react";
+import {
+  Alert,
+  Button,
+  Card,
+  Description,
+  Input,
+  Label,
+  Spinner,
+  TextField,
+} from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRight, faBolt, faCheck, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { Field } from "@/components/ui-hero/field";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -194,38 +202,23 @@ export function AuthForm({ mode, initialError }: { mode: AuthMode; initialError?
 
       <form onSubmit={withPassword} className="flex flex-col gap-4">
         {mode === "sign-up" ? (
-          <Field
-            label="Name"
-            name="name"
-            autoComplete="name"
-            placeholder="Your name"
-            value={fullName}
-            onChange={setFullName}
-          />
+          <TextField name="name" value={fullName} onChange={setFullName}>
+            <Label>Name</Label>
+            <Input autoComplete="name" placeholder="Your name" />
+          </TextField>
         ) : null}
 
-        <Field
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          isRequired
-          placeholder="you@yourstore.com"
-          value={email}
-          onChange={setEmail}
-        />
+        <TextField name="email" type="email" isRequired value={email} onChange={setEmail}>
+          <Label>Email</Label>
+          <Input autoComplete="email" placeholder="you@yourstore.com" />
+        </TextField>
 
         <div className="flex flex-col gap-1.5">
-          <Field
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
-            isRequired
-            value={password}
-            onChange={setPassword}
-            description={mode === "sign-up" ? "At least eight characters." : undefined}
-          />
+          <TextField name="password" type="password" isRequired value={password} onChange={setPassword}>
+            <Label>Password</Label>
+            <Input autoComplete={mode === "sign-up" ? "new-password" : "current-password"} />
+            {mode === "sign-up" ? <Description>At least eight characters.</Description> : null}
+          </TextField>
           {mode === "sign-in" ? (
             <button
               type="button"

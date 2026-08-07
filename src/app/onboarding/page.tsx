@@ -3,8 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Check, Lock, ShieldCheck } from "lucide-react";
 import { AuthOutcome } from "@/components/auth-outcome";
-import { Button, Card } from "@heroui/react";
-import { Field } from "@/components/ui-hero/field";
+import { Button, Card, Input, Label, TextField } from "@heroui/react";
 import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { authConfigured } from "@/lib/auth/session";
@@ -72,16 +71,10 @@ export default async function OnboardingPage({
         </p>
 
         <form action="/api/auth/woo/start" method="get" className="mt-5 flex flex-col gap-3">
-          <Field
-            label="Store URL"
-            name="url"
-            type="url"
-            placeholder="https://yourstore.com"
-            autoComplete="url"
-            autoFocus
-            isRequired
-            inputProps={{ minLength: 4 }}
-          />
+          <TextField name="url" type="url" isRequired>
+            <Label>Store URL</Label>
+            <Input placeholder="https://yourstore.com" autoComplete="url" autoFocus minLength={4} />
+          </TextField>
           <Button type="submit" variant="primary" fullWidth>
             Continue to WooCommerce
             <ArrowRight className="size-4" />

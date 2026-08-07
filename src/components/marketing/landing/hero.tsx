@@ -11,6 +11,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { Safari } from "@/components/ui/safari";
 import { PhoneScreen } from "@/components/marketing/landing/phone-screen";
 import { ProductScreen } from "@/components/marketing/landing/product-screen";
+import { getHero } from "@/services/content-service";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,7 +35,14 @@ const PROOF: [number, string, string][] = [
   [0, "", "Records sent to third parties"],
 ];
 
-export function Hero() {
+export async function Hero() {
+  /*
+   * From `hero_sections` for "/", falling back to the copy this page shipped
+   * with. `getHero` holds that fallback, so a deleted row renders the original
+   * headline rather than an empty hero.
+   */
+  const hero = (await getHero("/"))!;
+
   return (
     <section className="relative isolate overflow-hidden">
       {/* ---- Backdrop ---------------------------------------------------- */}
@@ -65,9 +73,7 @@ export function Hero() {
             className="group inline-flex items-center gap-2 rounded-full border bg-card/60 px-3 py-1 text-xs backdrop-blur transition-colors hover:bg-muted"
           >
             <span className="flex size-1.5 shrink-0 rounded-full bg-primary" />
-            <AnimatedShinyText className="mx-0">
-              Flows and the AI assistant are live
-            </AnimatedShinyText>
+            <AnimatedShinyText className="mx-0">{hero.eyebrow}</AnimatedShinyText>
             <ArrowRight className="size-3 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           </Link>
         </BlurFade>
@@ -75,21 +81,22 @@ export function Hero() {
         {/* ---- Headline --------------------------------------------------- */}
         <BlurFade delay={0.12} inView>
           <h1 className="mx-auto mt-6 max-w-4xl text-center text-4xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-5xl md:text-6xl">
-            Know who buys.{" "}
-            <AuroraText
-              colors={["var(--chart-7)", "var(--primary)", "var(--chart-3)", "var(--primary)"]}
-              speed={0.6}
-            >
-              Win them back
-            </AuroraText>{" "}
-            on WhatsApp.
+            {hero.headline}{" "}
+            {hero.headlineAccent ? (
+              <AuroraText
+                colors={["var(--chart-7)", "var(--primary)", "var(--chart-3)", "var(--primary)"]}
+                speed={0.6}
+              >
+                {hero.headlineAccent}
+              </AuroraText>
+            ) : null}{" "}
+            {hero.headlineAfter}
           </h1>
         </BlurFade>
 
         <BlurFade delay={0.2} inView>
           <p className="mx-auto mt-6 max-w-2xl text-center text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg md:text-xl">
-            WooCommerce tells you what sold. PulseCommerce tells you who bought it, which of them is
-            slipping away, and what to say to bring them back — from one screen.
+            {hero.subheadline}
           </p>
         </BlurFade>
 
@@ -97,21 +104,23 @@ export function Hero() {
         <BlurFade delay={0.28} inView>
           <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row sm:gap-3">
             <Button size="lg" asChild className="h-11 px-6 text-sm">
-              <Link href="/connect">
-                Connect your store
+              <Link href={hero.primaryCta.href}>
+                {hero.primaryCta.label}
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" asChild className="h-11 px-6 text-sm">
-              <Link href="/whatsapp">
-                <PlayCircle className="size-4" />
-                See WhatsApp in action
-              </Link>
-            </Button>
+            {hero.secondaryCta ? (
+              <Button variant="outline" size="lg" asChild className="h-11 px-6 text-sm">
+                <Link href={hero.secondaryCta.href}>
+                  <PlayCircle className="size-4" />
+                  {hero.secondaryCta.label}
+                </Link>
+              </Button>
+            ) : null}
           </div>
 
           <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground sm:text-sm">
-            {["Read-only access", "No per-message fee", "Self-hosted", "Your data stays yours"].map(
+            {hero.trustPoints.map(
               (item) => (
                 <span key={item} className="flex items-center gap-1.5">
                   <Check className="size-3.5 shrink-0 text-primary" />

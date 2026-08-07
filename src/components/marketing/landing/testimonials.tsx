@@ -1,6 +1,7 @@
 import { Quote } from "lucide-react";
 import { Marquee } from "@/components/ui/marquee";
 import { Section, SectionHeading } from "@/components/marketing/sections";
+import { getTestimonials } from "@/services/content-service";
 import { cn } from "@/lib/utils";
 
 /**
@@ -85,7 +86,7 @@ function initials(role: string) {
     .join("");
 }
 
-function TestimonialCard({ quote, role, context }: Testimonial) {
+function TestimonialCard({ quote, role, context }: { quote: string; role: string; context: string }) {
   return (
     <figure
       className={cn(
@@ -111,8 +112,17 @@ function TestimonialCard({ quote, role, context }: Testimonial) {
   );
 }
 
-export function Testimonials() {
-  const half = Math.ceil(TESTIMONIALS.length / 2);
+export async function Testimonials() {
+  /*
+   * Only published, verified-or-not quotes come back — RLS keeps drafts off
+   * the public site, and the seed inserted the placeholders as drafts. An
+   * empty list therefore means "nothing real to show yet", and the section
+   * renders nothing at all rather than inventing testimonials.
+   */
+  const testimonials = await getTestimonials();
+  if (testimonials.length === 0) return null;
+
+  const half = Math.ceil(testimonials.length / 2);
 
   return (
     <Section id="testimonials" className="overflow-hidden">
@@ -127,12 +137,12 @@ export function Testimonials() {
           testimonial section is after. */}
       <div className="relative mt-10 flex flex-col gap-4">
         <Marquee pauseOnHover className="[--duration:52s] [--gap:1rem]">
-          {TESTIMONIALS.slice(0, half).map((item) => (
+          {testimonials.slice(0, half).map((item) => (
             <TestimonialCard key={item.quote} {...item} />
           ))}
         </Marquee>
         <Marquee reverse pauseOnHover className="[--duration:58s] [--gap:1rem]">
-          {TESTIMONIALS.slice(half).map((item) => (
+          {testimonials.slice(half).map((item) => (
             <TestimonialCard key={item.quote} {...item} />
           ))}
         </Marquee>

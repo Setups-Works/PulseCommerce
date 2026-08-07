@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
+import { getCompany, getFooterColumns } from "@/services/content-service";
 
 /**
  * Shared across every marketing page, so the columns cannot drift apart.
@@ -74,7 +75,11 @@ const SOCIALS: { label: string; href: string; render: () => React.ReactNode }[] 
   },
 ];
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  // Columns and the company profile come from the CMS, each with the built-in
+  // version as its fallback. See services/content-service.ts.
+  const [columns, company] = await Promise.all([getFooterColumns(), getCompany()]);
+
   return (
     <footer className="border-t">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
@@ -83,11 +88,10 @@ export function SiteFooter() {
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Activity className="size-4.5" strokeWidth={2.5} />
             </span>
-            <span className="text-base font-semibold tracking-tight">PulseCommerce</span>
+            <span className="text-base font-semibold tracking-tight">{company.name}</span>
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            AI commerce intelligence for WooCommerce stores that would rather act on their numbers
-            than read them.
+            {company.description}
           </p>
 
           {/*
@@ -138,14 +142,18 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {COLUMNS.map(([title, links]) => (
-          <div key={title}>
-            <h4 className="text-sm font-semibold">{title}</h4>
+        {columns.map((column) => (
+          <div key={column.label}>
+            <h4 className="text-sm font-semibold">{column.label}</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {links.map(([label, href]) => (
-                <li key={label}>
-                  <Link href={href} className="transition-colors hover:text-foreground">
-                    {label}
+              {column.links.map((link) => (
+                <li key={`${column.label}-${link.label}`}>
+                  <Link
+                    href={link.href}
+                    {...(link.newTab ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+                    className="transition-colors hover:text-foreground"
+                  >
+                    {link.label}
                   </Link>
                 </li>
               ))}
@@ -157,7 +165,7 @@ export function SiteFooter() {
       <Separator />
 
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-xs text-muted-foreground sm:px-6">
-        <span>© 2026 PulseCommerce. Self-hosted, and yours.</span>
+        <span>{company.copyright}</span>
 
         <span className="flex items-center gap-4">
           <span className="flex items-center gap-2">

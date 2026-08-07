@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, Clock, Minus, ServerCog, TriangleAlert } from "lucide-react";
-import { Button, Card, Chip } from "@heroui/react";
-import { LinkButton } from "@/components/ui-hero/field";
+import { Button, Card, Chip , Link as HeroLink } from "@heroui/react";
 import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { cn } from "@/lib/utils";
@@ -125,10 +124,10 @@ export default function OnboardingWhatsAppPage() {
             </p>
           </div>
 
-          <LinkButton href="/settings?tab=whatsapp" variant="primary" fullWidth className="mt-6">
+          <HeroLink href="/settings?tab=whatsapp" className="mt-6">
             Set up the gateway
             <ArrowRight className="size-4" />
-          </LinkButton>
+          </HeroLink>
         </Card>
 
         {/* ---- Cloud API: not yet ------------------------------------------ */}
@@ -189,13 +188,13 @@ export default function OnboardingWhatsAppPage() {
           Not ready to decide? The analytics work without a gateway connected.
         </p>
         <div className="flex flex-wrap gap-3">
-          <LinkButton href="/pricing#delivery" variant="outline">
+          <HeroLink href="/pricing#delivery">
             Compare in detail
-          </LinkButton>
-          <LinkButton href="/onboarding/done" variant="primary">
+          </HeroLink>
+          <HeroLink href="/onboarding/done">
             Continue
             <ArrowRight className="size-4" />
-          </LinkButton>
+          </HeroLink>
         </div>
       </div>
     </OnboardingShell>

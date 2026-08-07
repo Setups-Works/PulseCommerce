@@ -1,7 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Alert, Button, Card, Chip, Spinner, Switch } from "@heroui/react";
+import {
+  Alert,
+  Button,
+  Card,
+  Chip,
+  Description,
+  Input,
+  Label,
+  Spinner,
+  Switch,
+  TextField,
+} from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowDown,
@@ -10,7 +21,6 @@ import {
   faPlus,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import { Field } from "@/components/ui-hero/field";
 import {
   createContentRow,
   deleteContentRow,
@@ -254,14 +264,15 @@ function ContentRow<T extends { id: string; status: string; position: number }>(
                     {field.label}
                   </Switch>
                 ) : (
-                  <Field
-                    label={field.label}
-                    description={field.description}
-                    placeholder={field.placeholder}
+                  <TextField
                     isDisabled={!canWrite}
                     value={toInput(draft[field.name])}
                     onChange={(v) => set(field.name, fromInput(v, field.kind))}
-                  />
+                  >
+                    <Label>{field.label}</Label>
+                    <Input placeholder={field.placeholder} />
+                    {field.description ? <Description>{field.description}</Description> : null}
+                  </TextField>
                 )}
               </div>
             ))}

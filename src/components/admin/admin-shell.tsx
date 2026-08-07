@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Avatar, Button, Chip, Drawer, Skeleton } from "@heroui/react";
+import { Avatar, Button, Chip, Drawer, Link as HeroLink, Skeleton } from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRightFromBracket,
@@ -15,7 +15,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "next-themes";
 import { ADMIN_NAV, findNavItem } from "@/components/admin/admin-nav";
-import { LinkButton } from "@/components/ui-hero/field";
 import { createClient } from "@/lib/supabase/client";
 import { can, ROLE_LABELS, type AppRole, type Capability } from "@/lib/auth/rbac";
 import { cn } from "@/lib/utils";
@@ -163,19 +162,12 @@ export function AdminShell({ role, email, fullName, avatarUrl, children }: Admin
 
           <ThemeToggle />
 
-          {/* A link, not a Button: HeroUI v3's Button has no `as` escape
-              hatch, and nesting an anchor inside one is invalid markup. See
-              the note on LinkButton. */}
-          <LinkButton
-            href="/"
-            target="_blank"
-            variant="ghost"
-            size="sm"
-            className="hidden sm:inline-flex"
-          >
+          {/* HeroUI's Link, not a Button: v3's Button has no `as` escape
+              hatch, and nesting an anchor inside one is invalid markup. */}
+          <HeroLink href="/" target="_blank" className="hidden items-center gap-1.5 text-sm sm:inline-flex">
             <FontAwesomeIcon icon={faUpRightFromSquare} className="w-3" />
             View site
-          </LinkButton>
+          </HeroLink>
         </header>
 
         <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>

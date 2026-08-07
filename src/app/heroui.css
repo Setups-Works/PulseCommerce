@@ -1,54 +1,52 @@
 /*
  * HeroUI, scoped to the signed-in surfaces.
  *
- * ─── Why the scope exists ──────────────────────────────────────────────────
+ * The import list below is HeroUI's own stylesheet, split into the parts it
+ * publishes. Nothing here restyles a HeroUI component — the admin panel, the
+ * auth screens and onboarding all use stock components with stock colours.
  *
- * HeroUI v3 and shadcn/ui both theme themselves with bare CSS custom
- * properties, and they collide on several names while meaning different
- * things by them:
+ * ─── Why the scope block exists at all ─────────────────────────────────────
  *
- *   --accent      shadcn: a light grey hover surface
- *                 HeroUI: the primary action colour
+ * It is not decoration, and it cannot be deleted. HeroUI and shadcn/ui both
+ * theme themselves with bare CSS custom properties, and they collide on names
+ * while meaning different things by them:
+ *
  *   --muted       shadcn: a muted *surface*  (oklch 0.97, near-white)
  *                 HeroUI: a muted *text*     (oklch 0.55, mid-grey)
+ *   --accent      shadcn: a light grey hover surface
+ *                 HeroUI: the primary action colour
  *   --radius-sm   shadcn: radius * 0.6       HeroUI: radius * 0.5
  *
- * HeroUI declares its theme on `:root` inside `@layer base`. The project's own
- * tokens in globals.css are *unlayered*, and unlayered declarations always win
- * over layered ones — so importing HeroUI's theme globally would leave it
- * running on shadcn's values for every colliding name and its own for the
- * rest, which is a broken hybrid rather than either theme.
+ * HeroUI declares its theme on `:root` inside `@layer base`. The project's
+ * shadcn tokens in globals.css are *unlayered*, and unlayered declarations
+ * always beat layered ones — so on their own, HeroUI's components would render
+ * with shadcn's values for every colliding name. `--muted` is the one that
+ * shows: every piece of secondary text in the admin panel would come out
+ * near-white on white.
  *
- * Re-declaring HeroUI's palette on `.heroui-scope` fixes that. Custom
- * properties inherit, so every HeroUI component inside /admin, /auth and
- * /onboarding resolves against these values, and the marketing pages outside
- * the scope keep shadcn's. Neither knows the other exists.
+ * Re-declaring HeroUI's own values on `.heroui-scope` fixes it. Custom
+ * properties inherit, so components inside the scope resolve against HeroUI's
+ * palette and the marketing site outside it keeps shadcn's.
  *
- * ─── Why the values are HeroUI's own ───────────────────────────────────────
+ * Every value below is copied verbatim from
+ * @heroui/styles/dist/themes/default/variables.css. They are HeroUI's stock
+ * light and dark palettes, unmodified — this block restates them, it does not
+ * change them.
  *
- * These are copied verbatim from @heroui/styles/dist/themes/default/
- * variables.css — HeroUI's stock light and dark palettes, unmodified. The
- * admin panel and the customer screens therefore look like HeroUI, and the
- * marketing site looks like the brand. Only the shape and type tokens are
- * shared, so a button rounds the same everywhere and everything is set in
- * Geist.
- *
- * ⚠ If HeroUI's defaults change in a future release, these copies go stale
- * silently. Re-check them against that file on upgrade.
+ * ⚠ Re-check these against that file when upgrading HeroUI. A copied default
+ * that drifts from its source goes stale silently.
  */
 
 /*
  * `@reference` rather than `@import "tailwindcss"`.
  *
  * HeroUI's component stylesheets are written with `@apply`, so Tailwind's
- * utilities have to be resolvable while this file compiles. Importing
- * Tailwind here would resolve them and also emit a second full copy of
- * preflight and the utility layer on every admin page — `@reference` makes
- * them available to `@apply` and emits nothing.
+ * utilities must be resolvable while this file compiles. Importing Tailwind
+ * here would resolve them and also emit a second full copy of preflight and
+ * the utility layer on every admin page; `@reference` makes them available to
+ * `@apply` and emits nothing.
  */
 @reference "tailwindcss";
-/* HeroUI's animations `@apply` tw-animate-css utilities (fade-in-0,
-   zoom-in-95, …), so that package has to be in scope for the same reason. */
 @reference "tw-animate-css";
 
 @import "@heroui/styles/base";
@@ -59,13 +57,13 @@
 @import "@heroui/styles/variants";
 
 .heroui-scope {
-  /* ---- Primitives ------------------------------------------------------ */
+  /* Primitives */
   --white: oklch(100% 0 0);
   --black: oklch(0% 0 0);
   --snow: oklch(0.9911 0 0);
   --eclipse: oklch(0.2103 0.0059 285.89);
 
-  /* ---- Light palette --------------------------------------------------- */
+  /* Light */
   --background: oklch(0.9702 0 0);
   --foreground: var(--eclipse);
 
@@ -95,13 +93,10 @@
   --danger: oklch(0.6532 0.2328 25.74);
   --danger-foreground: var(--snow);
 
-  /* ---- Shape and type --------------------------------------------------- */
-  /* The two things that ARE shared with the marketing site, because a button
-     that rounds differently on either side of a sign-in link reads as two
-     products. Geist comes from next/font exactly as the rest of the app loads
-     it. */
   --radius: 0.5rem;
   --field-radius: calc(var(--radius) * 1.5);
+
+  /* Geist, from next/font, as the rest of the app loads it. */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -111,11 +106,11 @@
 }
 
 /*
- * Dark palette.
+ * Dark.
  *
  * next-themes puts `.dark` on <html>, above the scope element, so the selector
- * reaches down rather than sitting alongside. Values are HeroUI's stock dark
- * theme, again copied unchanged.
+ * reaches down rather than sitting alongside. HeroUI's stock dark values,
+ * again copied unchanged.
  */
 .dark .heroui-scope {
   --background: oklch(12% 0.005 285.823);
