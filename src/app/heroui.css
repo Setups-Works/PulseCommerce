@@ -1,0 +1,138 @@
+/*
+ * HeroUI, scoped to the signed-in surfaces.
+ *
+ * ─── Why the scope exists ──────────────────────────────────────────────────
+ *
+ * HeroUI v3 and shadcn/ui both theme themselves with bare CSS custom
+ * properties, and they collide on several names while meaning different
+ * things by them:
+ *
+ *   --accent      shadcn: a light grey hover surface
+ *                 HeroUI: the primary action colour
+ *   --muted       shadcn: a muted *surface*  (oklch 0.97, near-white)
+ *                 HeroUI: a muted *text*     (oklch 0.55, mid-grey)
+ *   --radius-sm   shadcn: radius * 0.6       HeroUI: radius * 0.5
+ *
+ * HeroUI declares its theme on `:root` inside `@layer base`. The project's own
+ * tokens in globals.css are *unlayered*, and unlayered declarations always win
+ * over layered ones — so importing HeroUI's theme globally would leave it
+ * running on shadcn's values for every colliding name and its own for the
+ * rest, which is a broken hybrid rather than either theme.
+ *
+ * Re-declaring HeroUI's palette on `.heroui-scope` fixes that. Custom
+ * properties inherit, so every HeroUI component inside /admin, /auth and
+ * /onboarding resolves against these values, and the marketing pages outside
+ * the scope keep shadcn's. Neither knows the other exists.
+ *
+ * ─── Why the values are HeroUI's own ───────────────────────────────────────
+ *
+ * These are copied verbatim from @heroui/styles/dist/themes/default/
+ * variables.css — HeroUI's stock light and dark palettes, unmodified. The
+ * admin panel and the customer screens therefore look like HeroUI, and the
+ * marketing site looks like the brand. Only the shape and type tokens are
+ * shared, so a button rounds the same everywhere and everything is set in
+ * Geist.
+ *
+ * ⚠ If HeroUI's defaults change in a future release, these copies go stale
+ * silently. Re-check them against that file on upgrade.
+ */
+
+/*
+ * `@reference` rather than `@import "tailwindcss"`.
+ *
+ * HeroUI's component stylesheets are written with `@apply`, so Tailwind's
+ * utilities have to be resolvable while this file compiles. Importing
+ * Tailwind here would resolve them and also emit a second full copy of
+ * preflight and the utility layer on every admin page — `@reference` makes
+ * them available to `@apply` and emits nothing.
+ */
+@reference "tailwindcss";
+/* HeroUI's animations `@apply` tw-animate-css utilities (fade-in-0,
+   zoom-in-95, …), so that package has to be in scope for the same reason. */
+@reference "tw-animate-css";
+
+@import "@heroui/styles/base";
+@import "@heroui/styles/base/scrollbar.css";
+@import "@heroui/styles/components/index.css" layer(components);
+@import "@heroui/styles/themes/default" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+
+.heroui-scope {
+  /* ---- Primitives ------------------------------------------------------ */
+  --white: oklch(100% 0 0);
+  --black: oklch(0% 0 0);
+  --snow: oklch(0.9911 0 0);
+  --eclipse: oklch(0.2103 0.0059 285.89);
+
+  /* ---- Light palette --------------------------------------------------- */
+  --background: oklch(0.9702 0 0);
+  --foreground: var(--eclipse);
+
+  --surface: var(--white);
+  --surface-foreground: var(--foreground);
+  --surface-secondary: oklch(0.9524 0.0013 286.37);
+  --surface-secondary-foreground: var(--foreground);
+  --surface-tertiary: oklch(0.9373 0.0013 286.37);
+  --surface-tertiary-foreground: var(--foreground);
+
+  --overlay: var(--white);
+  --overlay-foreground: var(--foreground);
+
+  --muted: oklch(0.5517 0.0138 285.94);
+  --border: oklch(90% 0.004 286.32);
+
+  --default: oklch(94% 0.001 286.375);
+  --default-foreground: var(--eclipse);
+
+  --accent: oklch(0.6204 0.195 253.83);
+  --accent-foreground: var(--snow);
+
+  --success: oklch(0.7329 0.1935 150.81);
+  --success-foreground: var(--eclipse);
+  --warning: oklch(0.7819 0.1585 72.33);
+  --warning-foreground: var(--eclipse);
+  --danger: oklch(0.6532 0.2328 25.74);
+  --danger-foreground: var(--snow);
+
+  /* ---- Shape and type --------------------------------------------------- */
+  /* The two things that ARE shared with the marketing site, because a button
+     that rounds differently on either side of a sign-in link reads as two
+     products. Geist comes from next/font exactly as the rest of the app loads
+     it. */
+  --radius: 0.5rem;
+  --field-radius: calc(var(--radius) * 1.5);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  color-scheme: light;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/*
+ * Dark palette.
+ *
+ * next-themes puts `.dark` on <html>, above the scope element, so the selector
+ * reaches down rather than sitting alongside. Values are HeroUI's stock dark
+ * theme, again copied unchanged.
+ */
+.dark .heroui-scope {
+  --background: oklch(12% 0.005 285.823);
+  --foreground: var(--snow);
+
+  --surface: oklch(0.2103 0.0059 285.89);
+  --surface-secondary: oklch(0.257 0.0037 286.14);
+  --surface-tertiary: oklch(0.2721 0.0024 247.91);
+
+  --overlay: oklch(0.2103 0.0059 285.89);
+  --overlay-foreground: var(--foreground);
+
+  --muted: oklch(70.5% 0.015 286.067);
+  --border: oklch(1 0 0 / 12%);
+
+  --default: oklch(0.274 0.006 286.033);
+  --default-foreground: var(--snow);
+
+  color-scheme: dark;
+}
