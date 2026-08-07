@@ -122,6 +122,62 @@ export async function upsertTenantStore(config: StoreConfig): Promise<boolean> {
   }
 }
 
+/**
+ * Saves a connection on behalf of an organization, with no session involved.
+ *
+ * For the WooCommerce callback only. That leg is a server-to-server POST from
+ * the merchant's store — there are no cookies, so RLS has no `auth.uid()` to
+ * work with and the ordinary client would write nothing.
+ *
+ * Uses the service-role client, which bypasses RLS. That is safe here and
+ * nowhere else: `organizationId` comes from a state token this application
+ * signed and then verified, not from anything the caller sent. Passing a
+ * caller-supplied organization id into this function would be a cross-tenant
+ * write, so do not.
+ */
+export async function upsertStoreForOrganization(
+  organizationId: string,
+  config: StoreConfig,
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const admin = createAdminClient();
+
+    const { data: existing } = await admin
+      .from("stores")
+      .select("history_months, max_pages")
+      .eq("organization_id", organizationId)
+      .eq("url", config.url)
+      .maybeSingle();
+
+    const { error } = await admin.from("stores").upsert(
+      {
+        organization_id: organizationId,
+        url: config.url,
+        name: config.name ?? null,
+        consumer_key: config.consumerKey,
+        consumer_secret_encrypted: await encryptSecret(config.consumerSecret),
+        history_months: existing?.history_months ?? config.historyMonths,
+        max_pages: existing?.max_pages ?? config.maxPages,
+        is_active: true,
+      },
+      { onConflict: "organization_id,url" },
+    );
+
+    // The plan's store limit is a database trigger, so an over-limit connection
+    // fails here rather than being silently allowed by the admin client.
+    if (error) {
+      console.error("[stores] could not save connection", error.message);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function setActiveTenantStore(url: string): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
   try {

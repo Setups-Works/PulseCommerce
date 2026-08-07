@@ -1135,6 +1135,59 @@ export type Database = {
           },
         ]
       }
+      plan_entitlements: {
+        Row: {
+          ai_assistant: boolean
+          api_access: boolean
+          automated_flows: boolean
+          created_at: string
+          max_history_months: number | null
+          max_messages_per_month: number | null
+          max_orders: number | null
+          max_stores: number | null
+          max_team_members: number | null
+          plan_slug: string
+          priority_support: boolean
+          updated_at: string
+        }
+        Insert: {
+          ai_assistant?: boolean
+          api_access?: boolean
+          automated_flows?: boolean
+          created_at?: string
+          max_history_months?: number | null
+          max_messages_per_month?: number | null
+          max_orders?: number | null
+          max_stores?: number | null
+          max_team_members?: number | null
+          plan_slug: string
+          priority_support?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ai_assistant?: boolean
+          api_access?: boolean
+          automated_flows?: boolean
+          created_at?: string
+          max_history_months?: number | null
+          max_messages_per_month?: number | null
+          max_orders?: number | null
+          max_stores?: number | null
+          max_team_members?: number | null
+          plan_slug?: string
+          priority_support?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlements_plan_slug_fkey"
+            columns: ["plan_slug"]
+            isOneToOne: true
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       popups: {
         Row: {
           body: string | null
@@ -1572,6 +1625,66 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          id: string
+          organization_id: string
+          plan_slug: string
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          organization_id: string
+          plan_slug: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          organization_id?: string
+          plan_slug?: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_slug_fkey"
+            columns: ["plan_slug"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       testimonials: {
         Row: {
           author_context: string | null
@@ -1796,6 +1909,23 @@ export type Database = {
       add_content_columns: { Args: { target: unknown }; Returns: undefined }
       apply_content_rls: { Args: { target: unknown }; Returns: undefined }
       attach_updated_at: { Args: { target: unknown }; Returns: undefined }
+      current_entitlements: {
+        Args: never
+        Returns: {
+          ai_assistant: boolean
+          api_access: boolean
+          automated_flows: boolean
+          is_active: boolean
+          max_history_months: number
+          max_messages_per_month: number
+          max_orders: number
+          max_stores: number
+          max_team_members: number
+          plan_slug: string
+          priority_support: boolean
+          status: Database["public"]["Enums"]["subscription_status"]
+        }[]
+      }
       current_organization: { Args: never; Returns: string }
       current_role: {
         Args: never
@@ -1811,6 +1941,12 @@ export type Database = {
       app_role: "customer" | "viewer" | "support" | "editor" | "admin"
       content_status: "draft" | "published" | "archived"
       media_kind: "image" | "video" | "document"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1941,6 +2077,13 @@ export const Constants = {
       app_role: ["customer", "viewer", "support", "editor", "admin"],
       content_status: ["draft", "published", "archived"],
       media_kind: ["image", "video", "document"],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "expired",
+      ],
     },
   },
 } as const
