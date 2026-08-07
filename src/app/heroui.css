@@ -1,51 +1,23 @@
 /*
- * HeroUI, scoped to the signed-in surfaces.
+ * HeroUI's stylesheet, for the console.
  *
- * The import list below is HeroUI's own stylesheet, split into the parts it
- * publishes. Nothing here restyles a HeroUI component — the admin panel, the
- * auth screens and onboarding all use stock components with stock colours.
+ * Imported by app/(console)/layout.tsx and by nothing else. There are no
+ * overrides in this file and no custom rules anywhere in the console —
+ * HeroUI's stock theme applies to `:root` exactly as shipped.
  *
- * ─── Why the scope block exists at all ─────────────────────────────────────
+ * That is only possible because the console has its own root layout and never
+ * loads globals.css. The two libraries theme themselves with the same CSS
+ * variable names and mean different things by several of them, so keeping
+ * their stylesheets off the same page is what removes the conflict. See the
+ * note in app/(console)/layout.tsx.
  *
- * It is not decoration, and it cannot be deleted. HeroUI and shadcn/ui both
- * theme themselves with bare CSS custom properties, and they collide on names
- * while meaning different things by them:
- *
- *   --muted       shadcn: a muted *surface*  (oklch 0.97, near-white)
- *                 HeroUI: a muted *text*     (oklch 0.55, mid-grey)
- *   --accent      shadcn: a light grey hover surface
- *                 HeroUI: the primary action colour
- *   --radius-sm   shadcn: radius * 0.6       HeroUI: radius * 0.5
- *
- * HeroUI declares its theme on `:root` inside `@layer base`. The project's
- * shadcn tokens in globals.css are *unlayered*, and unlayered declarations
- * always beat layered ones — so on their own, HeroUI's components would render
- * with shadcn's values for every colliding name. `--muted` is the one that
- * shows: every piece of secondary text in the admin panel would come out
- * near-white on white.
- *
- * Re-declaring HeroUI's own values on `.heroui-scope` fixes it. Custom
- * properties inherit, so components inside the scope resolve against HeroUI's
- * palette and the marketing site outside it keeps shadcn's.
- *
- * Every value below is copied verbatim from
- * @heroui/styles/dist/themes/default/variables.css. They are HeroUI's stock
- * light and dark palettes, unmodified — this block restates them, it does not
- * change them.
- *
- * ⚠ Re-check these against that file when upgrading HeroUI. A copied default
- * that drifts from its source goes stale silently.
+ * This is HeroUI's own `index.css`, restated rather than imported wholesale
+ * for one reason: theirs begins with `@import "tailwindcss"`, which would emit
+ * a second full copy of preflight and the utility layer. `@reference` gives
+ * their `@apply` rules the same utilities to resolve against and emits
+ * nothing.
  */
 
-/*
- * `@reference` rather than `@import "tailwindcss"`.
- *
- * HeroUI's component stylesheets are written with `@apply`, so Tailwind's
- * utilities must be resolvable while this file compiles. Importing Tailwind
- * here would resolve them and also emit a second full copy of preflight and
- * the utility layer on every admin page; `@reference` makes them available to
- * `@apply` and emits nothing.
- */
 @reference "tailwindcss";
 @reference "tw-animate-css";
 
@@ -55,79 +27,3 @@
 @import "@heroui/styles/themes/default" layer(theme);
 @import "@heroui/styles/utilities";
 @import "@heroui/styles/variants";
-
-.heroui-scope {
-  /* Primitives */
-  --white: oklch(100% 0 0);
-  --black: oklch(0% 0 0);
-  --snow: oklch(0.9911 0 0);
-  --eclipse: oklch(0.2103 0.0059 285.89);
-
-  /* Light */
-  --background: oklch(0.9702 0 0);
-  --foreground: var(--eclipse);
-
-  --surface: var(--white);
-  --surface-foreground: var(--foreground);
-  --surface-secondary: oklch(0.9524 0.0013 286.37);
-  --surface-secondary-foreground: var(--foreground);
-  --surface-tertiary: oklch(0.9373 0.0013 286.37);
-  --surface-tertiary-foreground: var(--foreground);
-
-  --overlay: var(--white);
-  --overlay-foreground: var(--foreground);
-
-  --muted: oklch(0.5517 0.0138 285.94);
-  --border: oklch(90% 0.004 286.32);
-
-  --default: oklch(94% 0.001 286.375);
-  --default-foreground: var(--eclipse);
-
-  --accent: oklch(0.6204 0.195 253.83);
-  --accent-foreground: var(--snow);
-
-  --success: oklch(0.7329 0.1935 150.81);
-  --success-foreground: var(--eclipse);
-  --warning: oklch(0.7819 0.1585 72.33);
-  --warning-foreground: var(--eclipse);
-  --danger: oklch(0.6532 0.2328 25.74);
-  --danger-foreground: var(--snow);
-
-  --radius: 0.5rem;
-  --field-radius: calc(var(--radius) * 1.5);
-
-  /* Geist, from next/font, as the rest of the app loads it. */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  color-scheme: light;
-  background-color: var(--background);
-  color: var(--foreground);
-}
-
-/*
- * Dark.
- *
- * next-themes puts `.dark` on <html>, above the scope element, so the selector
- * reaches down rather than sitting alongside. HeroUI's stock dark values,
- * again copied unchanged.
- */
-.dark .heroui-scope {
-  --background: oklch(12% 0.005 285.823);
-  --foreground: var(--snow);
-
-  --surface: oklch(0.2103 0.0059 285.89);
-  --surface-secondary: oklch(0.257 0.0037 286.14);
-  --surface-tertiary: oklch(0.2721 0.0024 247.91);
-
-  --overlay: oklch(0.2103 0.0059 285.89);
-  --overlay-foreground: var(--foreground);
-
-  --muted: oklch(70.5% 0.015 286.067);
-  --border: oklch(1 0 0 / 12%);
-
-  --default: oklch(0.274 0.006 286.033);
-  --default-foreground: var(--snow);
-
-  color-scheme: dark;
-}

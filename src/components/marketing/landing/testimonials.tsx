@@ -35,44 +35,6 @@ interface Testimonial {
   context: string;
 }
 
-const TESTIMONIALS: Testimonial[] = [
-  {
-    quote:
-      "We knew revenue was flat. We did not know that a third of last year's buyers had quietly stopped, or that they all bought the same two consumables.",
-    role: "Founder",
-    context: "Home & living store",
-  },
-  {
-    quote:
-      "The dry run is the feature. Being able to resolve the real list and send nothing meant we actually trusted it enough to press send.",
-    role: "Head of growth",
-    context: "Supplements brand",
-  },
-  {
-    quote:
-      "Our win-back used to be a spreadsheet and an afternoon. It is now a filter, and the sequence stops itself the moment somebody orders.",
-    role: "Marketing lead",
-    context: "Speciality foods",
-  },
-  {
-    quote:
-      "Days of cover computed from real velocity, rather than a flat low-stock threshold, changed which products we reorder first.",
-    role: "Operations manager",
-    context: "Multi-brand retailer",
-  },
-  {
-    quote:
-      "The assistant drafting the message and then waiting is the right way round. I have never once wanted an AI to message my customers unsupervised.",
-    role: "Founder",
-    context: "Skincare store",
-  },
-  {
-    quote:
-      "Running the WhatsApp host ourselves meant no per-message fee at the volume we send, which is the entire reason the numbers work.",
-    role: "Technical lead",
-    context: "Direct-to-consumer brand",
-  },
-];
 
 /**
  * A monogram derived from the role, so the avatar is at least consistent

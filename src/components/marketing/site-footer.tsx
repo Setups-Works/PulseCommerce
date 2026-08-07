@@ -16,39 +16,6 @@ import { getCompany, getFooterColumns } from "@/services/content-service";
  * to make silently inside a footer component. See the note on the form.
  */
 
-const COLUMNS: [string, [string, string][]][] = [
-  [
-    "Product",
-    [
-      ["Features", "/features"],
-      ["Campaigns", "/features/campaigns"],
-      ["AI assistant", "/features/ai"],
-      ["WhatsApp", "/whatsapp"],
-      ["Integrations", "/integrations"],
-      ["Pricing", "/pricing"],
-      ["API reference", "/api-docs"],
-    ],
-  ],
-  [
-    "Platform",
-    [
-      ["WooCommerce", "/integrations"],
-      ["Shopify — soon", "/integrations#shopify"],
-      ["Your own WhatsApp host", "/pricing#delivery"],
-      ["WhatsApp Cloud API", "/pricing#delivery"],
-      ["Webhooks", "/api-docs"],
-    ],
-  ],
-  [
-    "Start",
-    [
-      ["Get started", "/connect"],
-      ["Log in", "/login"],
-      ["Open the app", "/dashboard"],
-      ["FAQ", "/pricing#faq"],
-    ],
-  ],
-];
 
 /*
  * Brand marks come from simple-icons rather than lucide: lucide v1 dropped its

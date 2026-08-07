@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ArrowRight, Check, Clock, Minus, ServerCog, TriangleAlert } from "lucide-react";
-import { Button, Card, Chip , Link as HeroLink } from "@heroui/react";
+import { Button, Card, Chip, Link as HeroLink } from "@heroui/react";
 import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { cn } from "@/lib/utils";

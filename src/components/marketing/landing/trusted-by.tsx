@@ -19,16 +19,6 @@ import { simpleIconBySlug } from "@/components/marketing/brand-mark";
  * Marks are monochrome until hovered — see the note in brand-mark.tsx.
  */
 
-const STACK = [
-  { icon: BRANDS.woocommerce, label: "WooCommerce" },
-  { icon: BRANDS.wordpress, label: "WordPress" },
-  { icon: BRANDS.whatsapp, label: "WhatsApp" },
-  { icon: BRANDS.meta, label: "Meta" },
-  { icon: BRANDS.stripe, label: "Stripe" },
-  { icon: BRANDS.razorpay, label: "Razorpay" },
-  { icon: BRANDS.googleAnalytics, label: "Google Analytics" },
-  { icon: BRANDS.googleSheets, label: "Google Sheets" },
-];
 
 export async function TrustedBy() {
   const partners = await getPartners();

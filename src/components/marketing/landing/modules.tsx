@@ -1,21 +1,10 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BarChart3,
-  Bot,
-  Boxes,
-  ChartColumnBig,
-  Compass,
-  FileDown,
   Inbox,
-  LineChart,
-  Megaphone,
   MessageSquare,
   ReceiptText,
-  Users,
-  Warehouse,
-  Workflow,
-} from "lucide-react";
+  } from "lucide-react";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import { MagicCard } from "@/components/ui/magic-card";

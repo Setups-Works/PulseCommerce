@@ -15,7 +15,7 @@ import { requireStaff } from "@/services/auth-service";
  * trip to every request including static assets. A layout runs once per
  * navigation and React's `cache` dedupes the lookup across the render.
  *
- * `.heroui-scope` and the stylesheet come from the parent layout.
+ * Styling comes from the console root layout.
  */
 export default async function AdminPanelLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireStaff();

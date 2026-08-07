@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/marketing/schema";
-import "./globals.css";
+import "@/app/globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -79,7 +79,23 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+/**
+ * Root layout for the public site and the product.
+ *
+ * One of two root layouts. This one owns globals.css — shadcn tokens, the
+ * chart palette, Magic UI's keyframes. The console has its own at
+ * app/(console)/layout.tsx and loads HeroUI's stylesheet instead.
+ *
+ * They are split rather than sharing a root because HeroUI and shadcn theme
+ * themselves with the same CSS variable names and mean different things by
+ * several of them — `--muted` is a surface in one and text in the other. Two
+ * root layouts means neither stylesheet is ever on the same page as the other,
+ * so there is nothing to reconcile and no override layer to maintain.
+ *
+ * It also means the marketing site never downloads HeroUI, and the admin panel
+ * never downloads Magic UI.
+ */
+export default function SiteLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
