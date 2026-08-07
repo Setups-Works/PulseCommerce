@@ -48,3 +48,14 @@ export function hasServiceRole(): boolean {
 
 /** The storage bucket created by the platform migration. */
 export const MEDIA_BUCKET = "media";
+
+/**
+ * The public URL for an object in the media bucket.
+ *
+ * A pure string builder, so it lives here rather than among the server
+ * actions in services/media-service.ts — every export in a "use server" file
+ * must be async, which would make this return a Promise for no reason.
+ */
+export function mediaPublicUrl(path: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/${MEDIA_BUCKET}/${path}`;
+}
