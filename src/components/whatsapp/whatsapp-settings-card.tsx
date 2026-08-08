@@ -4,9 +4,9 @@ import { CheckCircle2, Loader2, MessageCircle, ShieldCheck, TriangleAlert, Unplu
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Chip } from "@heroui/react";
+import { Button } from "@heroui/react";
+import { Card } from "@heroui/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAnalytics } from "@/components/providers/analytics-provider";
@@ -135,34 +135,34 @@ export function WhatsAppSettingsCard() {
 
   return (
     <Card>
-      <CardHeader>
+      <Card.Header>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Card.Title className="flex items-center gap-2 text-sm font-semibold">
               <MessageCircle className="size-4 text-muted-foreground" />
               WhatsApp gateway
-            </CardTitle>
-            <CardDescription className="text-xs">
+            </Card.Title>
+            <Card.Description className="text-xs">
               A self-hosted OpenWA instance. Campaigns send through it; this app never
               connects to WhatsApp directly.
-            </CardDescription>
+            </Card.Description>
           </div>
           {state?.fromEnv ? (
-            <Badge variant="outline" className="shrink-0 gap-1">
+            <Chip variant="soft" className="shrink-0 gap-1">
               <ShieldCheck className="size-3" />
               From environment
-            </Badge>
+            </Chip>
           ) : null}
           {state?.connected ? (
-            <Badge variant={ready ? "default" : "secondary"} className="shrink-0 gap-1">
+            <Chip variant={ready ? "secondary" : "secondary"} className="shrink-0 gap-1">
               {ready ? <CheckCircle2 className="size-3" /> : <TriangleAlert className="size-3" />}
               {ready ? "Ready" : (session?.status ?? "Unreachable")}
-            </Badge>
+            </Chip>
           ) : null}
         </div>
-      </CardHeader>
+      </Card.Header>
 
-      <CardContent className="space-y-4">
+      <Card.Content className="space-y-4">
         {state?.error ? (
           <Alert variant="destructive">
             <TriangleAlert className="size-4" />
@@ -263,9 +263,9 @@ export function WhatsAppSettingsCard() {
             </p>
           </div>
         )}
-      </CardContent>
+      </Card.Content>
 
-      <CardFooter className="gap-2 border-t pt-4">
+      <Card.Footer className="gap-2 border-t pt-4">
         {state?.fromEnv ? (
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Set by <code>WHATSAPP_API_URL</code> and <code>WHATSAPP_API_KEY</code> on the host.
@@ -273,7 +273,7 @@ export function WhatsAppSettingsCard() {
             which is what stops it being lost by accident.
           </p>
         ) : state?.connected ? (
-          <Button variant="outline" size="sm" onClick={disconnect} disabled={busy} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={disconnect} isDisabled={busy} className="gap-1.5">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Unplug className="size-4" />}
             Disconnect
           </Button>
@@ -281,14 +281,14 @@ export function WhatsAppSettingsCard() {
           <Button
             size="sm"
             onClick={connect}
-            disabled={busy || baseUrl.trim().length < 4 || apiKey.trim().length < 8}
+            isDisabled={busy || baseUrl.trim().length < 4 || apiKey.trim().length < 8}
             className="gap-1.5"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
             Connect gateway
           </Button>
         )}
-      </CardFooter>
+      </Card.Footer>
     </Card>
   );
 }

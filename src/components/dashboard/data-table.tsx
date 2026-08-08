@@ -20,7 +20,7 @@ import {
   Search,
 } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@heroui/react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -202,7 +202,7 @@ export function DataTable<T>({
                                 return next;
                               });
                             }}
-                            className="flex size-6 items-center justify-center rounded transition-colors hover:bg-accent"
+                            className="flex size-6 items-center justify-center rounded transition-colors hover:bg-surface-secondary"
                           >
                             <ChevronDown
                               className={cn(
@@ -271,10 +271,10 @@ export function DataTable<T>({
 
           <Button
             variant="outline"
-            size="icon"
+            isIconOnly size="sm"
             className="size-8"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            isDisabled={!table.getCanPreviousPage()}
             aria-label="Previous page"
           >
             <ChevronLeft className="size-4" />
@@ -284,10 +284,10 @@ export function DataTable<T>({
           </span>
           <Button
             variant="outline"
-            size="icon"
+            isIconOnly size="sm"
             className="size-8"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            isDisabled={!table.getCanNextPage()}
             aria-label="Next page"
           >
             <ChevronRight className="size-4" />

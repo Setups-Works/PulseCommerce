@@ -2,12 +2,12 @@
 
 import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Chip } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@heroui/react";
 import type { RfmSegment, ValueTier } from "@/lib/analytics/types";
 import { EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { cn } from "@/lib/utils";
@@ -74,9 +74,9 @@ export function CustomerFilters({
           <SlidersHorizontal className="size-4 text-muted-foreground" />
           Advanced filters
           {active > 0 ? (
-            <Badge variant="secondary" className="text-[10px]">
+            <Chip color="default" className="text-[10px]">
               {active} active
-            </Badge>
+            </Chip>
           ) : null}
           <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
         </button>
@@ -112,7 +112,7 @@ export function CustomerFilters({
                     type="button"
                     onClick={() => set("segments", toggleIn(filter.segments, segment))}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-accent",
+                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-surface-secondary",
                       filter.segments.includes(segment) && "border-primary bg-primary/10 font-medium",
                     )}
                   >
@@ -131,7 +131,7 @@ export function CustomerFilters({
                     type="button"
                     onClick={() => set("tiers", toggleIn(filter.tiers, tier))}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-accent",
+                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-surface-secondary",
                       filter.tiers.includes(tier) && "border-primary bg-primary/10 font-medium",
                     )}
                   >

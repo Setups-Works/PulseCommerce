@@ -32,3 +32,65 @@
 @import "@heroui/styles/themes/default" layer(theme);
 @import "@heroui/styles/utilities";
 @import "@heroui/styles/variants";
+
+/*
+ * Token aliases, so the product's existing markup speaks HeroUI's palette.
+ *
+ * ─── What this is, and what it is not ──────────────────────────────────────
+ *
+ * It does NOT override HeroUI. Every value below points at a HeroUI variable;
+ * nothing here introduces a colour, and no HeroUI component renders any
+ * differently because of it. What it does is register Tailwind colour
+ * utilities under the names the product's seventeen screens already use.
+ *
+ * The product was written against shadcn's vocabulary — `text-muted-
+ * foreground`, `bg-card`, `bg-primary`, `border-input`. Moving it into the
+ * console put it on HeroUI's stylesheet, which registers `text-muted`,
+ * `bg-surface`, `bg-accent`, `border-border` instead. The old names then
+ * generate no CSS at all: the build still passes, because Tailwind silently
+ * skips an unknown utility, and the screens render with the colour missing.
+ *
+ * There were 333 such occurrences across the product, `text-muted-foreground`
+ * alone accounting for 260. Rewriting them by hand is more churn and more risk
+ * than aliasing, for an identical result — and it would have to be repeated on
+ * every file anyone ports later.
+ *
+ * ─── The one name that cannot be aliased ───────────────────────────────────
+ *
+ * `accent`. shadcn means a light hover *surface* by it; HeroUI means the
+ * primary action colour. Both are already in use in the console — the product
+ * screens in shadcn's sense, the admin and app shells in HeroUI's — so it is
+ * left pointing at HeroUI's, and the handful of product usages meaning "hover
+ * surface" were changed to `surface-secondary` instead. Aliasing it would have
+ * turned every hover state in the product bright blue.
+ */
+
+@theme inline {
+  /* Text */
+  --color-muted-foreground: var(--muted);
+
+  /* Surfaces */
+  --color-card: var(--surface);
+  --color-card-foreground: var(--surface-foreground);
+  --color-popover: var(--overlay);
+  --color-popover-foreground: var(--overlay-foreground);
+
+  /* Actions. shadcn's `primary` is HeroUI's `accent`. */
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-secondary: var(--default);
+  --color-secondary-foreground: var(--default-foreground);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--danger-foreground);
+
+  /* Lines and focus */
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+
+  /* Status colours from data-viz.css, as Tailwind utilities. `warning` is
+     spelled `warning-status` there because HeroUI already owns `--warning`. */
+  --color-good: var(--good);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+  --color-grid: var(--grid);
+}

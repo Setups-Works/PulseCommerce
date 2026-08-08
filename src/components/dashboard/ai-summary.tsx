@@ -3,8 +3,8 @@
 import { ChevronRight, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from "@heroui/react";
+import { Card } from "@heroui/react";
 import { Markdown } from "@/components/ui/markdown";
 
 /**
@@ -64,7 +64,7 @@ export function AiSummary({
             <>
               <Markdown>{answer}</Markdown>
               <div className="mt-2 flex items-center gap-2">
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => void run()} disabled={busy}>
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => void run()} isDisabled={busy}>
                   Ask again
                 </Button>
                 <Link
@@ -79,7 +79,7 @@ export function AiSummary({
           ) : error ? (
             <>
               <p className="text-[13px] text-muted-foreground">{error}</p>
-              <Button size="sm" variant="ghost" className="mt-1 h-6 px-2 text-[11px]" onClick={() => void run()} disabled={busy}>
+              <Button size="sm" variant="ghost" className="mt-1 h-6 px-2 text-[11px]" onClick={() => void run()} isDisabled={busy}>
                 Try again
               </Button>
             </>
@@ -88,7 +88,7 @@ export function AiSummary({
               <p className="text-[13px] text-muted-foreground">
                 Have this page read back to you in plain English.
               </p>
-              <Button size="sm" className="h-7 gap-1.5 px-2.5 text-[11px]" onClick={() => void run()} disabled={busy}>
+              <Button size="sm" className="h-7 gap-1.5 px-2.5 text-[11px]" onClick={() => void run()} isDisabled={busy}>
                 {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
                 {busy ? "Reading…" : label}
               </Button>

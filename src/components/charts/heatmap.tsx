@@ -1,6 +1,6 @@
 "use client";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip } from "@heroui/react";
 import { rampCellProps, rampStep, SEQUENTIAL_RAMP } from "./palette";
 
 export interface HeatmapCell {
@@ -120,7 +120,7 @@ function FragmentRow({
         const t = value / max;
         return (
           <Tooltip key={`${r}-${c}`}>
-            <TooltipTrigger asChild>
+            <Tooltip.Trigger>
               <div
                 {...(value === 0 ? {} : rampCellProps(t))}
                 className="rounded-[3px] transition-transform hover:scale-[1.18] hover:ring-2 hover:ring-ring/40"
@@ -134,8 +134,8 @@ function FragmentRow({
                 role="img"
                 aria-label={`${rowLabel} ${colLabel}: ${format(value)}`}
               />
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs">
+            </Tooltip.Trigger>
+            <Tooltip.Content>
               <p className="font-semibold">
                 {rowLabel} · {colLabel}
               </p>
@@ -147,7 +147,7 @@ function FragmentRow({
                   {secondaryLabel}: {secondaryFormat(cell.secondary)}
                 </p>
               ) : null}
-            </TooltipContent>
+            </Tooltip.Content>
           </Tooltip>
         );
       })}

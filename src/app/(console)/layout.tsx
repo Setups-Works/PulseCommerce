@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import "@/app/heroui.css";
+import "@/app/data-viz.css";
 
 /**
- * Root layout for the console: /admin, /auth and /onboarding.
+ * Root layout for the console: the product, /admin, /auth and /onboarding.
  *
  * The second of two root layouts. This one loads HeroUI's stylesheet and
  * nothing else — no globals.css, so no shadcn tokens, so nothing for HeroUI's
@@ -22,6 +23,10 @@ import "@/app/heroui.css";
  *
  * It also splits the bundles the right way round — the marketing site never
  * downloads HeroUI, and the admin panel never downloads Magic UI or Recharts.
+ *
+ * data-viz.css comes with it. HeroUI has no chart palette, so those tokens are
+ * additions rather than overrides — the product's charts cannot render without
+ * them. See the note at the top of that file.
  *
  * Geist is loaded here too. next/font dedupes across layouts, so this is the
  * same font files the site serves, not a second copy.

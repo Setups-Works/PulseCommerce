@@ -3,7 +3,7 @@
 import { Download, FileSpreadsheet, FileText, Loader2, Table2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@heroui/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,19 +33,17 @@ export function QuickExport() {
 
   if (!match) {
     return (
-      <Button asChild variant="outline" size="sm" className="gap-1.5">
-        <Link href="/reports">
+      <Link href="/reports">
           <Download className="size-4" />
           <span className="hidden sm:inline">Reports</span>
         </Link>
-      </Button>
     );
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5" disabled={isPending}>
+        <Button variant="outline" size="sm" className="gap-1.5" isDisabled={isPending}>
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
           <span className="hidden sm:inline">Export</span>
         </Button>

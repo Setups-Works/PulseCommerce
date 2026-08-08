@@ -9,7 +9,7 @@ import { QuickExport } from "@/components/dashboard/quick-export";
 import { ALL_NAV_ITEMS } from "@/components/layout/nav-items";
 import { RangePicker } from "@/components/layout/range-picker";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Button } from "@/components/ui/button";
+import { Button } from "@heroui/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@heroui/react";
+import { Tooltip } from "@heroui/react";
 import type { Granularity } from "@/lib/analytics/types";
 
 export function Topbar() {
@@ -29,7 +28,6 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur-md sm:px-4">
-      <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 h-5" />
 
       <div className="min-w-0 flex-1">
@@ -58,19 +56,19 @@ export function Topbar() {
         <RangePicker />
 
         <Tooltip>
-          <TooltipTrigger asChild>
+          <Tooltip.Trigger>
             <Button
               variant="outline"
-              size="icon"
+              isIconOnly size="sm"
               className="size-8"
               onClick={refresh}
-              disabled={loading}
+              isDisabled={loading}
               aria-label="Refresh data from WooCommerce"
             >
               {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Re-pull orders from WooCommerce</TooltipContent>
+          </Tooltip.Trigger>
+          <Tooltip.Content>Re-pull orders from WooCommerce</Tooltip.Content>
         </Tooltip>
 
         <QuickExport />
@@ -114,7 +112,7 @@ function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="size-8" aria-label="Change theme">
+        <Button variant="outline" isIconOnly size="sm" className="size-8" aria-label="Change theme">
           {/*
            * Both icons render and CSS picks one. Reading the resolved theme in
            * JS would need a mounted flag to avoid a hydration mismatch, which

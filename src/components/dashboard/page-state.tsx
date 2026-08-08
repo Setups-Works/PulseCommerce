@@ -6,9 +6,9 @@ import type { ReactNode } from "react";
 import { FetchProgressPanel } from "@/components/dashboard/fetch-progress";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@heroui/react";
+import { Card } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import type { AnalyticsResult } from "@/lib/analytics/types";
 
 /**
@@ -47,13 +47,11 @@ export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) 
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
           <div className="flex justify-center gap-2">
-            <Button onClick={refresh} disabled={loading}>
+            <Button onClick={refresh} isDisabled={loading}>
               {loading ? <Loader2 className="size-4 animate-spin" /> : null}
               Try again
             </Button>
-            <Button asChild variant="outline">
-              <Link href="/settings">Check connection</Link>
-            </Button>
+            <Link href="/settings">Check connection</Link>
           </div>
         </Card>
       </div>
@@ -106,11 +104,9 @@ function NotConnectedState() {
           </p>
         </div>
         <div className="flex justify-center">
-          <Button asChild>
-            <Link href="/settings">
+          <Link href="/settings">
               Authorize a store <ArrowRight className="size-4" />
             </Link>
-          </Button>
         </div>
       </Card>
     </div>

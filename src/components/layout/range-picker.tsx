@@ -4,10 +4,10 @@ import { CalendarDays, Check } from "lucide-react";
 import { useState } from "react";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { RANGE_PRESETS, useAnalytics } from "@/components/providers/analytics-provider";
-import { Button } from "@/components/ui/button";
+import { Button } from "@heroui/react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@heroui/react";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 

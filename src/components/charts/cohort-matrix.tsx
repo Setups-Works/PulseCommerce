@@ -1,6 +1,6 @@
 "use client";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip } from "@heroui/react";
 import type { CohortRow } from "@/lib/analytics/types";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { rampCellProps } from "./palette";
@@ -83,15 +83,15 @@ export function CohortMatrix({
                 return (
                   <td key={i} className="p-0">
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <Tooltip.Trigger>
                         <div
                           {...rampCellProps(t)}
                           className="ramp-cell rounded-[3px] px-1 py-1.5 text-center tabular transition-transform hover:scale-[1.1] hover:ring-2 hover:ring-ring/40"
                         >
                           {mode === "retention" ? `${(retention ?? 0).toFixed(0)}%` : compact(revenue ?? 0)}
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>
                         <p className="font-semibold">
                           {row.label} · month {i}
                         </p>
@@ -102,7 +102,7 @@ export function CohortMatrix({
                         <p className="tabular text-muted-foreground">
                           Cumulative per customer: {currencyFormat(row.cumulativeRevenuePerCustomer[i] ?? 0)}
                         </p>
-                      </TooltipContent>
+                      </Tooltip.Content>
                     </Tooltip>
                   </td>
                 );

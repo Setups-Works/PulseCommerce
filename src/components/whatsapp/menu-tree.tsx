@@ -2,8 +2,8 @@
 
 import { ChevronRight, CornerDownRight, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@heroui/react";
+import { TextArea } from "@heroui/react";
 import { MAX_MENU_DEPTH, type MenuOption, type MenuPath } from "@/lib/whatsapp/menu";
 
 /**
@@ -54,7 +54,7 @@ export function MenuTree({ options, onChange, onMove, disabled }: Props) {
         size="sm"
         variant="outline"
         className="gap-1.5"
-        disabled={disabled || options.length >= 20}
+        isDisabled={disabled || options.length >= 20}
         onClick={() => onChange([...options, { key: String(options.length + 1), text: "" }])}
       >
         <Plus className="size-4" />
@@ -167,7 +167,7 @@ function Row(props: LevelProps & { node: MenuOption; path: MenuPath; index: numb
         </span>
 
         <div className="min-w-0 flex-1 space-y-1.5">
-          <Textarea
+          <TextArea
             rows={2}
             value={node.text}
             disabled={disabled}
@@ -205,7 +205,7 @@ function Row(props: LevelProps & { node: MenuOption; path: MenuPath; index: numb
             <Button
               type="button" size="sm" variant="ghost"
               className="h-6 gap-1 px-2 text-[11px]"
-              disabled={disabled || depth + 1 >= MAX_MENU_DEPTH || children.length >= 20}
+              isDisabled={disabled || depth + 1 >= MAX_MENU_DEPTH || children.length >= 20}
               onClick={() =>
                 replace((n) => ({
                   ...n,
@@ -220,7 +220,7 @@ function Row(props: LevelProps & { node: MenuOption; path: MenuPath; index: numb
             <Button
               type="button" size="sm" variant="ghost"
               className="h-6 px-2 text-[11px] text-warning"
-              disabled={disabled}
+              isDisabled={disabled}
               onClick={() => {
                 if (
                   children.length > 0 &&
@@ -262,9 +262,8 @@ function IconButton({
     <Button
       type="button" size="sm" variant="ghost"
       className="h-6 w-6 p-0 text-[11px]"
-      title={label}
       aria-label={label}
-      disabled={disabled}
+      isDisabled={disabled}
       onClick={onClick}
     >
       {children}
