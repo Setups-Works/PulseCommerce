@@ -11,15 +11,20 @@
  * their stylesheets off the same page is what removes the conflict. See the
  * note in app/(console)/layout.tsx.
  *
- * This is HeroUI's own `index.css`, restated rather than imported wholesale
- * for one reason: theirs begins with `@import "tailwindcss"`, which would emit
- * a second full copy of preflight and the utility layer. `@reference` gives
- * their `@apply` rules the same utilities to resolve against and emits
- * nothing.
+ * Tailwind is `@import`ed, not `@reference`d.
+ *
+ * `@reference` resolves utilities for `@apply` but emits no CSS. Using it here
+ * meant HeroUI's own components were styled — their rules are `@apply`-based —
+ * while every Tailwind class written in the console's JSX (`flex`, `gap-3`,
+ * `text-sm`) had nothing behind it. The admin panel rendered as unstyled HTML.
+ *
+ * There is no duplication to avoid: the console is a separate root layout with
+ * its own CSS bundle, and globals.css is never loaded on these pages. Each
+ * root emits exactly one copy of Tailwind.
  */
 
-@reference "tailwindcss";
-@reference "tw-animate-css";
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @import "@heroui/styles/base";
 @import "@heroui/styles/base/scrollbar.css";
