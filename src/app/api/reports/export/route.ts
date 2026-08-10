@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { computeAnalytics } from "@/lib/analytics/engine";
+import { getAnalytics } from "@/lib/analytics/cache";
 import { sheetsToCsv, sheetToCsv } from "@/lib/export/csv";
 import { buildSheet, REPORT_IDS, type ReportId, type Sheet } from "@/lib/export/datasets";
 import { buildPdf } from "@/lib/export/pdf";
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
   try {
     const snapshot = await loadSnapshot();
-    const result = computeAnalytics(snapshot, {
+    const result = getAnalytics(snapshot, {
       range: from && to ? { from, to } : undefined,
       granularity,
       // Exports are the complete record — the UI row caps don't apply.

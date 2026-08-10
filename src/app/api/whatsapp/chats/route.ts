@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { computeAnalytics } from "@/lib/analytics/engine";
+import { getAnalytics } from "@/lib/analytics/cache";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { WhatsAppApiError, WhatsAppClient, type WhatsAppChat } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
@@ -71,7 +71,7 @@ async function withCustomerNames(
 
   const lookup = (async () => {
     const snapshot = await loadSnapshot();
-    const analytics = computeAnalytics(snapshot);
+    const analytics = getAnalytics(snapshot);
     const phoneByKey = phoneMapFromSnapshot(snapshot);
 
     // Index customers by the same E.164 form a chat id reduces to, so the two

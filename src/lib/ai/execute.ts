@@ -1,4 +1,4 @@
-import { computeAnalytics } from "@/lib/analytics/engine";
+import { getAnalytics } from "@/lib/analytics/cache";
 import { applyAudience, EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { isNotConnected } from "@/lib/store/errors";
 import { loadSnapshot } from "@/lib/store/snapshot";
@@ -73,7 +73,7 @@ function sizeOf(size: unknown): number {
 async function withAnalytics(range?: { from?: string; to?: string }) {
   const snapshot = await loadSnapshot();
   const hasRange = Boolean(range?.from && range?.to);
-  return computeAnalytics(snapshot, {
+  return getAnalytics(snapshot, {
     range: hasRange ? { from: range!.from!, to: range!.to! } : undefined,
   });
 }

@@ -1,4 +1,4 @@
-import { computeAnalytics } from "@/lib/analytics/engine";
+import { getAnalytics } from "@/lib/analytics/cache";
 import { customerKey } from "@/lib/analytics/helpers";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { applyAudience, type AudienceFilter } from "@/lib/audience";
@@ -66,7 +66,7 @@ export async function resolveAudience(request: AudienceRequest): Promise<Resolve
   }
 
   const snapshot = await loadSnapshot();
-  const analytics = computeAnalytics(snapshot, { range: request.range });
+  const analytics = getAnalytics(snapshot, { range: request.range });
 
   let audience = applyAudience(analytics.customers.records, request.filter);
 

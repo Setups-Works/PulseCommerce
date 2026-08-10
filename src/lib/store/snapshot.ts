@@ -9,6 +9,7 @@ import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "@/lib/woo
 import { readStoreConfig, type StoreConfig } from "./config";
 import { isServerless } from "./kv";
 import { clearSharedSnapshot, readSharedSnapshot, writeSharedSnapshot } from "./snapshot-cache";
+import { clearAnalyticsCache } from "@/lib/analytics/cache";
 import { NotConnectedError } from "./errors";
 
 interface CacheEntry {
@@ -275,6 +276,10 @@ function describe(err: unknown): string {
 export async function invalidateSnapshotCache(configs: StoreConfig[]): Promise<void> {
   await Promise.all(
     configs.map(async (config) => {
+      // Anything derived from this snapshot is stale the moment it is; the
+      // analytics memo is keyed on fetchedAt, but a disconnect removes the
+      // store entirely and those entries would otherwise sit until eviction.
+      clearAnalyticsCache(config.url);
       const key = cacheKey(config);
       cache.delete(key);
       inflight.delete(key);

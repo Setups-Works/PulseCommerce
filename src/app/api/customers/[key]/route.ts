@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { computeAnalytics } from "@/lib/analytics/engine";
+import { getAnalytics } from "@/lib/analytics/cache";
 import type { Granularity } from "@/lib/analytics/types";
 import { isNotConnected } from "@/lib/store/errors";
 import { loadSnapshot } from "@/lib/store/snapshot";
@@ -30,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
 
   try {
     const snapshot = await loadSnapshot();
-    const result = computeAnalytics(snapshot, {
+    const result = getAnalytics(snapshot, {
       range: from && to ? { from, to } : undefined,
       granularity,
       includeHistory: true,
