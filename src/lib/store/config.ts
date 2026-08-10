@@ -1,41 +1,17 @@
 import { getStore } from "./kv";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import {
-  DEFAULT_HISTORY_MONTHS,
-  DEFAULT_MAX_PAGES,
-  withStoreDefaults,
-  type StoreConfig,
-} from "./types";
 
-export type { StoreConfig };
-export { DEFAULT_HISTORY_MONTHS, DEFAULT_MAX_PAGES };
-
-/**
- * Where a store connection lives, and who it belongs to.
- *
- * ─── Two modes, one API ────────────────────────────────────────────────────
- *
- * SaaS mode — Supabase configured. Connections live in `public.stores`, scoped
- * to the caller's organization and enforced by row level security. Each tenant
- * has their own active store, and the functions below resolve *the caller's*
- * rather than the deployment's.
- *
- * Self-hosted mode — no Supabase. Connections live in one key/value entry, as
- * they always have. One deployment, one merchant, no accounts. This is what
- * makes `git clone && npm run dev` still work, and it is a supported way to
- * run the product rather than a degraded fallback.
- *
- * ⚠ The key/value path is single-tenant by construction. It is reached only
- * when there is no Supabase project, and therefore no accounts, so there are
- * no tenants to confuse. Do not "improve" it by using it as a cache in SaaS
- * mode — that would reintroduce exactly the cross-tenant leak this split
- * exists to remove.
- *
- * Every function keeps the signature it had before multi-tenancy, so the eight
- * call sites did not have to change. `readStoreConfig()` still takes no
- * argument; it now answers "the caller's active store" instead of "the
- * deployment's".
- */
+export interface StoreConfig {
+  url: string;
+  consumerKey: string;
+  consumerSecret: string;
+  /** How far back to pull orders. Cohorts and CLV need real history. */
+  historyMonths: number;
+  /** Safety valve so a huge store can't hang the first request. */
+  maxPages: number;
+  /** Display name, captured when the connection was verified. */
+  name?: string;
+  updatedAt?: string;
+}
 
 /** Several stores may be connected; one is active at a time. */
 interface StoreBook {
@@ -46,10 +22,9 @@ interface StoreBook {
 
 const CONFIG_KEY = "store-config";
 
-/** True when connections are per-tenant rather than per-deployment. */
-function multiTenant(): boolean {
-  return isSupabaseConfigured();
-}
+export const DEFAULT_HISTORY_MONTHS = 24;
+/** 100 orders per page — 300 pages covers a 30k-order history. */
+export const DEFAULT_MAX_PAGES = 300;
 
 /**
  * Credentials are only ever written by the WooCommerce authorization flow.
@@ -68,7 +43,7 @@ async function readBook(): Promise<StoreBook | null> {
     if (!("version" in parsed)) {
       const single = parsed as StoreConfig;
       if (!single.url || !single.consumerKey || !single.consumerSecret) return null;
-      return { version: 2, activeUrl: single.url, stores: [withStoreDefaults(single)] };
+      return { version: 2, activeUrl: single.url, stores: [withDefaults(single)] };
     }
 
     const book = parsed as StoreBook;
@@ -77,34 +52,33 @@ async function readBook(): Promise<StoreBook | null> {
 
     // An active pointer at a store that has been removed would strand the app.
     const activeUrl = stores.some((s) => s.url === book.activeUrl) ? book.activeUrl : stores[0].url;
-    return { version: 2, activeUrl, stores: stores.map(withStoreDefaults) };
+    return { version: 2, activeUrl, stores: stores.map(withDefaults) };
   } catch {
     return null;
   }
+}
+
+function withDefaults(config: StoreConfig): StoreConfig {
+  return {
+    ...config,
+    historyMonths: config.historyMonths || DEFAULT_HISTORY_MONTHS,
+    maxPages: config.maxPages || DEFAULT_MAX_PAGES,
+  };
 }
 
 async function writeBook(book: StoreBook): Promise<void> {
   await getStore().set(CONFIG_KEY, JSON.stringify(book));
 }
 
-/** The store the *caller's* analytics requests read from. */
+/** The store every analytics request reads from. */
 export async function readStoreConfig(): Promise<StoreConfig | null> {
-  if (multiTenant()) {
-    const { readActiveStore } = await import("@/repositories/store-repository");
-    return readActiveStore();
-  }
   const book = await readBook();
   if (!book) return null;
   return book.stores.find((s) => s.url === book.activeUrl) ?? book.stores[0] ?? null;
 }
 
-/** Every store connected by the caller's organization. */
+/** Every connected store, active one first. */
 export async function listStores(): Promise<{ active: string | null; stores: StoreConfig[] }> {
-  if (multiTenant()) {
-    const { listTenantStores, readActiveStore } = await import("@/repositories/store-repository");
-    const [stores, active] = await Promise.all([listTenantStores(), readActiveStore()]);
-    return { active: active?.url ?? null, stores };
-  }
   const book = await readBook();
   if (!book) return { active: null, stores: [] };
   return { active: book.activeUrl, stores: book.stores };
@@ -116,16 +90,8 @@ export async function listStores(): Promise<{ active: string | null; stores: Sto
  * duplicate entry.
  */
 export async function upsertStore(config: StoreConfig): Promise<void> {
-  if (multiTenant()) {
-    const { upsertTenantStore } = await import("@/repositories/store-repository");
-    if (await upsertTenantStore(withStoreDefaults(config))) return;
-    // Falling through would write the credential to a deployment-global key
-    // that another tenant can read. Failing loudly is the safer outcome.
-    throw new Error("Could not save the store connection for this account.");
-  }
-
   const book = (await readBook()) ?? { version: 2 as const, activeUrl: config.url, stores: [] };
-  const next = withStoreDefaults(config);
+  const next = withDefaults(config);
   const existing = book.stores.findIndex((s) => s.url === next.url);
 
   if (existing >= 0) {
@@ -142,14 +108,6 @@ export async function upsertStore(config: StoreConfig): Promise<void> {
 }
 
 export async function setActiveStore(url: string): Promise<StoreConfig | null> {
-  if (multiTenant()) {
-    const { setActiveTenantStore, readActiveStore } = await import(
-      "@/repositories/store-repository"
-    );
-    if (!(await setActiveTenantStore(url))) return null;
-    return readActiveStore();
-  }
-
   const book = await readBook();
   if (!book) return null;
   const target = book.stores.find((s) => s.url === url);
@@ -161,14 +119,6 @@ export async function setActiveStore(url: string): Promise<StoreConfig | null> {
 
 /** Removes one store. Returns the config that is active afterwards, if any. */
 export async function removeStore(url: string): Promise<StoreConfig | null> {
-  if (multiTenant()) {
-    const { removeTenantStore, readActiveStore } = await import(
-      "@/repositories/store-repository"
-    );
-    if (!(await removeTenantStore(url))) return null;
-    return readActiveStore();
-  }
-
   const book = await readBook();
   if (!book) return null;
 
@@ -183,15 +133,8 @@ export async function removeStore(url: string): Promise<StoreConfig | null> {
   return stores.find((s) => s.url === activeUrl) ?? null;
 }
 
-/** Removes every store connected by the caller's organization. */
+/** Removes every connected store. */
 export async function clearStoreConfig(): Promise<void> {
-  if (multiTenant()) {
-    const { listTenantStores, removeTenantStore } = await import(
-      "@/repositories/store-repository"
-    );
-    for (const store of await listTenantStores()) await removeTenantStore(store.url);
-    return;
-  }
   await getStore().delete(CONFIG_KEY);
 }
 

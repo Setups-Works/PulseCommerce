@@ -3,7 +3,7 @@
 import { Crown, Package, Repeat, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { OrderStatusBadge, RiskBadge, SegmentBadge, TierBadge } from "@/components/dashboard/badges";
-import { Card } from "@heroui/react";
+import { Card } from "@/components/ui/card";
 import { STATUS_LABELS } from "@/lib/analytics/helpers";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDays, initials } from "@/lib/format";

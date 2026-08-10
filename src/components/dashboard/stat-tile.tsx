@@ -3,8 +3,8 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Sparkline } from "@/components/charts/sparkline";
-import { Skeleton } from "@heroui/react";
-import { Tooltip } from "@heroui/react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Metric } from "@/lib/analytics/types";
 import { formatChange } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -88,12 +88,12 @@ export function StatTile({
 
   return (
     <Tooltip>
-      <Tooltip.Trigger>
+      <TooltipTrigger asChild>
         <div>{body}</div>
-      </Tooltip.Trigger>
-      <Tooltip.Content>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-[16rem] text-xs">
         {hint}
-      </Tooltip.Content>
+      </TooltipContent>
     </Tooltip>
   );
 }

@@ -3,12 +3,12 @@
 import { CheckCircle2, Loader2, MessageCircle, ShieldCheck, TriangleAlert, Unplug } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Alert } from "@heroui/react";
-import { Chip } from "@heroui/react";
-import { Button } from "@heroui/react";
-import { Card } from "@heroui/react";
-import { Input } from "@heroui/react";
-import { Label } from "@heroui/react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { WhatsAppLinkQr } from "@/components/whatsapp/whatsapp-link-qr";
 import { dialCodeForCurrency } from "@/lib/whatsapp/phone";
@@ -135,39 +135,39 @@ export function WhatsAppSettingsCard() {
 
   return (
     <Card>
-      <Card.Header>
+      <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <Card.Title className="flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <MessageCircle className="size-4 text-muted-foreground" />
               WhatsApp gateway
-            </Card.Title>
-            <Card.Description className="text-xs">
+            </CardTitle>
+            <CardDescription className="text-xs">
               A self-hosted OpenWA instance. Campaigns send through it; this app never
               connects to WhatsApp directly.
-            </Card.Description>
+            </CardDescription>
           </div>
           {state?.fromEnv ? (
-            <Chip variant="soft" className="shrink-0 gap-1">
+            <Badge variant="outline" className="shrink-0 gap-1">
               <ShieldCheck className="size-3" />
               From environment
-            </Chip>
+            </Badge>
           ) : null}
           {state?.connected ? (
-            <Chip variant={ready ? "secondary" : "secondary"} className="shrink-0 gap-1">
+            <Badge variant={ready ? "default" : "secondary"} className="shrink-0 gap-1">
               {ready ? <CheckCircle2 className="size-3" /> : <TriangleAlert className="size-3" />}
               {ready ? "Ready" : (session?.status ?? "Unreachable")}
-            </Chip>
+            </Badge>
           ) : null}
         </div>
-      </Card.Header>
+      </CardHeader>
 
-      <Card.Content className="space-y-4">
+      <CardContent className="space-y-4">
         {state?.error ? (
-          <Alert status="danger">
+          <Alert variant="destructive">
             <TriangleAlert className="size-4" />
-            <Alert.Title className="text-xs font-medium">Gateway unreachable</Alert.Title>
-            <Alert.Description className="text-xs">{state.error}</Alert.Description>
+            <AlertTitle className="text-xs font-medium">Gateway unreachable</AlertTitle>
+            <AlertDescription className="text-xs">{state.error}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -263,9 +263,9 @@ export function WhatsAppSettingsCard() {
             </p>
           </div>
         )}
-      </Card.Content>
+      </CardContent>
 
-      <Card.Footer className="gap-2 border-t pt-4">
+      <CardFooter className="gap-2 border-t pt-4">
         {state?.fromEnv ? (
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Set by <code>WHATSAPP_API_URL</code> and <code>WHATSAPP_API_KEY</code> on the host.
@@ -273,7 +273,7 @@ export function WhatsAppSettingsCard() {
             which is what stops it being lost by accident.
           </p>
         ) : state?.connected ? (
-          <Button variant="outline" size="sm" onClick={disconnect} isDisabled={busy} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={disconnect} disabled={busy} className="gap-1.5">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Unplug className="size-4" />}
             Disconnect
           </Button>
@@ -281,14 +281,14 @@ export function WhatsAppSettingsCard() {
           <Button
             size="sm"
             onClick={connect}
-            isDisabled={busy || baseUrl.trim().length < 4 || apiKey.trim().length < 8}
+            disabled={busy || baseUrl.trim().length < 4 || apiKey.trim().length < 8}
             className="gap-1.5"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
             Connect gateway
           </Button>
         )}
-      </Card.Footer>
+      </CardFooter>
     </Card>
   );
 }

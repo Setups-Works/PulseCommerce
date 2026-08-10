@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Card } from "@heroui/react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { seriesColor } from "./palette";
 
@@ -38,11 +38,11 @@ export function ChartCard({
 }: ChartCardProps) {
   return (
     <Card className={cn("overflow-hidden", className)}>
-      <Card.Header className="gap-1 pb-2">
+      <CardHeader className="gap-1 pb-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <Card.Title className="text-sm font-semibold tracking-tight">{title}</Card.Title>
-            {description ? <Card.Description className="text-xs">{description}</Card.Description> : null}
+            <CardTitle className="text-sm font-semibold tracking-tight">{title}</CardTitle>
+            {description ? <CardDescription className="text-xs">{description}</CardDescription> : null}
           </div>
           {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
         </div>
@@ -60,8 +60,8 @@ export function ChartCard({
             ))}
           </ul>
         ) : null}
-      </Card.Header>
-      <Card.Content className={cn("pt-0", contentClassName)}>{children}</Card.Content>
+      </CardHeader>
+      <CardContent className={cn("pt-0", contentClassName)}>{children}</CardContent>
       {footnote ? (
         <div className="border-t px-6 py-2.5 text-xs text-muted-foreground">{footnote}</div>
       ) : null}

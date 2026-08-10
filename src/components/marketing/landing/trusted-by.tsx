@@ -1,7 +1,5 @@
 import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
 import { Marquee } from "@/components/ui/marquee";
-import { getPartners } from "@/services/content-service";
-import { simpleIconBySlug } from "@/components/marketing/brand-mark";
 
 /**
  * The logo band.
@@ -19,18 +17,18 @@ import { simpleIconBySlug } from "@/components/marketing/brand-mark";
  * Marks are monochrome until hovered — see the note in brand-mark.tsx.
  */
 
+const STACK = [
+  { icon: BRANDS.woocommerce, label: "WooCommerce" },
+  { icon: BRANDS.wordpress, label: "WordPress" },
+  { icon: BRANDS.whatsapp, label: "WhatsApp" },
+  { icon: BRANDS.meta, label: "Meta" },
+  { icon: BRANDS.stripe, label: "Stripe" },
+  { icon: BRANDS.razorpay, label: "Razorpay" },
+  { icon: BRANDS.googleAnalytics, label: "Google Analytics" },
+  { icon: BRANDS.googleSheets, label: "Google Sheets" },
+];
 
-export async function TrustedBy() {
-  const partners = await getPartners();
-  // Marks we cannot resolve to a real logo are dropped rather than drawn as a
-  // placeholder box — a row of logos with a gap reads better than one with a
-  // grey rectangle in it.
-  const marks = partners
-    .map((p) => ({ label: p.name, icon: simpleIconBySlug(p.iconSlug) }))
-    .filter((m): m is { label: string; icon: NonNullable<typeof m.icon> } => m.icon !== null);
-
-  if (marks.length === 0) return null;
-
+export function TrustedBy() {
   return (
     // The band's tint is resolved to one opaque colour and held in `--band`,
     // because the edge fades have to end in exactly the colour behind them.
@@ -45,7 +43,7 @@ export async function TrustedBy() {
           that got clipped by the viewport. */}
       <div className="relative mt-6">
         <Marquee pauseOnHover className="[--duration:38s] [--gap:3.5rem]">
-          {marks.map(({ icon, label }) => (
+          {STACK.map(({ icon, label }) => (
             <div
               key={label}
               className="flex items-center gap-2.5 text-muted-foreground transition-colors hover:text-foreground"

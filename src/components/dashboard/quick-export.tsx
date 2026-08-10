@@ -3,8 +3,15 @@
 import { Download, FileSpreadsheet, FileText, Loader2, Table2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@heroui/react";
-import { Menu, MenuItem, Popover, PopoverTrigger, Separator } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ReportId } from "@/lib/export/datasets";
 import { useReportDownload } from "@/lib/use-report-download";
 
@@ -26,46 +33,48 @@ export function QuickExport() {
 
   if (!match) {
     return (
-      <Link href="/reports">
+      <Button asChild variant="outline" size="sm" className="gap-1.5">
+        <Link href="/reports">
           <Download className="size-4" />
           <span className="hidden sm:inline">Reports</span>
         </Link>
+      </Button>
     );
   }
 
   return (
-    <PopoverTrigger>
-      <PopoverTrigger>
-        <Button variant="outline" size="sm" className="gap-1.5" isDisabled={isPending}>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5" disabled={isPending}>
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
           <span className="hidden sm:inline">Export</span>
         </Button>
-      </PopoverTrigger>
-      <Popover><Menu>
-        <div className="text-xs font-normal text-muted-foreground">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
           Download {match.label} for the selected range
-        </div>
-        <Separator />
-        <MenuItem onAction={() => download([match.id], "xlsx")}>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => download([match.id], "xlsx")}>
           <FileSpreadsheet className="size-4" />
           Excel workbook (.xlsx)
-        </MenuItem>
-        <MenuItem onAction={() => download([match.id], "pdf")}>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => download([match.id], "pdf")}>
           <FileText className="size-4" />
           PDF report (.pdf)
-        </MenuItem>
-        <MenuItem onAction={() => download([match.id], "csv")}>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => download([match.id], "csv")}>
           <Table2 className="size-4" />
           Raw data (.csv)
-        </MenuItem>
-        <Separator />
-        <MenuItem>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
           <Link href="/reports">
             <Download className="size-4" />
             Build a custom report…
           </Link>
-        </MenuItem>
-      </Menu></Popover>
-    </PopoverTrigger>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

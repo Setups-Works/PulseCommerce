@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createState, MissingAuthSecretError } from "@/lib/auth/pending";
-import { currentOrganizationId } from "@/services/tenant-service";
 import { storageIsDurable } from "@/lib/store/kv";
 
 export const runtime = "nodejs";
@@ -24,7 +23,7 @@ export async function GET(request: Request) {
   const fail = (code: string, detail?: string) =>
     NextResponse.redirect(
       new URL(
-        `/connect?auth=${code}${detail ? `&detected=${encodeURIComponent(detail)}` : ""}`,
+        `/?auth=${code}${detail ? `&detected=${encodeURIComponent(detail)}` : ""}`,
         request.url,
       ),
     );
@@ -46,19 +45,9 @@ export async function GET(request: Request) {
   const problem = describeCallbackProblem(appUrl);
   if (problem) return fail(problem, appUrl);
 
-  /*
-   * The organization travels with the flow.
-   *
-   * This request has the merchant's session; the callback that follows will
-   * not — WooCommerce POSTs it server-to-server with no cookies. Reading the
-   * organization here and signing it into the state token is what lets the
-   * callback attribute the credentials to the right tenant.
-   */
-  const organizationId = await currentOrganizationId();
-
   let state: string;
   try {
-    state = await createState(storeUrl, organizationId);
+    state = await createState(storeUrl);
   } catch (error) {
     if (error instanceof MissingAuthSecretError) return fail("missing_auth_secret");
     throw error;

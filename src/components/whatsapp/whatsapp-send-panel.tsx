@@ -13,14 +13,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Alert } from "@heroui/react";
-import { Chip } from "@heroui/react";
-import { Button } from "@heroui/react";
-import { Card } from "@heroui/react";
-import { Input } from "@heroui/react";
-import { Label } from "@heroui/react";
-import { Separator } from "@heroui/react";
-import { TextArea } from "@heroui/react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { MESSAGE_TEMPLATES, VARIABLE_HELP } from "@/lib/whatsapp/templates";
 import { ProductPicker, type PickedProduct } from "@/components/whatsapp/product-picker";
@@ -425,18 +425,20 @@ export function WhatsAppSendPanel({
   if (connected === false) {
     return (
       <Card className={className}>
-        <Card.Header>
-          <Card.Title className="flex items-center gap-2 text-sm font-semibold">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <MessageCircle className="size-4 text-muted-foreground" />
             Send on WhatsApp
-          </Card.Title>
-          <Card.Description className="text-xs">
+          </CardTitle>
+          <CardDescription className="text-xs">
             No gateway is connected yet.
-          </Card.Description>
-        </Card.Header>
-        <Card.Content>
-          <Link href="/settings">Connect a WhatsApp gateway</Link>
-        </Card.Content>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/settings">Connect a WhatsApp gateway</Link>
+          </Button>
+        </CardContent>
       </Card>
     );
   }
@@ -445,14 +447,14 @@ export function WhatsAppSendPanel({
 
   return (
     <Card className={className}>
-      <Card.Header>
+      <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <Card.Title className="flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <MessageCircle className="size-4 text-muted-foreground" />
               Send on WhatsApp
-            </Card.Title>
-            <Card.Description className="text-xs">
+            </CardTitle>
+            <CardDescription className="text-xs">
               Goes to {targetCount.toLocaleString()}{" "}
               {audienceMode === "picked"
                 ? "chosen customers"
@@ -460,27 +462,27 @@ export function WhatsAppSendPanel({
                   ? "customers — everyone in range"
                   : "customers matching the filters above"}
               , minus anyone unreachable or opted out.
-            </Card.Description>
+            </CardDescription>
           </div>
           {!ready ? (
-            <Chip color="default" className="shrink-0 gap-1">
+            <Badge variant="secondary" className="shrink-0 gap-1">
               <TriangleAlert className="size-3" />
               Not linked
-            </Chip>
+            </Badge>
           ) : null}
         </div>
-      </Card.Header>
+      </CardHeader>
 
-      <Card.Content className="space-y-4">
+      <CardContent className="space-y-4">
         {!ready ? (
           <Alert>
             <TriangleAlert className="size-4" />
-            <Alert.Title className="text-xs font-medium">Session is not ready</Alert.Title>
-            <Alert.Description className="text-xs">
+            <AlertTitle className="text-xs font-medium">Session is not ready</AlertTitle>
+            <AlertDescription className="text-xs">
               The gateway is connected but no number is linked, so nothing can be sent. Link one
               in <Link href="/settings" className="underline">Settings</Link> — this notice clears
               by itself within a few seconds of the scan landing.
-            </Alert.Description>
+            </AlertDescription>
           </Alert>
         ) : null}
 
@@ -499,9 +501,9 @@ export function WhatsAppSendPanel({
                   key={mode}
                   type="button"
                   size="sm"
-                  variant={audienceMode === mode ? "primary" : "outline"}
+                  variant={audienceMode === mode ? "default" : "outline"}
                   onClick={() => setAudienceMode(mode)}
-                  isDisabled={running}
+                  disabled={running}
                 >
                   {label}
                 </Button>
@@ -532,7 +534,7 @@ export function WhatsAppSendPanel({
                     size="sm"
                     variant="ghost"
                     onClick={() => setPicked([])}
-                    isDisabled={running}
+                    disabled={running}
                   >
                     Clear
                   </Button>
@@ -593,9 +595,9 @@ export function WhatsAppSendPanel({
                   key={t.id}
                   type="button"
                   size="sm"
-                  variant={templateId === t.id ? "primary" : "outline"}
+                  variant={templateId === t.id ? "default" : "outline"}
                   onClick={() => applyTemplate(t.id)}
-                  isDisabled={running}
+                  disabled={running}
                 >
                   {t.name}
                 </Button>
@@ -676,7 +678,7 @@ export function WhatsAppSendPanel({
                     size="sm"
                     variant="outline"
                     onClick={createCoupon}
-                    isDisabled={creatingCoupon || running || !Number(newCoupon.amount)}
+                    disabled={creatingCoupon || running || !Number(newCoupon.amount)}
                     className="w-full gap-1.5"
                   >
                     {creatingCoupon ? <Loader2 className="size-3.5 animate-spin" /> : null}
@@ -713,10 +715,10 @@ export function WhatsAppSendPanel({
                 key={t}
                 type="button"
                 size="sm"
-                variant={type === t ? "primary" : "outline"}
+                variant={type === t ? "default" : "outline"}
                 onClick={() => setType(t)}
                 className="capitalize"
-                isDisabled={running}
+                disabled={running}
               >
                 {t}
               </Button>
@@ -779,7 +781,7 @@ export function WhatsAppSendPanel({
 
           <div className="space-y-1.5">
             <Label htmlFor="wa-text">{type === "text" ? "Message" : "Caption"}</Label>
-            <TextArea
+            <Textarea
               id="wa-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -824,7 +826,7 @@ export function WhatsAppSendPanel({
               variant="outline"
               size="sm"
               onClick={sendTest}
-              isDisabled={!composed || testPhone.trim().length < 6 || busy !== null || !ready}
+              disabled={!composed || testPhone.trim().length < 6 || busy !== null || !ready}
               className="shrink-0 gap-1.5"
             >
               {busy === "test" ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
@@ -843,7 +845,7 @@ export function WhatsAppSendPanel({
             type="button"
             variant="outline"
             onClick={runPreview}
-            isDisabled={!composed || busy !== null || running}
+            disabled={!composed || busy !== null || running}
             className="w-full gap-1.5"
           >
             {busy === "preview" ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -924,7 +926,7 @@ export function WhatsAppSendPanel({
               <Button
                 type="button"
                 onClick={start}
-                isDisabled={
+                disabled={
                   confirmValue.trim() !== String(preview.deliverable) || busy !== null || !ready
                 }
                 className="shrink-0 gap-1.5"
@@ -957,7 +959,7 @@ export function WhatsAppSendPanel({
                   Stop
                 </Button>
               ) : (
-                <Chip color="default" className="capitalize">{progress.status}</Chip>
+                <Badge variant="secondary" className="capitalize">{progress.status}</Badge>
               )}
             </div>
 
@@ -978,7 +980,7 @@ export function WhatsAppSendPanel({
             )}
           </div>
         ) : null}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }

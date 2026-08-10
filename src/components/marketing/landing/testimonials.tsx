@@ -1,7 +1,6 @@
 import { Quote } from "lucide-react";
 import { Marquee } from "@/components/ui/marquee";
 import { Section, SectionHeading } from "@/components/marketing/sections";
-import { getTestimonials } from "@/services/content-service";
 import { cn } from "@/lib/utils";
 
 /**
@@ -35,6 +34,44 @@ interface Testimonial {
   context: string;
 }
 
+const TESTIMONIALS: Testimonial[] = [
+  {
+    quote:
+      "We knew revenue was flat. We did not know that a third of last year's buyers had quietly stopped, or that they all bought the same two consumables.",
+    role: "Founder",
+    context: "Home & living store",
+  },
+  {
+    quote:
+      "The dry run is the feature. Being able to resolve the real list and send nothing meant we actually trusted it enough to press send.",
+    role: "Head of growth",
+    context: "Supplements brand",
+  },
+  {
+    quote:
+      "Our win-back used to be a spreadsheet and an afternoon. It is now a filter, and the sequence stops itself the moment somebody orders.",
+    role: "Marketing lead",
+    context: "Speciality foods",
+  },
+  {
+    quote:
+      "Days of cover computed from real velocity, rather than a flat low-stock threshold, changed which products we reorder first.",
+    role: "Operations manager",
+    context: "Multi-brand retailer",
+  },
+  {
+    quote:
+      "The assistant drafting the message and then waiting is the right way round. I have never once wanted an AI to message my customers unsupervised.",
+    role: "Founder",
+    context: "Skincare store",
+  },
+  {
+    quote:
+      "Running the WhatsApp host ourselves meant no per-message fee at the volume we send, which is the entire reason the numbers work.",
+    role: "Technical lead",
+    context: "Direct-to-consumer brand",
+  },
+];
 
 /**
  * A monogram derived from the role, so the avatar is at least consistent
@@ -48,7 +85,7 @@ function initials(role: string) {
     .join("");
 }
 
-function TestimonialCard({ quote, role, context }: { quote: string; role: string; context: string }) {
+function TestimonialCard({ quote, role, context }: Testimonial) {
   return (
     <figure
       className={cn(
@@ -74,17 +111,8 @@ function TestimonialCard({ quote, role, context }: { quote: string; role: string
   );
 }
 
-export async function Testimonials() {
-  /*
-   * Only published, verified-or-not quotes come back — RLS keeps drafts off
-   * the public site, and the seed inserted the placeholders as drafts. An
-   * empty list therefore means "nothing real to show yet", and the section
-   * renders nothing at all rather than inventing testimonials.
-   */
-  const testimonials = await getTestimonials();
-  if (testimonials.length === 0) return null;
-
-  const half = Math.ceil(testimonials.length / 2);
+export function Testimonials() {
+  const half = Math.ceil(TESTIMONIALS.length / 2);
 
   return (
     <Section id="testimonials" className="overflow-hidden">
@@ -99,12 +127,12 @@ export async function Testimonials() {
           testimonial section is after. */}
       <div className="relative mt-10 flex flex-col gap-4">
         <Marquee pauseOnHover className="[--duration:52s] [--gap:1rem]">
-          {testimonials.slice(0, half).map((item) => (
+          {TESTIMONIALS.slice(0, half).map((item) => (
             <TestimonialCard key={item.quote} {...item} />
           ))}
         </Marquee>
         <Marquee reverse pauseOnHover className="[--duration:58s] [--gap:1rem]">
-          {testimonials.slice(half).map((item) => (
+          {TESTIMONIALS.slice(half).map((item) => (
             <TestimonialCard key={item.quote} {...item} />
           ))}
         </Marquee>

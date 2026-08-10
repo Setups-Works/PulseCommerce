@@ -41,8 +41,7 @@ export async function POST(request: Request) {
 
   const { user_id: state, consumer_key, consumer_secret } = parsed.data;
 
-  const verified = await verifyState(state);
-  const storeUrl = verified?.storeUrl ?? null;
+  const storeUrl = await verifyState(state);
   if (!storeUrl) {
     return NextResponse.json(
       { success: false, error: "Unknown or expired authorization." },
@@ -72,26 +71,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    /*
-     * Attributed to the organization carried in the signed state token, not to
-     * a session — there is none on this leg. `upsertStoreForOrganization` uses
-     * the service-role client for the same reason, which is safe precisely
-     * because the organization came from a token we signed and verified rather
-     * than from anything the caller supplied.
-     *
-     * No organization means a self-hosted deployment, where the key/value path
-     * is correct and single-tenant by design.
-     */
-    if (verified?.organizationId) {
-      const { upsertStoreForOrganization } = await import("@/repositories/store-repository");
-      const saved = await upsertStoreForOrganization(verified.organizationId, {
-        ...config,
-        name: storeName,
-      });
-      if (!saved) throw new Error("The connection could not be saved for that account.");
-    } else {
-      await upsertStore({ ...config, name: storeName });
-    }
+    await upsertStore({ ...config, name: storeName });
   } catch (error) {
     console.error("[woo-auth] could not persist the connection", error);
     return NextResponse.json({ success: false, error: "Could not persist the connection." }, { status: 500 });

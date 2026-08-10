@@ -57,22 +57,10 @@ const SNAPSHOT_SCHEMA_VERSION = 3;
  * serverless request. The same store over the same window holds the same
  * orders whichever key read them.
  */
-/**
- * The cache key.
- *
- * Scoped by tenant as well as by store. Two organizations that connect the
- * same shop must not share a cached snapshot: they would get each other's
- * first pull for free, one tenant's window change would silently alter the
- * other's dashboard, and revoking the app at the shop would not stop the other
- * tenant reading the copy already fetched.
- *
- * `solo` when there is no tenant, which is the self-hosted single-merchant
- * case — the same constant for every call, so behaviour there is unchanged.
- */
 function cacheKey(config: StoreConfig): string {
   return createHash("sha256")
     .update(
-      `v${SNAPSHOT_SCHEMA_VERSION}::${config.tenantId ?? "solo"}::${normalise(config.url)}::${config.historyMonths}::${config.maxPages}`,
+      `v${SNAPSHOT_SCHEMA_VERSION}::${normalise(config.url)}::${config.historyMonths}::${config.maxPages}`,
     )
     .digest("hex")
     .slice(0, 16);

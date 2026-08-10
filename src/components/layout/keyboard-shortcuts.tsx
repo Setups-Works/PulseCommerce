@@ -3,14 +3,17 @@
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import {
-  CommandPalette,
-  NAV_SHORTCUTS,
-} from "@/components/layout/command-palette";
+import { CommandPalette, NAV_SHORTCUTS } from "@/components/layout/command-palette";
 import { useCommandPalette } from "@/components/layout/command-palette-context";
 import { ALL_NAV_ITEMS } from "@/components/layout/nav-items";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Modal } from "@heroui/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 /** How long the `g` prefix stays armed before it lapses. */
 const CHORD_WINDOW_MS = 1200;
@@ -25,8 +28,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
     tag === "SELECT" ||
     target.isContentEditable ||
     // Radix marks open comboboxes and menus; typing there is navigation.
-    target.closest('[role="combobox"], [role="listbox"], [role="menu"]') !==
-      null
+    target.closest('[role="combobox"], [role="listbox"], [role="menu"]') !== null
   );
 }
 
@@ -120,13 +122,7 @@ export function KeyboardShortcuts() {
   );
 }
 
-function ShortcutHelp({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-}) {
+function ShortcutHelp({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const general: [string, string][] = [
     ["⌘K", "Open search and commands"],
     ["/", "Open search"],
@@ -136,60 +132,45 @@ function ShortcutHelp({
   ];
 
   return (
-    <Modal isOpen={open} onOpenChange={onOpenChange}>
-      <Modal.Container>
-        <Modal.Dialog>
-          <Modal.Header>
-            <Modal.Heading className="text-base">
-              Keyboard shortcuts
-            </Modal.Heading>
-            <p className="text-xs">
-              Press <Key>g</Key> then a letter to jump to a page. Shortcuts are
-              ignored while you are typing.
-            </p>
-          </Modal.Header>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-base">Keyboard shortcuts</DialogTitle>
+          <DialogDescription className="text-xs">
+            Press <Key>g</Key> then a letter to jump to a page. Shortcuts are ignored while you are typing.
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">
-                General
-              </p>
-              <ul className="space-y-1.5">
-                {general.map(([key, label]) => (
-                  <li
-                    key={key}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span>{label}</span>
-                    <Key>{key}</Key>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Go to</p>
-              <ul className="space-y-1.5">
-                {ALL_NAV_ITEMS.filter((item) => NAV_SHORTCUTS[item.href]).map(
-                  (item) => (
-                    <li
-                      key={item.href}
-                      className="flex items-center justify-between gap-3 text-sm"
-                    >
-                      <span>{item.label}</span>
-                      <span className="flex items-center gap-1">
-                        <Key>g</Key>
-                        <Key>{NAV_SHORTCUTS[item.href]}</Key>
-                      </span>
-                    </li>
-                  ),
-                )}
-              </ul>
-            </div>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">General</p>
+            <ul className="space-y-1.5">
+              {general.map(([key, label]) => (
+                <li key={key} className="flex items-center justify-between gap-3 text-sm">
+                  <span>{label}</span>
+                  <Key>{key}</Key>
+                </li>
+              ))}
+            </ul>
           </div>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal>
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Go to</p>
+            <ul className="space-y-1.5">
+              {ALL_NAV_ITEMS.filter((item) => NAV_SHORTCUTS[item.href]).map((item) => (
+                <li key={item.href} className="flex items-center justify-between gap-3 text-sm">
+                  <span>{item.label}</span>
+                  <span className="flex items-center gap-1">
+                    <Key>g</Key>
+                    <Key>{NAV_SHORTCUTS[item.href]}</Key>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

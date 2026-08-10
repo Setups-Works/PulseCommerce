@@ -2,12 +2,25 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 /**
- * Durable key-value storage for the issued WooCommerce key.
+ * Durable key-value storage for the issued WooCommerce key and the cached
+ * order snapshot.
  *
- * Self-hosted deployments write a file next to the app, which is the simplest
- * thing that works. Serverless platforms have a read-only filesystem, so they
- * need a real store — any Upstash-compatible Redis (which includes Vercel KV)
- * is picked up automatically from the environment.
+ * Three backends, picked from the environment in this order:
+ *
+ *   Supabase   — a `kv_store` table, reached with the service-role key. The
+ *                default for a hosted deployment: it is the same project the
+ *                rest of the stack already uses, and Postgres holds a
+ *                multi-megabyte snapshot without the per-value size limits a
+ *                Redis plan tends to impose.
+ *   Redis      — any Upstash-compatible endpoint, including Vercel KV.
+ *   Filesystem — a directory next to the app. The simplest thing that works,
+ *                and what a self-hosted install gets with no configuration.
+ *
+ * The distinction that matters is `durable`. Serverless platforms have a
+ * read-only filesystem and start every instance empty, so without a shared
+ * backend each cold start re-pulls the entire order history — slow for the
+ * merchant, and enough sustained traffic that a store's security layer starts
+ * refusing us.
  */
 export interface KeyValueStore {
   readonly name: string;
@@ -51,6 +64,75 @@ class FileStore implements KeyValueStore {
 }
 
 /** Upstash REST protocol — also what Vercel KV speaks. No SDK needed. */
+/**
+ * Postgres, through Supabase's REST API.
+ *
+ * Deliberately `fetch` against PostgREST rather than @supabase/supabase-js:
+ * this is three verbs on one table, the SDK would be a dependency and a client
+ * lifecycle for no gain, and the snapshot chunks are large enough that
+ * avoiding an extra serialisation layer is worth something.
+ *
+ * The service-role key is required and never leaves the server. `kv_store` has
+ * RLS on with no policies, so an anon key reads nothing — see the migration.
+ */
+class SupabaseStore implements KeyValueStore {
+  readonly name = "supabase";
+  readonly durable = true;
+
+  constructor(
+    private readonly url: string,
+    private readonly serviceKey: string,
+  ) {}
+
+  private get endpoint(): string {
+    return `${this.url.replace(/\/+$/, "")}/rest/v1/kv_store`;
+  }
+
+  private get headers(): Record<string, string> {
+    return {
+      apikey: this.serviceKey,
+      Authorization: `Bearer ${this.serviceKey}`,
+      "Content-Type": "application/json",
+    };
+  }
+
+  async get(key: string): Promise<string | null> {
+    const res = await fetch(
+      `${this.endpoint}?key=eq.${encodeURIComponent(key)}&select=value`,
+      { headers: this.headers, cache: "no-store" },
+    );
+    if (!res.ok) throw new Error(`Supabase get failed with HTTP ${res.status}.`);
+
+    const rows = (await res.json()) as { value?: string }[];
+    return rows[0]?.value ?? null;
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    // Upsert on the primary key. `resolution=merge-duplicates` is what turns
+    // PostgREST's insert into an ON CONFLICT UPDATE, so re-writing a key
+    // replaces it rather than raising a duplicate-key error.
+    const res = await fetch(this.endpoint, {
+      method: "POST",
+      headers: { ...this.headers, Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify([{ key, value }]),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Supabase set failed with HTTP ${res.status}.`);
+  }
+
+  async delete(key: string): Promise<void> {
+    const res = await fetch(`${this.endpoint}?key=eq.${encodeURIComponent(key)}`, {
+      method: "DELETE",
+      headers: { ...this.headers, Prefer: "return=minimal" },
+      cache: "no-store",
+    });
+    // A delete of something already gone is not a failure.
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`Supabase delete failed with HTTP ${res.status}.`);
+    }
+  }
+}
+
 class RedisStore implements KeyValueStore {
   readonly name = "redis";
   readonly durable = true;
@@ -123,8 +205,28 @@ export function isServerless(): boolean {
   return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY);
 }
 
+/**
+ * Supabase, when both the URL and a service-role key are present.
+ *
+ * The anon key is deliberately not accepted: `kv_store` denies it by policy,
+ * so a deployment configured with only the anon key would fail on every read
+ * rather than quietly falling through to a less durable backend.
+ */
+function supabaseCredentials(): { url: string; serviceKey: string } | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+  if (!url || !serviceKey) return null;
+  return { url, serviceKey };
+}
+
 export function getStore(): KeyValueStore {
   if (cached) return cached;
+
+  const supabase = supabaseCredentials();
+  if (supabase) {
+    cached = new SupabaseStore(supabase.url, supabase.serviceKey);
+    return cached;
+  }
 
   const redis = redisCredentials();
   if (redis) {
@@ -152,4 +254,4 @@ export function storageIsDurable(): boolean {
 }
 
 export const STORAGE_HELP =
-  "This deployment has no durable storage, so an authorized store could not be saved. Serverless platforms have a read-only filesystem: add a Redis store and set KV_REST_API_URL and KV_REST_API_TOKEN (Vercel KV and Upstash both provide these), then redeploy.";
+  "This deployment has no durable storage, so an authorized store could not be saved. Serverless platforms have a read-only filesystem: point it at Supabase with NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or at any Upstash-compatible Redis with KV_REST_API_URL and KV_REST_API_TOKEN, then redeploy.";

@@ -3,8 +3,8 @@
 import { Loader2, Package, Search, X } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@heroui/react";
-import { Input } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export interface PickedProduct {
   id: number;
@@ -90,7 +90,7 @@ export function ProductPicker({
           variant="ghost"
           size="sm"
           onClick={() => onSelect(null)}
-          isDisabled={disabled}
+          disabled={disabled}
           className="shrink-0"
         >
           <X className="size-4" />
@@ -106,7 +106,7 @@ export function ProductPicker({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        isDisabled={disabled}
+        disabled={disabled}
         className="gap-1.5"
       >
         <Search className="size-4" />

@@ -31,18 +31,6 @@ interface StatePayload {
   t: number;
   /** Random, so two authorizations of the same store differ. */
   n: string;
-  /**
-   * Organization the store is being connected for, in SaaS mode.
-   *
-   * This is the only way the credentials can be attributed to a tenant. The
-   * callback is a server-to-server POST from WooCommerce with no cookies, so
-   * there is no session to read — the organization has to travel with the
-   * flow, and the token is already signed, so it is the one place it can ride
-   * without being forgeable.
-   *
-   * Absent when self-hosted, where there is a single merchant.
-   */
-  o?: string;
 }
 
 function secret(): string {
@@ -80,9 +68,9 @@ async function key(): Promise<CryptoKey> {
  * query parameter: the signature is truncated to 16 bytes, which is ample for
  * a token that also expires in 15 minutes.
  */
-export async function createState(storeUrl: string, organizationId?: string): Promise<string> {
+export async function createState(storeUrl: string): Promise<string> {
   const nonce = b64url(crypto.getRandomValues(new Uint8Array(9)));
-  const payload: StatePayload = { u: storeUrl, t: Date.now(), n: nonce, o: organizationId };
+  const payload: StatePayload = { u: storeUrl, t: Date.now(), n: nonce };
   const body = b64url(new TextEncoder().encode(JSON.stringify(payload)));
   const signature = new Uint8Array(
     await crypto.subtle.sign("HMAC", await key(), new TextEncoder().encode(body)),
@@ -90,16 +78,8 @@ export async function createState(storeUrl: string, organizationId?: string): Pr
   return `${body}.${b64url(signature)}`;
 }
 
-export interface VerifiedState {
-  storeUrl: string;
-  /** Undefined when the flow was started by a self-hosted deployment. */
-  organizationId?: string;
-}
-
-/** Returns what the token was issued for, or null if it isn't valid. */
-export async function verifyState(
-  token: string | null | undefined,
-): Promise<VerifiedState | null> {
+/** Returns the store URL the token was issued for, or null if it isn't valid. */
+export async function verifyState(token: string | null | undefined): Promise<string | null> {
   if (!token) return null;
   const [body, signature] = token.split(".");
   if (!body || !signature) return null;
@@ -121,10 +101,7 @@ export async function verifyState(
     if (typeof payload.t !== "number" || Date.now() - payload.t > TTL_MS) return null;
     if (typeof payload.u !== "string" || !payload.u) return null;
 
-    return {
-      storeUrl: payload.u,
-      organizationId: typeof payload.o === "string" && payload.o ? payload.o : undefined,
-    };
+    return payload.u;
   } catch {
     return null;
   }

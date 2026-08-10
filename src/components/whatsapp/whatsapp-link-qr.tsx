@@ -4,7 +4,7 @@ import { CheckCircle2, Loader2, QrCode, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@heroui/react";
+import { Button } from "@/components/ui/button";
 
 interface SessionPayload {
   session?: { status: string; phone: string | null; pushName: string | null };
@@ -134,7 +134,7 @@ export function WhatsAppLinkQr({ onLinked }: { onLinked?: () => void }) {
             poll(false);
           }}
           className="gap-1.5"
-          isDisabled={busy}
+          disabled={busy}
         >
           <RefreshCw className={`size-3.5 ${busy ? "animate-spin" : ""}`} />
           Refresh

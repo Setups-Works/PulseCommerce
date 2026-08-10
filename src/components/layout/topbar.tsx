@@ -9,7 +9,17 @@ import { QuickExport } from "@/components/dashboard/quick-export";
 import { ALL_NAV_ITEMS } from "@/components/layout/nav-items";
 import { RangePicker } from "@/components/layout/range-picker";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Button, ListBox, ListBoxItem, Menu, MenuItem, Popover, PopoverTrigger, Select, SelectPopover, SelectTrigger, SelectValue, Separator, Tooltip } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Granularity } from "@/lib/analytics/types";
 
 export function Topbar() {
@@ -19,6 +29,7 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur-md sm:px-4">
+      <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 h-5" />
 
       <div className="min-w-0 flex-1">
@@ -30,36 +41,36 @@ export function Topbar() {
         <SearchTrigger />
 
         <Select
-          selectedKey={granularity}
-          onSelectionChange={(v) => setGranularity(String(v) as Granularity | "auto")}
+          value={granularity}
+          onValueChange={(v) => setGranularity(v as Granularity | "auto")}
         >
-          <SelectTrigger className="hidden w-26 lg:flex">
+          <SelectTrigger size="sm" className="hidden w-26 lg:flex">
             <SelectValue />
           </SelectTrigger>
-          <SelectPopover><ListBox>
-            <ListBoxItem id="auto">Auto</ListBoxItem>
-            <ListBoxItem id="day">Daily</ListBoxItem>
-            <ListBoxItem id="week">Weekly</ListBoxItem>
-            <ListBoxItem id="month">Monthly</ListBoxItem>
-          </ListBox></SelectPopover>
+          <SelectContent>
+            <SelectItem value="auto">Auto</SelectItem>
+            <SelectItem value="day">Daily</SelectItem>
+            <SelectItem value="week">Weekly</SelectItem>
+            <SelectItem value="month">Monthly</SelectItem>
+          </SelectContent>
         </Select>
 
         <RangePicker />
 
         <Tooltip>
-          <Tooltip.Trigger>
+          <TooltipTrigger asChild>
             <Button
               variant="outline"
-              isIconOnly size="sm"
+              size="icon"
               className="size-8"
               onClick={refresh}
-              isDisabled={loading}
+              disabled={loading}
               aria-label="Refresh data from WooCommerce"
             >
               {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             </Button>
-          </Tooltip.Trigger>
-          <Tooltip.Content>Re-pull orders from WooCommerce</Tooltip.Content>
+          </TooltipTrigger>
+          <TooltipContent>Re-pull orders from WooCommerce</TooltipContent>
         </Tooltip>
 
         <QuickExport />
@@ -101,9 +112,9 @@ function ThemeToggle() {
   const { setTheme } = useTheme();
 
   return (
-    <PopoverTrigger>
-      <PopoverTrigger>
-        <Button variant="outline" isIconOnly size="sm" className="size-8" aria-label="Change theme">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon" className="size-8" aria-label="Change theme">
           {/*
            * Both icons render and CSS picks one. Reading the resolved theme in
            * JS would need a mounted flag to avoid a hydration mismatch, which
@@ -112,18 +123,18 @@ function ThemeToggle() {
           <Sun className="size-4 dark:hidden" />
           <Moon className="hidden size-4 dark:block" />
         </Button>
-      </PopoverTrigger>
-      <Popover><Menu>
-        <MenuItem onAction={() => setTheme("light")}>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
           <Sun className="size-4" /> Light
-        </MenuItem>
-        <MenuItem onAction={() => setTheme("dark")}>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
           <Moon className="size-4" /> Dark
-        </MenuItem>
-        <MenuItem onAction={() => setTheme("system")}>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
           <Monitor className="size-4" /> System
-        </MenuItem>
-      </Menu></Popover>
-    </PopoverTrigger>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

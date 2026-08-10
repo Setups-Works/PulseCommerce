@@ -6,17 +6,15 @@ import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Section, SectionHeading } from "@/components/marketing/sections";
-import { getPricingPlans } from "@/services/content-service";
+import { PLANS } from "@/lib/marketing/plans";
 import { cn } from "@/lib/utils";
 
 /**
  * Pricing.
  *
- * The tiers come from the `pricing_plans` table via the content service, with
- * lib/marketing/plans.ts as the fallback when there is no CMS to read. The
- * same component renders on / and on /pricing, so a price cannot be right on
- * one page and stale on the other — which is the fastest way to lose a
- * reader's trust in every other number on the site.
+ * The figures come from lib/marketing/plans.ts, shared with /pricing — a price
+ * that is right on one page and stale on the other is the fastest way to lose
+ * a reader's trust in every other number on the site.
  *
  * Exactly one card carries a beam. The recommended tier is the only thing on
  * this section that should be moving; putting a beam on all three would say
@@ -33,17 +31,7 @@ export interface PricingProps {
   footer?: boolean;
 }
 
-export async function Pricing({ heading = true, footer = heading }: PricingProps = {}) {
-  /*
-   * Read from the CMS, fall back to the compiled-in tiers.
-   *
-   * `getPricingPlans` returns the defaults whenever Supabase is unconfigured,
-   * empty or unreachable, so this section renders identically on a fresh clone
-   * with no backend as it does against the live database. See the note at the
-   * top of services/content-service.ts.
-   */
-  const plans = await getPricingPlans();
-
+export function Pricing({ heading = true, footer = heading }: PricingProps = {}) {
   return (
     <Section id="pricing" className={cn(heading && "bg-muted/20")}>
       {heading ? (
@@ -56,7 +44,7 @@ export async function Pricing({ heading = true, footer = heading }: PricingProps
       ) : null}
 
       <div className={cn("grid items-stretch gap-6 lg:grid-cols-3", heading && "mt-12")}>
-        {plans.map((plan, i) => (
+        {PLANS.map((plan, i) => (
           <BlurFade key={plan.name} delay={i * 0.08} inView className="h-full">
             <div
               className={cn(

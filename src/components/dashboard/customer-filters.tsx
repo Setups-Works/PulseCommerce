@@ -2,12 +2,12 @@
 
 import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { Chip } from "@heroui/react";
-import { Button } from "@heroui/react";
-import { Input } from "@heroui/react";
-import { Label } from "@heroui/react";
-import { ListBox, ListBoxItem, Select, SelectPopover, SelectTrigger, SelectValue } from "@heroui/react";
-import { Separator } from "@heroui/react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import type { RfmSegment, ValueTier } from "@/lib/analytics/types";
 import { EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { cn } from "@/lib/utils";
@@ -74,9 +74,9 @@ export function CustomerFilters({
           <SlidersHorizontal className="size-4 text-muted-foreground" />
           Advanced filters
           {active > 0 ? (
-            <Chip color="default" className="text-[10px]">
+            <Badge variant="secondary" className="text-[10px]">
               {active} active
-            </Chip>
+            </Badge>
           ) : null}
           <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
         </button>
@@ -112,7 +112,7 @@ export function CustomerFilters({
                     type="button"
                     onClick={() => set("segments", toggleIn(filter.segments, segment))}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-surface-secondary",
+                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-accent",
                       filter.segments.includes(segment) && "border-primary bg-primary/10 font-medium",
                     )}
                   >
@@ -131,7 +131,7 @@ export function CustomerFilters({
                     type="button"
                     onClick={() => set("tiers", toggleIn(filter.tiers, tier))}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-surface-secondary",
+                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-accent",
                       filter.tiers.includes(tier) && "border-primary bg-primary/10 font-medium",
                     )}
                   >
@@ -154,18 +154,18 @@ export function CustomerFilters({
             <div className="space-y-1.5">
               <Label className="text-xs">Churn risk at least</Label>
               <Select
-                selectedKey={filter.churnRiskMin === null ? "any" : String(filter.churnRiskMin)}
-                onSelectionChange={(v) => set("churnRiskMin", v === "any" ? null : Number(v))}
+                value={filter.churnRiskMin === null ? "any" : String(filter.churnRiskMin)}
+                onValueChange={(v) => set("churnRiskMin", v === "any" ? null : Number(v))}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectPopover><ListBox>
-                  <ListBoxItem id="any">Any</ListBoxItem>
-                  <ListBoxItem id="0.25">Moderate (25%)</ListBoxItem>
-                  <ListBoxItem id="0.5">Elevated (50%)</ListBoxItem>
-                  <ListBoxItem id="0.75">High (75%)</ListBoxItem>
-                </ListBox></SelectPopover>
+                <SelectContent>
+                  <SelectItem value="any">Any</SelectItem>
+                  <SelectItem value="0.25">Moderate (25%)</SelectItem>
+                  <SelectItem value="0.5">Elevated (50%)</SelectItem>
+                  <SelectItem value="0.75">High (75%)</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
@@ -184,20 +184,20 @@ export function CustomerFilters({
               <div className="space-y-1.5">
                 <Label className="text-xs">Country</Label>
                 <Select
-                  selectedKey={filter.countries[0] ?? "any"}
-                  onSelectionChange={(v) => set("countries", v === "any" ? [] : [String(v)])}
+                  value={filter.countries[0] ?? "any"}
+                  onValueChange={(v) => set("countries", v === "any" ? [] : [v])}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectPopover><ListBox>
-                    <ListBoxItem id="any">All countries</ListBoxItem>
+                  <SelectContent>
+                    <SelectItem value="any">All countries</SelectItem>
                     {countries.map((c) => (
-                      <ListBoxItem key={c} id={c}>
+                      <SelectItem key={c} value={c}>
                         {c}
-                      </ListBoxItem>
+                      </SelectItem>
                     ))}
-                  </ListBox></SelectPopover>
+                  </SelectContent>
                 </Select>
               </div>
             ) : null}
@@ -217,16 +217,16 @@ export function CustomerFilters({
             <div className="space-y-1.5">
               <Label className="text-xs">Contactable</Label>
               <Select
-                selectedKey={filter.requireEmail ? "yes" : "any"}
-                onSelectionChange={(v) => set("requireEmail", v === "yes")}
+                value={filter.requireEmail ? "yes" : "any"}
+                onValueChange={(v) => set("requireEmail", v === "yes")}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectPopover><ListBox>
-                  <ListBoxItem id="any">Everyone</ListBoxItem>
-                  <ListBoxItem id="yes">Has an email on file</ListBoxItem>
-                </ListBox></SelectPopover>
+                <SelectContent>
+                  <SelectItem value="any">Everyone</SelectItem>
+                  <SelectItem value="yes">Has an email on file</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>

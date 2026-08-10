@@ -5,8 +5,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Menu, MenuItem, Popover, PopoverTrigger, Separator } from "@heroui/react";
-import { Skeleton } from "@heroui/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -120,8 +127,8 @@ export function StoreSwitcher() {
   }
 
   return (
-    <PopoverTrigger>
-      <PopoverTrigger>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-sidebar-accent"
@@ -137,18 +144,21 @@ export function StoreSwitcher() {
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
         </button>
-      </PopoverTrigger>
+      </DropdownMenuTrigger>
 
-      <Popover><Menu>
-        <div className="text-xs font-normal text-muted-foreground">
+      <DropdownMenuContent align="start" side="top" className="w-64">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
           Switch WooCommerce store
-        </div>
-        <Separator />
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
 
         {stores.map((store) => (
-          <MenuItem
+          <DropdownMenuItem
             key={store.url}
-            onAction={() => void switchTo(store.url)}
+            onSelect={(e) => {
+              e.preventDefault();
+              void switchTo(store.url);
+            }}
             className="gap-2"
           >
             <Store className="size-4 shrink-0 text-muted-foreground" />
@@ -161,18 +171,18 @@ export function StoreSwitcher() {
             ) : store.active ? (
               <Check className="size-4 shrink-0" strokeWidth={3} />
             ) : null}
-          </MenuItem>
+          </DropdownMenuItem>
         ))}
 
-        <Separator />
-        <MenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
           <Link href="/settings" className={cn("gap-2")}>
             <Plus className="size-4" />
             Connect another store
           </Link>
-        </MenuItem>
-      </Menu></Popover>
-    </PopoverTrigger>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

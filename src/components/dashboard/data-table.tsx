@@ -20,9 +20,15 @@ import {
   Search,
 } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
-import { Button } from "@heroui/react";
-import { Input } from "@heroui/react";
-import { ListBox, ListBoxItem, Select, SelectPopover, SelectTrigger, SelectValue } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -196,7 +202,7 @@ export function DataTable<T>({
                                 return next;
                               });
                             }}
-                            className="flex size-6 items-center justify-center rounded transition-colors hover:bg-surface-secondary"
+                            className="flex size-6 items-center justify-center rounded transition-colors hover:bg-accent"
                           >
                             <ChevronDown
                               className={cn(
@@ -250,25 +256,25 @@ export function DataTable<T>({
         </span>
 
         <div className="flex items-center gap-2">
-          <Select selectedKey={String(pageSize)} onSelectionChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger className="h-8 w-[86px]">
+          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+            <SelectTrigger size="sm" className="h-8 w-[86px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectPopover><ListBox>
+            <SelectContent>
               {[10, 25, 50, 100].map((n) => (
-                <ListBoxItem key={n} id={String(n)}>
+                <SelectItem key={n} value={String(n)}>
                   {n} rows
-                </ListBoxItem>
+                </SelectItem>
               ))}
-            </ListBox></SelectPopover>
+            </SelectContent>
           </Select>
 
           <Button
             variant="outline"
-            isIconOnly size="sm"
+            size="icon"
             className="size-8"
             onClick={() => table.previousPage()}
-            isDisabled={!table.getCanPreviousPage()}
+            disabled={!table.getCanPreviousPage()}
             aria-label="Previous page"
           >
             <ChevronLeft className="size-4" />
@@ -278,10 +284,10 @@ export function DataTable<T>({
           </span>
           <Button
             variant="outline"
-            isIconOnly size="sm"
+            size="icon"
             className="size-8"
             onClick={() => table.nextPage()}
-            isDisabled={!table.getCanNextPage()}
+            disabled={!table.getCanNextPage()}
             aria-label="Next page"
           >
             <ChevronRight className="size-4" />

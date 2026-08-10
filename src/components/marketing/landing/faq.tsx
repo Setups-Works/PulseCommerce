@@ -7,14 +7,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Section, SectionHeading } from "@/components/marketing/sections";
-import { getFaqs } from "@/services/content-service";
+import { LANDING_FAQ } from "@/lib/marketing/faq";
 
 /**
  * The FAQ.
  *
- * Questions come from the `faqs` table via the content service, falling back
- * to lib/marketing/faq.ts when there is no CMS. The same source feeds the
- * FAQPage structured data on the page. Search engines penalise structured data that
+ * Questions come from lib/marketing/faq.ts, which also feeds the FAQPage
+ * structured data on the page. Search engines penalise structured data that
  * disagrees with what is visible, and reading both from one array is the only
  * way to guarantee they never do.
  *
@@ -22,9 +21,7 @@ import { getFaqs } from "@/services/content-service";
  * than a checklist, and letting all six sit open turns the section into a wall
  * of text that defeats the point of collapsing it.
  */
-export async function Faq() {
-  const faqs = await getFaqs(true);
-
+export function Faq() {
   return (
     <Section id="faq">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
@@ -45,7 +42,7 @@ export async function Faq() {
 
         <BlurFade delay={0.1} inView>
           <Accordion type="single" collapsible className="w-full">
-            {faqs.map(({ question, answer }) => (
+            {LANDING_FAQ.map(({ question, answer }) => (
               <AccordionItem key={question} value={question}>
                 <AccordionTrigger className="text-left text-base font-medium">
                   {question}

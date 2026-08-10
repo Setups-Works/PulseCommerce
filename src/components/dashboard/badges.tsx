@@ -1,6 +1,6 @@
 "use client";
 
-import { Chip } from "@heroui/react";
+import { Badge } from "@/components/ui/badge";
 import type { RfmSegment, ValueTier } from "@/lib/analytics/types";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +19,9 @@ const TIER_STYLES: Record<ValueTier, string> = {
 
 export function TierBadge({ tier, className }: { tier: ValueTier; className?: string }) {
   return (
-    <Chip variant="soft" className={cn("text-[10px] font-semibold", TIER_STYLES[tier], className)}>
+    <Badge variant="outline" className={cn("text-[10px] font-semibold", TIER_STYLES[tier], className)}>
       {tier}
-    </Chip>
+    </Badge>
   );
 }
 
@@ -47,9 +47,9 @@ const TONE_STYLES = {
 
 export function SegmentBadge({ segment, className }: { segment: RfmSegment; className?: string }) {
   return (
-    <Chip variant="soft" className={cn("text-[10px]", TONE_STYLES[SEGMENT_TONE[segment]], className)}>
+    <Badge variant="outline" className={cn("text-[10px]", TONE_STYLES[SEGMENT_TONE[segment]], className)}>
       {segment}
-    </Chip>
+    </Badge>
   );
 }
 
@@ -65,18 +65,18 @@ const STATUS_TONE: Record<string, keyof typeof TONE_STYLES> = {
 
 export function OrderStatusBadge({ status, label }: { status: string; label: string }) {
   return (
-    <Chip variant="soft" className={cn("text-[10px]", TONE_STYLES[STATUS_TONE[status] ?? "neutral"])}>
+    <Badge variant="outline" className={cn("text-[10px]", TONE_STYLES[STATUS_TONE[status] ?? "neutral"])}>
       {label}
-    </Chip>
+    </Badge>
   );
 }
 
 export function AbcBadge({ abcClass }: { abcClass: "A" | "B" | "C" }) {
   const tone = abcClass === "A" ? "good" : abcClass === "B" ? "neutral" : "watch";
   return (
-    <Chip variant="soft" className={cn("w-6 justify-center text-[10px] font-semibold", TONE_STYLES[tone])}>
+    <Badge variant="outline" className={cn("w-6 justify-center text-[10px] font-semibold", TONE_STYLES[tone])}>
       {abcClass}
-    </Chip>
+    </Badge>
   );
 }
 
@@ -86,9 +86,9 @@ export function RiskBadge({ risk }: { risk: number }) {
   const tone = risk >= 0.75 ? "risk" : risk >= 0.5 ? "watch" : risk >= 0.25 ? "neutral" : "good";
   const label = risk >= 0.75 ? "High" : risk >= 0.5 ? "Elevated" : risk >= 0.25 ? "Moderate" : "Low";
   return (
-    <Chip variant="soft" className={cn("gap-1 text-[10px]", TONE_STYLES[tone])}>
+    <Badge variant="outline" className={cn("gap-1 text-[10px]", TONE_STYLES[tone])}>
       {label}
       <span className="tabular opacity-70">{pct}%</span>
-    </Chip>
+    </Badge>
   );
 }

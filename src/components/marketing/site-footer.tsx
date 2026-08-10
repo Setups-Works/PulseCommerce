@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
-import { getCompany, getFooterColumns } from "@/services/content-service";
 
 /**
  * Shared across every marketing page, so the columns cannot drift apart.
@@ -16,6 +15,39 @@ import { getCompany, getFooterColumns } from "@/services/content-service";
  * to make silently inside a footer component. See the note on the form.
  */
 
+const COLUMNS: [string, [string, string][]][] = [
+  [
+    "Product",
+    [
+      ["Features", "/features"],
+      ["Campaigns", "/features/campaigns"],
+      ["AI assistant", "/features/ai"],
+      ["WhatsApp", "/whatsapp"],
+      ["Integrations", "/integrations"],
+      ["Pricing", "/pricing"],
+      ["API reference", "/api-docs"],
+    ],
+  ],
+  [
+    "Platform",
+    [
+      ["WooCommerce", "/integrations"],
+      ["Shopify — soon", "/integrations#shopify"],
+      ["Your own WhatsApp host", "/pricing#delivery"],
+      ["WhatsApp Cloud API", "/pricing#delivery"],
+      ["Webhooks", "/api-docs"],
+    ],
+  ],
+  [
+    "Start",
+    [
+      ["Get started", "/connect"],
+      ["Log in", "/login"],
+      ["Open the app", "/dashboard"],
+      ["FAQ", "/pricing#faq"],
+    ],
+  ],
+];
 
 /*
  * Brand marks come from simple-icons rather than lucide: lucide v1 dropped its
@@ -42,11 +74,7 @@ const SOCIALS: { label: string; href: string; render: () => React.ReactNode }[] 
   },
 ];
 
-export async function SiteFooter() {
-  // Columns and the company profile come from the CMS, each with the built-in
-  // version as its fallback. See services/content-service.ts.
-  const [columns, company] = await Promise.all([getFooterColumns(), getCompany()]);
-
+export function SiteFooter() {
   return (
     <footer className="border-t">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
@@ -55,10 +83,11 @@ export async function SiteFooter() {
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Activity className="size-4.5" strokeWidth={2.5} />
             </span>
-            <span className="text-base font-semibold tracking-tight">{company.name}</span>
+            <span className="text-base font-semibold tracking-tight">PulseCommerce</span>
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            {company.description}
+            AI commerce intelligence for WooCommerce stores that would rather act on their numbers
+            than read them.
           </p>
 
           {/*
@@ -109,18 +138,14 @@ export async function SiteFooter() {
           </div>
         </div>
 
-        {columns.map((column) => (
-          <div key={column.label}>
-            <h4 className="text-sm font-semibold">{column.label}</h4>
+        {COLUMNS.map(([title, links]) => (
+          <div key={title}>
+            <h4 className="text-sm font-semibold">{title}</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {column.links.map((link) => (
-                <li key={`${column.label}-${link.label}`}>
-                  <Link
-                    href={link.href}
-                    {...(link.newTab ? { target: "_blank", rel: "noreferrer noopener" } : {})}
-                    className="transition-colors hover:text-foreground"
-                  >
-                    {link.label}
+              {links.map(([label, href]) => (
+                <li key={label}>
+                  <Link href={href} className="transition-colors hover:text-foreground">
+                    {label}
                   </Link>
                 </li>
               ))}
@@ -132,7 +157,7 @@ export async function SiteFooter() {
       <Separator />
 
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-xs text-muted-foreground sm:px-6">
-        <span>{company.copyright}</span>
+        <span>© 2026 PulseCommerce. Self-hosted, and yours.</span>
 
         <span className="flex items-center gap-4">
           <span className="flex items-center gap-2">

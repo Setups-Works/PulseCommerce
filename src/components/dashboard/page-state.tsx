@@ -5,10 +5,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FetchProgressPanel } from "@/components/dashboard/fetch-progress";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Alert } from "@heroui/react";
-import { Button } from "@heroui/react";
-import { Card } from "@heroui/react";
-import { Skeleton } from "@heroui/react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { AnalyticsResult } from "@/lib/analytics/types";
 
 /**
@@ -47,11 +47,13 @@ export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) 
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
           <div className="flex justify-center gap-2">
-            <Button onClick={refresh} isDisabled={loading}>
+            <Button onClick={refresh} disabled={loading}>
               {loading ? <Loader2 className="size-4 animate-spin" /> : null}
               Try again
             </Button>
-            <Link href="/settings">Check connection</Link>
+            <Button asChild variant="outline">
+              <Link href="/settings">Check connection</Link>
+            </Button>
           </div>
         </Card>
       </div>
@@ -65,22 +67,22 @@ export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) 
       {data.meta.warnings.length > 0 ? (
         <Alert>
           <AlertTriangle />
-          <Alert.Title>Partial data</Alert.Title>
-          <Alert.Description>
+          <AlertTitle>Partial data</AlertTitle>
+          <AlertDescription>
             <ul className="list-inside list-disc space-y-0.5">
               {data.meta.warnings.map((w) => (
                 <li key={w}>{w}</li>
               ))}
             </ul>
-          </Alert.Description>
+          </AlertDescription>
         </Alert>
       ) : null}
 
       {error ? (
         <Alert>
           <AlertTriangle />
-          <Alert.Title>Showing the last successful load</Alert.Title>
-          <Alert.Description>{error}</Alert.Description>
+          <AlertTitle>Showing the last successful load</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -104,9 +106,11 @@ function NotConnectedState() {
           </p>
         </div>
         <div className="flex justify-center">
-          <Link href="/settings">
+          <Button asChild>
+            <Link href="/settings">
               Authorize a store <ArrowRight className="size-4" />
             </Link>
+          </Button>
         </div>
       </Card>
     </div>
