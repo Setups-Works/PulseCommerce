@@ -9,16 +9,7 @@ import { QuickExport } from "@/components/dashboard/quick-export";
 import { ALL_NAV_ITEMS } from "@/components/layout/nav-items";
 import { RangePicker } from "@/components/layout/range-picker";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Button } from "@heroui/react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@heroui/react";
-import { Tooltip } from "@heroui/react";
+import { Button, ListBox, ListBoxItem, Menu, MenuItem, Popover, PopoverTrigger, Select, SelectPopover, SelectTrigger, SelectValue, Separator, Tooltip } from "@heroui/react";
 import type { Granularity } from "@/lib/analytics/types";
 
 export function Topbar() {
@@ -39,18 +30,18 @@ export function Topbar() {
         <SearchTrigger />
 
         <Select
-          value={granularity}
-          onValueChange={(v) => setGranularity(v as Granularity | "auto")}
+          selectedKey={granularity}
+          onSelectionChange={(v) => setGranularity(String(v) as Granularity | "auto")}
         >
-          <SelectTrigger size="sm" className="hidden w-26 lg:flex">
+          <SelectTrigger className="hidden w-26 lg:flex">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">Auto</SelectItem>
-            <SelectItem value="day">Daily</SelectItem>
-            <SelectItem value="week">Weekly</SelectItem>
-            <SelectItem value="month">Monthly</SelectItem>
-          </SelectContent>
+          <SelectPopover><ListBox>
+            <ListBoxItem id="auto">Auto</ListBoxItem>
+            <ListBoxItem id="day">Daily</ListBoxItem>
+            <ListBoxItem id="week">Weekly</ListBoxItem>
+            <ListBoxItem id="month">Monthly</ListBoxItem>
+          </ListBox></SelectPopover>
         </Select>
 
         <RangePicker />
@@ -110,8 +101,8 @@ function ThemeToggle() {
   const { setTheme } = useTheme();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <PopoverTrigger>
+      <PopoverTrigger>
         <Button variant="outline" isIconOnly size="sm" className="size-8" aria-label="Change theme">
           {/*
            * Both icons render and CSS picks one. Reading the resolved theme in
@@ -121,18 +112,18 @@ function ThemeToggle() {
           <Sun className="size-4 dark:hidden" />
           <Moon className="hidden size-4 dark:block" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+      </PopoverTrigger>
+      <Popover><Menu>
+        <MenuItem onAction={() => setTheme("light")}>
           <Sun className="size-4" /> Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        </MenuItem>
+        <MenuItem onAction={() => setTheme("dark")}>
           <Moon className="size-4" /> Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        </MenuItem>
+        <MenuItem onAction={() => setTheme("system")}>
           <Monitor className="size-4" /> System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </MenuItem>
+      </Menu></Popover>
+    </PopoverTrigger>
   );
 }

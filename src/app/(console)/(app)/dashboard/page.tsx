@@ -23,7 +23,7 @@ import { InsightList } from "@/components/dashboard/insight-list";
 import { AnalyticsPage } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Card } from "@heroui/react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import { useFormatters } from "@/lib/use-currency";
 import { formatDate } from "@/lib/format";
 
@@ -214,13 +214,13 @@ function DashboardContent({ data }: { data: import("@/lib/analytics/types").Anal
           title="Where revenue comes from"
           description="By billing country, then region"
         >
-          <Tabs defaultValue="country">
-            <TabsList className="mb-3">
-              <TabsTrigger value="country">Country</TabsTrigger>
-              <TabsTrigger value="region">Region</TabsTrigger>
-              <TabsTrigger value="city">City</TabsTrigger>
-            </TabsList>
-            <TabsContent value="country">
+          <Tabs defaultSelectedKey="country">
+            <Tabs.List className="mb-3">
+              <Tabs.Tab id="country">Country</Tabs.Tab>
+              <Tabs.Tab id="region">Region</Tabs.Tab>
+              <Tabs.Tab id="city">City</Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel id="country">
               <RankedBarChart
                 data={geography.countries.map((g) => ({
                   label: g.name,
@@ -230,8 +230,8 @@ function DashboardContent({ data }: { data: import("@/lib/analytics/types").Anal
                 format={fmt.currency}
                 maxRows={8}
               />
-            </TabsContent>
-            <TabsContent value="region">
+            </Tabs.Panel>
+            <Tabs.Panel id="region">
               <RankedBarChart
                 data={geography.states.map((g) => ({
                   label: g.name,
@@ -241,8 +241,8 @@ function DashboardContent({ data }: { data: import("@/lib/analytics/types").Anal
                 format={fmt.currency}
                 maxRows={8}
               />
-            </TabsContent>
-            <TabsContent value="city">
+            </Tabs.Panel>
+            <Tabs.Panel id="city">
               <RankedBarChart
                 data={geography.cities.map((g) => ({
                   label: g.name,
@@ -252,7 +252,7 @@ function DashboardContent({ data }: { data: import("@/lib/analytics/types").Anal
                 format={fmt.currency}
                 maxRows={8}
               />
-            </TabsContent>
+            </Tabs.Panel>
           </Tabs>
         </ChartCard>
       </div>

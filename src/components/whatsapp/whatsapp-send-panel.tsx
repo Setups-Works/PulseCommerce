@@ -13,12 +13,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@heroui/react";
+import { Label } from "@heroui/react";
 import { Separator } from "@heroui/react";
 import { TextArea } from "@heroui/react";
 import { EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
@@ -475,12 +475,12 @@ export function WhatsAppSendPanel({
         {!ready ? (
           <Alert>
             <TriangleAlert className="size-4" />
-            <AlertTitle className="text-xs font-medium">Session is not ready</AlertTitle>
-            <AlertDescription className="text-xs">
+            <Alert.Title className="text-xs font-medium">Session is not ready</Alert.Title>
+            <Alert.Description className="text-xs">
               The gateway is connected but no number is linked, so nothing can be sent. Link one
               in <Link href="/settings" className="underline">Settings</Link> — this notice clears
               by itself within a few seconds of the scan landing.
-            </AlertDescription>
+            </Alert.Description>
           </Alert>
         ) : null}
 

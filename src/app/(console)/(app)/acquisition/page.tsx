@@ -13,10 +13,10 @@ import { RiskBadge, SegmentBadge, TierBadge } from "@/components/dashboard/badge
 import { DataTable } from "@/components/dashboard/data-table";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import type { AnalyticsResult, ChannelRecord, CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDays } from "@/lib/format";
 import { useFormatters, type Formatters } from "@/lib/use-currency";
@@ -152,11 +152,11 @@ function AcquisitionContent({ data }: { data: AnalyticsResult }) {
           {acquisition.attributedShare < 90 ? (
             <Alert>
               <Compass />
-              <AlertTitle>Partial attribution coverage</AlertTitle>
-              <AlertDescription>
+              <Alert.Title>Partial attribution coverage</Alert.Title>
+              <Alert.Description>
                 {fmt.percent(acquisition.attributedShare)} of orders in this range carry attribution data. Orders
                 placed before Order Attribution was enabled have none, so channel totals below understate history.
-              </AlertDescription>
+              </Alert.Description>
             </Alert>
           ) : null}
 
@@ -294,17 +294,17 @@ function CustomerLists({ data, fmt }: { data: AnalyticsResult; fmt: Formatters }
               ) : null}
             </Card.Description>
           </div>
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "new" | "returning")}>
-            <TabsList>
-              <TabsTrigger value="new" className="gap-1.5">
+          <Tabs selectedKey={tab} onSelectionChange={(v) => setTab(v as "new" | "returning")}>
+            <Tabs.List>
+              <Tabs.Tab id="new" className="gap-1.5">
                 <UserPlus className="size-3.5" />
                 New ({fmt.number(fresh.length)})
-              </TabsTrigger>
-              <TabsTrigger value="returning" className="gap-1.5">
+              </Tabs.Tab>
+              <Tabs.Tab id="returning" className="gap-1.5">
                 <Repeat2 className="size-3.5" />
                 Returning ({fmt.number(returning.length)})
-              </TabsTrigger>
-            </TabsList>
+              </Tabs.Tab>
+            </Tabs.List>
           </Tabs>
         </div>
       </Card.Header>

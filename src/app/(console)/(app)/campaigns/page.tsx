@@ -15,12 +15,12 @@ import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@heroui/react";
+import { Label } from "@heroui/react";
+import { ListBox, ListBoxItem, Select, SelectPopover, SelectTrigger, SelectValue } from "@heroui/react";
 import { Separator } from "@heroui/react";
 import { Switch } from "@heroui/react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import type { AnalyticsResult, CampaignRecord, CustomerRecord, RfmSegment, ValueTier } from "@/lib/analytics/types";
 import {
   applyAudience,
@@ -47,25 +47,25 @@ export default function CampaignsPage() {
 function CampaignsContent({ data }: { data: AnalyticsResult }) {
   const fmt = useFormatters(data.meta.currency);
   return (
-    <Tabs defaultValue="audiences" className="space-y-5">
-      <TabsList>
-        <TabsTrigger value="audiences" className="gap-1.5">
+    <Tabs defaultSelectedKey="audiences" className="space-y-5">
+      <Tabs.List>
+        <Tabs.Tab id="audiences" className="gap-1.5">
           <Target className="size-3.5" />
           Audience builder
-        </TabsTrigger>
-        <TabsTrigger value="performance" className="gap-1.5">
+        </Tabs.Tab>
+        <Tabs.Tab id="performance" className="gap-1.5">
           <Megaphone className="size-3.5" />
           Campaign performance
-        </TabsTrigger>
-      </TabsList>
+        </Tabs.Tab>
+      </Tabs.List>
 
-      <TabsContent value="audiences" className="space-y-5">
+      <Tabs.Panel id="audiences" className="space-y-5">
         <AudienceBuilder data={data} fmt={fmt} />
-      </TabsContent>
+      </Tabs.Panel>
 
-      <TabsContent value="performance" className="space-y-5">
+      <Tabs.Panel id="performance" className="space-y-5">
         <CampaignPerformance data={data} fmt={fmt} />
-      </TabsContent>
+      </Tabs.Panel>
     </Tabs>
   );
 }
@@ -275,35 +275,35 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
             <div className="space-y-1.5">
               <Label htmlFor="churn">Minimum churn risk</Label>
               <Select
-                value={filter.churnRiskMin === null ? "any" : String(filter.churnRiskMin)}
-                onValueChange={(v) => update("churnRiskMin", v === "any" ? null : Number(v))}
+                selectedKey={filter.churnRiskMin === null ? "any" : String(filter.churnRiskMin)}
+                onSelectionChange={(v) => update("churnRiskMin", v === "any" ? null : Number(v))}
               >
                 <SelectTrigger id="churn">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  <SelectItem value="0.25">Moderate and above (25%)</SelectItem>
-                  <SelectItem value="0.5">Elevated and above (50%)</SelectItem>
-                  <SelectItem value="0.75">High only (75%)</SelectItem>
-                </SelectContent>
+                <SelectPopover><ListBox>
+                  <ListBoxItem id="any">Any</ListBoxItem>
+                  <ListBoxItem id="0.25">Moderate and above (25%)</ListBoxItem>
+                  <ListBoxItem id="0.5">Elevated and above (50%)</ListBoxItem>
+                  <ListBoxItem id="0.75">High only (75%)</ListBoxItem>
+                </ListBox></SelectPopover>
               </Select>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="account-type">Account type</Label>
               <Select
-                value={filter.accountType}
-                onValueChange={(v) => update("accountType", v as AudienceFilter["accountType"])}
+                selectedKey={filter.accountType}
+                onSelectionChange={(v) => update("accountType", v as AudienceFilter["accountType"])}
               >
                 <SelectTrigger id="account-type">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Everyone</SelectItem>
-                  <SelectItem value="business">Business accounts only</SelectItem>
-                  <SelectItem value="consumer">Consumers only</SelectItem>
-                </SelectContent>
+                <SelectPopover><ListBox>
+                  <ListBoxItem id="any">Everyone</ListBoxItem>
+                  <ListBoxItem id="business">Business accounts only</ListBoxItem>
+                  <ListBoxItem id="consumer">Consumers only</ListBoxItem>
+                </ListBox></SelectPopover>
               </Select>
             </div>
 
@@ -311,20 +311,20 @@ function AudienceBuilder({ data, fmt }: { data: AnalyticsResult; fmt: Formatters
               <div className="space-y-1.5">
                 <Label htmlFor="country">Country</Label>
                 <Select
-                  value={filter.countries[0] ?? "any"}
-                  onValueChange={(v) => update("countries", v === "any" ? [] : [v])}
+                  selectedKey={filter.countries[0] ?? "any"}
+                  onSelectionChange={(v) => update("countries", v === "any" ? [] : [String(v)])}
                 >
                   <SelectTrigger id="country">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">All countries</SelectItem>
+                  <SelectPopover><ListBox>
+                    <ListBoxItem id="any">All countries</ListBoxItem>
                     {countries.map((c) => (
-                      <SelectItem key={c} value={c}>
+                      <ListBoxItem key={c} id={c}>
                         {c}
-                      </SelectItem>
+                      </ListBoxItem>
                     ))}
-                  </SelectContent>
+                  </ListBox></SelectPopover>
                 </Select>
               </div>
             ) : null}

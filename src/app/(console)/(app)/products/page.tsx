@@ -15,7 +15,7 @@ import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Chip } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import { Tooltip } from "@heroui/react";
 import type { AnalyticsResult, ProductRecord } from "@/lib/analytics/types";
 import { useFormatters, type Formatters } from "@/lib/use-currency";
@@ -181,13 +181,13 @@ function ProductsContent({ data }: { data: AnalyticsResult }) {
               <Card.Title className="text-sm font-semibold">Product performance</Card.Title>
               <Card.Description className="text-xs">{TAB_COPY[tab]}</Card.Description>
             </div>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as ProductTab)}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="best">Best sellers</TabsTrigger>
-                <TabsTrigger value="slow">Slow movers</TabsTrigger>
-                <TabsTrigger value="stock">Stock risk</TabsTrigger>
-              </TabsList>
+            <Tabs selectedKey={tab} onSelectionChange={(v) => setTab(v as ProductTab)}>
+              <Tabs.List>
+                <Tabs.Tab id="all">All</Tabs.Tab>
+                <Tabs.Tab id="best">Best sellers</Tabs.Tab>
+                <Tabs.Tab id="slow">Slow movers</Tabs.Tab>
+                <Tabs.Tab id="stock">Stock risk</Tabs.Tab>
+              </Tabs.List>
             </Tabs>
           </div>
         </Card.Header>

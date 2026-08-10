@@ -10,11 +10,11 @@ import { AiSummary } from "@/components/dashboard/ai-summary";
 import { DataTable } from "@/components/dashboard/data-table";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import type { AnalyticsResult, InventoryRecord } from "@/lib/analytics/types";
 import { useFormatters, type Formatters } from "@/lib/use-currency";
 import { cn } from "@/lib/utils";
@@ -148,14 +148,14 @@ function InventoryContent({ data }: { data: AnalyticsResult }) {
 
       <Alert>
         <Warehouse />
-        <AlertTitle>How these numbers are built</AlertTitle>
-        <AlertDescription>
+        <Alert.Title>How these numbers are built</Alert.Title>
+        <Alert.Description>
           Cover is current stock divided by units sold per day over the selected range. The reorder point assumes a{" "}
           <strong>{inventory.assumptions.leadTimeDays}-day supplier lead time</strong> plus{" "}
           <strong>{inventory.assumptions.safetyStockDays} days of safety stock</strong>; the suggested order adds a
           further 30 days on top. If your real lead time differs, scale the suggestion accordingly. Velocity is
           measured over the selected range, so a short range makes a seasonal spike look permanent.
-        </AlertDescription>
+        </Alert.Description>
       </Alert>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -211,16 +211,16 @@ function InventoryContent({ data }: { data: AnalyticsResult }) {
               <Card.Description className="max-w-prose text-xs">{COPY[tab]}</Card.Description>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-                <TabsList>
-                  <TabsTrigger value="reorder">
+              <Tabs selectedKey={tab} onSelectionChange={(v) => setTab(v as Tab)}>
+                <Tabs.List>
+                  <Tabs.Tab id="reorder">
                     Reorder ({fmt.number(inventory.needsReorder.length)})
-                  </TabsTrigger>
-                  <TabsTrigger value="all">All ({fmt.number(inventory.records.length)})</TabsTrigger>
-                  <TabsTrigger value="overstocked">
+                  </Tabs.Tab>
+                  <Tabs.Tab id="all">All ({fmt.number(inventory.records.length)})</Tabs.Tab>
+                  <Tabs.Tab id="overstocked">
                     Overstocked ({fmt.number(inventory.overstocked.length)})
-                  </TabsTrigger>
-                </TabsList>
+                  </Tabs.Tab>
+                </Tabs.List>
               </Tabs>
               <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCsv}>
                 <Download className="size-4" />

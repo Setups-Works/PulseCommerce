@@ -3,12 +3,12 @@
 import { CheckCircle2, Loader2, MessageCircle, ShieldCheck, TriangleAlert, Unplug } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@heroui/react";
+import { Label } from "@heroui/react";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { WhatsAppLinkQr } from "@/components/whatsapp/whatsapp-link-qr";
 import { dialCodeForCurrency } from "@/lib/whatsapp/phone";
@@ -164,10 +164,10 @@ export function WhatsAppSettingsCard() {
 
       <Card.Content className="space-y-4">
         {state?.error ? (
-          <Alert variant="destructive">
+          <Alert status="danger">
             <TriangleAlert className="size-4" />
-            <AlertTitle className="text-xs font-medium">Gateway unreachable</AlertTitle>
-            <AlertDescription className="text-xs">{state.error}</AlertDescription>
+            <Alert.Title className="text-xs font-medium">Gateway unreachable</Alert.Title>
+            <Alert.Description className="text-xs">{state.error}</Alert.Description>
           </Alert>
         ) : null}
 

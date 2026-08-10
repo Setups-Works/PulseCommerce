@@ -19,7 +19,7 @@ import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Chip } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import type { AnalyticsResult, CustomerRecord } from "@/lib/analytics/types";
 import { formatDate, formatDays, initials } from "@/lib/format";
 import {
@@ -246,17 +246,17 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
               ) : null}
             </Card.Description>
             </div>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as CohortTab)}>
-              <TabsList>
-                <TabsTrigger value="top">High value</TabsTrigger>
-                <TabsTrigger value="low">Low value</TabsTrigger>
-                <TabsTrigger value="risk" className="gap-1.5">
+            <Tabs selectedKey={tab} onSelectionChange={(v) => setTab(v as CohortTab)}>
+              <Tabs.List>
+                <Tabs.Tab id="top">High value</Tabs.Tab>
+                <Tabs.Tab id="low">Low value</Tabs.Tab>
+                <Tabs.Tab id="risk" className="gap-1.5">
                   <TriangleAlert className="size-3.5" />
                   At risk
-                </TabsTrigger>
-                <TabsTrigger value="rising">Rising</TabsTrigger>
-                <TabsTrigger value="all">All</TabsTrigger>
-              </TabsList>
+                </Tabs.Tab>
+                <Tabs.Tab id="rising">Rising</Tabs.Tab>
+                <Tabs.Tab id="all">All</Tabs.Tab>
+              </Tabs.List>
             </Tabs>
           </div>
         </Card.Header>
@@ -268,8 +268,8 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
             matched={rows.length}
             total={baseRows[tab].length}
           />
-          <Tabs value={tab}>
-            <TabsContent value={tab} forceMount>
+          <Tabs selectedKey={tab}>
+            <Tabs.Panel id={tab}>
               <DataTable
                 data={rows}
                 columns={columns}
@@ -282,7 +282,7 @@ function CustomersContent({ data }: { data: AnalyticsResult }) {
                 renderSubRow={(c) => <CustomerOrders customer={c} fmt={fmt} />}
                 stickyFirstColumn
               />
-            </TabsContent>
+            </Tabs.Panel>
           </Tabs>
         </Card.Content>
       </Card>

@@ -4,7 +4,7 @@ import { Loader2, Package, Search, X } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@heroui/react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@heroui/react";
 
 export interface PickedProduct {
   id: number;

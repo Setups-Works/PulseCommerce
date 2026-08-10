@@ -8,7 +8,7 @@ import { TrendChart } from "@/components/charts/trend-chart";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Card } from "@heroui/react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@heroui/react";
 import type { AnalyticsResult } from "@/lib/analytics/types";
 import { useFormatters } from "@/lib/use-currency";
 
@@ -79,11 +79,11 @@ function CohortsContent({ data }: { data: AnalyticsResult }) {
                 haven&apos;t elapsed yet, so they read as missing rather than as zero.
               </Card.Description>
             </div>
-            <Tabs value={mode} onValueChange={(v) => setMode(v as "retention" | "revenue")}>
-              <TabsList>
-                <TabsTrigger value="retention">Retention</TabsTrigger>
-                <TabsTrigger value="revenue">Revenue</TabsTrigger>
-              </TabsList>
+            <Tabs selectedKey={mode} onSelectionChange={(v) => setMode(v as "retention" | "revenue")}>
+              <Tabs.List>
+                <Tabs.Tab id="retention">Retention</Tabs.Tab>
+                <Tabs.Tab id="revenue">Revenue</Tabs.Tab>
+              </Tabs.List>
             </Tabs>
           </div>
         </Card.Header>

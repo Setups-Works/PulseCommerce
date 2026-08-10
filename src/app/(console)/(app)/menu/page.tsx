@@ -7,8 +7,8 @@ import { MenuTree } from "@/components/whatsapp/menu-tree";
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@heroui/react";
+import { Label } from "@heroui/react";
 import { Separator } from "@heroui/react";
 import { TextArea } from "@heroui/react";
 import {

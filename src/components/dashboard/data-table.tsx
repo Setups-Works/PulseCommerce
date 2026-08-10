@@ -21,14 +21,8 @@ import {
 } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@heroui/react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@heroui/react";
+import { ListBox, ListBoxItem, Select, SelectPopover, SelectTrigger, SelectValue } from "@heroui/react";
 import {
   Table,
   TableBody,
@@ -256,17 +250,17 @@ export function DataTable<T>({
         </span>
 
         <div className="flex items-center gap-2">
-          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger size="sm" className="h-8 w-[86px]">
+          <Select selectedKey={String(pageSize)} onSelectionChange={(v) => setPageSize(Number(v))}>
+            <SelectTrigger className="h-8 w-[86px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectPopover><ListBox>
               {[10, 25, 50, 100].map((n) => (
-                <SelectItem key={n} value={String(n)}>
+                <ListBoxItem key={n} id={String(n)}>
                   {n} rows
-                </SelectItem>
+                </ListBoxItem>
               ))}
-            </SelectContent>
+            </ListBox></SelectPopover>
           </Select>
 
           <Button

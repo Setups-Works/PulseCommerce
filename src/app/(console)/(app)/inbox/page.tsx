@@ -9,7 +9,7 @@ import { ProductPicker, type PickedProduct } from "@/components/whatsapp/product
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@heroui/react";
 import { TextArea } from "@heroui/react";
 import { formatCurrency } from "@/lib/format";
 

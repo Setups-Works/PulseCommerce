@@ -10,7 +10,7 @@ import { AiSummary } from "@/components/dashboard/ai-summary";
 import { InsightList } from "@/components/dashboard/insight-list";
 import { AnalyticsPage, EmptySection } from "@/components/dashboard/page-state";
 import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Card } from "@heroui/react";
 import type { AnalyticsResult } from "@/lib/analytics/types";
 import { formatDate } from "@/lib/format";
@@ -91,12 +91,12 @@ function ForecastContent({ data }: { data: AnalyticsResult }) {
 
       <Alert>
         <ChartSpline />
-        <AlertTitle>How to read this</AlertTitle>
-        <AlertDescription>
+        <Alert.Title>How to read this</Alert.Title>
+        <Alert.Description>
           The band widens with uncertainty, not with time — it is a constant 95% interval on how far actual days
           scattered around the fitted line. If your actuals routinely fall outside it, the underlying trend has
           changed and the fit is stale; refresh with a longer range.
-        </AlertDescription>
+        </Alert.Description>
       </Alert>
 
       <div className="grid gap-4 lg:grid-cols-2">

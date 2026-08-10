@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FetchProgressPanel } from "@/components/dashboard/fetch-progress";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -65,22 +65,22 @@ export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) 
       {data.meta.warnings.length > 0 ? (
         <Alert>
           <AlertTriangle />
-          <AlertTitle>Partial data</AlertTitle>
-          <AlertDescription>
+          <Alert.Title>Partial data</Alert.Title>
+          <Alert.Description>
             <ul className="list-inside list-disc space-y-0.5">
               {data.meta.warnings.map((w) => (
                 <li key={w}>{w}</li>
               ))}
             </ul>
-          </AlertDescription>
+          </Alert.Description>
         </Alert>
       ) : null}
 
       {error ? (
         <Alert>
           <AlertTriangle />
-          <AlertTitle>Showing the last successful load</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <Alert.Title>Showing the last successful load</Alert.Title>
+          <Alert.Description>{error}</Alert.Description>
         </Alert>
       ) : null}
 

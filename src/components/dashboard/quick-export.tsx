@@ -4,14 +4,7 @@ import { Download, FileSpreadsheet, FileText, Loader2, Table2 } from "lucide-rea
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@heroui/react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Menu, MenuItem, Popover, PopoverTrigger, Separator } from "@heroui/react";
 import type { ReportId } from "@/lib/export/datasets";
 import { useReportDownload } from "@/lib/use-report-download";
 
@@ -41,38 +34,38 @@ export function QuickExport() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <PopoverTrigger>
+      <PopoverTrigger>
         <Button variant="outline" size="sm" className="gap-1.5" isDisabled={isPending}>
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
           <span className="hidden sm:inline">Export</span>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+      </PopoverTrigger>
+      <Popover><Menu>
+        <div className="text-xs font-normal text-muted-foreground">
           Download {match.label} for the selected range
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => download([match.id], "xlsx")}>
+        </div>
+        <Separator />
+        <MenuItem onAction={() => download([match.id], "xlsx")}>
           <FileSpreadsheet className="size-4" />
           Excel workbook (.xlsx)
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => download([match.id], "pdf")}>
+        </MenuItem>
+        <MenuItem onAction={() => download([match.id], "pdf")}>
           <FileText className="size-4" />
           PDF report (.pdf)
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => download([match.id], "csv")}>
+        </MenuItem>
+        <MenuItem onAction={() => download([match.id], "csv")}>
           <Table2 className="size-4" />
           Raw data (.csv)
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
+        </MenuItem>
+        <Separator />
+        <MenuItem>
           <Link href="/reports">
             <Download className="size-4" />
             Build a custom report…
           </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </MenuItem>
+      </Menu></Popover>
+    </PopoverTrigger>
   );
 }

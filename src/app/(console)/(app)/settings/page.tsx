@@ -22,12 +22,12 @@ import { hostOf, useConnectedStores } from "@/components/layout/store-switcher";
 import { PageShell } from "@/components/dashboard/page-state";
 import { WhatsAppSettingsCard } from "@/components/whatsapp/whatsapp-settings-card";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card } from "@heroui/react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@heroui/react";
+import { Label } from "@heroui/react";
 import { Separator } from "@heroui/react";
 import { formatDateTime } from "@/lib/format";
 
@@ -156,8 +156,8 @@ export default function SettingsPage() {
       {outcome ? (
         <Alert>
           {outcome.tone === "good" ? <CheckCircle2 /> : <TriangleAlert />}
-          <AlertTitle>{outcome.title}</AlertTitle>
-          <AlertDescription>{outcome.detail}</AlertDescription>
+          <Alert.Title>{outcome.title}</Alert.Title>
+          <Alert.Description>{outcome.detail}</Alert.Description>
         </Alert>
       ) : null}
 
@@ -211,11 +211,11 @@ export default function SettingsPage() {
           ) : (
             <Alert>
               <Store />
-              <AlertTitle>No store connected</AlertTitle>
-              <AlertDescription>
+              <Alert.Title>No store connected</Alert.Title>
+              <Alert.Description>
                 This dashboard analyses your real orders and carries no sample data, so every page stays empty
                 until a store is authorized.
-              </AlertDescription>
+              </Alert.Description>
             </Alert>
           )}
         </Card.Content>

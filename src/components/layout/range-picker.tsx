@@ -3,10 +3,13 @@
 import { CalendarDays, Check } from "lucide-react";
 import { useState } from "react";
 import type { DateRange as DayPickerRange } from "react-day-picker";
-import { RANGE_PRESETS, useAnalytics } from "@/components/providers/analytics-provider";
+import {
+  RANGE_PRESETS,
+  useAnalytics,
+} from "@/components/providers/analytics-provider";
 import { Button } from "@heroui/react";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover } from "@heroui/react";
 import { Separator } from "@heroui/react";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -28,15 +31,15 @@ export function RangePicker() {
   const bounds = data?.meta.dataBounds;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Popover isOpen={open} onOpenChange={setOpen}>
+      <Popover.Trigger>
         <Button variant="outline" size="sm" className="gap-2 font-normal">
           <CalendarDays className="size-4" />
           <span className="hidden sm:inline">{activeLabel}</span>
           <span className="sm:hidden">Range</span>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-0">
+      </Popover.Trigger>
+      <Popover.Content className="w-auto p-0">
         <div className="flex flex-col sm:flex-row">
           <ul className="min-w-[11rem] p-1.5">
             {RANGE_PRESETS.map((preset) => (
@@ -54,13 +57,18 @@ export function RangePicker() {
                   )}
                 >
                   {preset.label}
-                  {presetId === preset.id ? <Check className="size-4" strokeWidth={3} /> : null}
+                  {presetId === preset.id ? (
+                    <Check className="size-4" strokeWidth={3} />
+                  ) : null}
                 </button>
               </li>
             ))}
           </ul>
 
-          <Separator orientation="vertical" className="hidden h-auto sm:block" />
+          <Separator
+            orientation="vertical"
+            className="hidden h-auto sm:block"
+          />
 
           <div className="border-t p-2 sm:border-t-0">
             <Calendar
@@ -68,30 +76,40 @@ export function RangePicker() {
               numberOfMonths={1}
               defaultMonth={range ? new Date(range.to) : undefined}
               selected={
-                draft ?? (range ? { from: new Date(range.from), to: new Date(range.to) } : undefined)
+                draft ??
+                (range
+                  ? { from: new Date(range.from), to: new Date(range.to) }
+                  : undefined)
               }
               onSelect={(next) => {
                 setDraft(next);
                 if (next?.from && next?.to) {
-                  setCustomRange({ from: toIso(next.from), to: toIso(next.to) });
+                  setCustomRange({
+                    from: toIso(next.from),
+                    to: toIso(next.to),
+                  });
                   setOpen(false);
                   setDraft(undefined);
                 }
               }}
               disabled={
                 bounds
-                  ? { before: new Date(bounds.from), after: new Date(bounds.to) }
+                  ? {
+                      before: new Date(bounds.from),
+                      after: new Date(bounds.to),
+                    }
                   : undefined
               }
             />
             {bounds ? (
               <p className="px-2 pb-1 text-[11px] text-muted-foreground">
-                Data available {formatDate(bounds.from)} – {formatDate(bounds.to)}
+                Data available {formatDate(bounds.from)} –{" "}
+                {formatDate(bounds.to)}
               </p>
             ) : null}
           </div>
         </div>
-      </PopoverContent>
+      </Popover.Content>
     </Popover>
   );
 }

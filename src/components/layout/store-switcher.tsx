@@ -5,14 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAnalytics } from "@/components/providers/analytics-provider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Menu, MenuItem, Popover, PopoverTrigger, Separator } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -127,8 +120,8 @@ export function StoreSwitcher() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <PopoverTrigger>
+      <PopoverTrigger>
         <button
           type="button"
           className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-sidebar-accent"
@@ -144,21 +137,18 @@ export function StoreSwitcher() {
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
         </button>
-      </DropdownMenuTrigger>
+      </PopoverTrigger>
 
-      <DropdownMenuContent align="start" side="top" className="w-64">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+      <Popover><Menu>
+        <div className="text-xs font-normal text-muted-foreground">
           Switch WooCommerce store
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        </div>
+        <Separator />
 
         {stores.map((store) => (
-          <DropdownMenuItem
+          <MenuItem
             key={store.url}
-            onSelect={(e) => {
-              e.preventDefault();
-              void switchTo(store.url);
-            }}
+            onAction={() => void switchTo(store.url)}
             className="gap-2"
           >
             <Store className="size-4 shrink-0 text-muted-foreground" />
@@ -171,18 +161,18 @@ export function StoreSwitcher() {
             ) : store.active ? (
               <Check className="size-4 shrink-0" strokeWidth={3} />
             ) : null}
-          </DropdownMenuItem>
+          </MenuItem>
         ))}
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
+        <Separator />
+        <MenuItem>
           <Link href="/settings" className={cn("gap-2")}>
             <Plus className="size-4" />
             Connect another store
           </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </MenuItem>
+      </Menu></Popover>
+    </PopoverTrigger>
   );
 }
 
