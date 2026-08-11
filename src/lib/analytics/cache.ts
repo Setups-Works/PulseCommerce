@@ -1,6 +1,7 @@
 import { computeAnalytics, type AnalyticsOptions } from "./engine";
 import type { AnalyticsResult } from "./types";
 import type { StoreSnapshot } from "@/lib/woo/types";
+import { readShared, sharedKey, writeShared } from "./shared-cache";
 
 /**
  * Memoised analytics.
@@ -82,12 +83,73 @@ export function getAnalytics(
   }
 
   const result = computeAnalytics(snapshot, opts);
+  remember(key, result);
+  return result;
+}
 
+/** Insert, evicting the least recently used once the cap is reached. */
+function remember(key: string, result: AnalyticsResult): void {
   cache.set(key, result);
   if (cache.size > MAX_ENTRIES) {
     const oldest = cache.keys().next().value;
     if (oldest !== undefined) cache.delete(oldest);
   }
+}
+
+/**
+ * Two-tier lookup: this process, then the shared store, then compute.
+ *
+ * `getAnalytics` above serves a warm instance. This adds the tier that helps a
+ * cold one, which on serverless is most requests — see shared-cache.ts for the
+ * measured difference. Async, so only callers already in an async context can
+ * use it; the sync version remains for everywhere else.
+ *
+ * A shared hit is promoted into the in-process map, so the second request on
+ * that instance skips the network too.
+ */
+export async function getAnalyticsCached(
+  snapshot: StoreSnapshot,
+  opts: AnalyticsOptions = {},
+): Promise<AnalyticsResult> {
+  const key = keyFor(snapshot, opts);
+
+  const local = cache.get(key);
+  if (local) {
+    cache.delete(key);
+    cache.set(key, local);
+    return local;
+  }
+
+  const shared = await readShared(
+    sharedKey({
+      storeUrl: snapshot.storeUrl,
+      fetchedAt: snapshot.fetchedAt,
+      from: opts.range?.from,
+      to: opts.range?.to,
+      granularity: opts.granularity,
+    }),
+  );
+
+  if (shared) {
+    remember(key, shared);
+    return shared;
+  }
+
+  const result = computeAnalytics(snapshot, opts);
+  remember(key, result);
+
+  // Not awaited: the caller has its answer, and a slow write to the shared
+  // store should not hold the response open. Failures are swallowed inside.
+  void writeShared(
+    sharedKey({
+      storeUrl: snapshot.storeUrl,
+      fetchedAt: snapshot.fetchedAt,
+      from: opts.range?.from,
+      to: opts.range?.to,
+      granularity: opts.granularity,
+    }),
+    result,
+  );
 
   return result;
 }

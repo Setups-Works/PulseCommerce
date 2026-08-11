@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAnalytics } from "@/lib/analytics/cache";
+import { getAnalyticsCached } from "@/lib/analytics/cache";
 import type { Granularity } from "@/lib/analytics/types";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { isNotConnected } from "@/lib/store/errors";
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   try {
     const snapshot = await loadSnapshot({ refresh: params.get("refresh") === "1" });
 
-    const result = getAnalytics(snapshot, {
+    const result = await getAnalyticsCached(snapshot, {
       range: from && to ? { from, to } : undefined,
       granularity,
     });
