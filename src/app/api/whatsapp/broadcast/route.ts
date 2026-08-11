@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireTenant } from "@/lib/auth/tenant";
 import { isNotConnected } from "@/lib/store/errors";
 import { isGatewayNotConnected } from "@/lib/whatsapp/errors";
 import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
@@ -22,9 +23,13 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 /** Recent broadcasts, newest first. */
-export async function GET() {
-  const ids = await listBroadcastIds();
-  const jobs = await Promise.all(ids.map((id) => readBroadcast(id)));
+export async function GET(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
+  const ids = await listBroadcastIds(userId);
+  const jobs = await Promise.all(ids.map((id) => readBroadcast(userId, id)));
   return NextResponse.json({
     broadcasts: jobs.filter((j) => j !== null).map((j) => progressOf(j)),
   });
@@ -51,6 +56,10 @@ const schema = z.object({
  * resumable, which matters when a full audience takes hours at a safe pace.
  */
 export async function POST(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -67,7 +76,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const resolved = await resolveAudience({
+    const resolved = await resolveAudience(userId, {
       filter: parsed.data.filter,
       range: parsed.data.range,
       customerKeys: parsed.data.customerKeys,
@@ -105,7 +114,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const job = await createBroadcast({
+    const job = await createBroadcast(userId, {
       audienceLabel: describeAudience(parsed.data.filter, resolved.audience.length),
       message: parsed.data.message,
       recipients: resolved.recipients,

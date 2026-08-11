@@ -7,7 +7,8 @@ import { isGatewayNotConnected } from "@/lib/whatsapp/errors";
 import {
   advance,
   dueNow,
-  listFlows,
+  flowsWithWork,
+  readFlow,
   pendingEnrolments,
   readState,
   shouldExit,
@@ -46,15 +47,27 @@ export async function POST(request: Request) {
   if (denied) return denied;
 
   const now = new Date();
-  const flows = (await listFlows()).filter((f) => f.status === "active");
-  if (flows.length === 0) {
+
+  /*
+   * Every tenant's flows, not one installation's.
+   *
+   * The scheduler has no session — it authenticates with CRON_SECRET — so it
+   * cannot resolve a tenant the usual way and instead works from the flows
+   * themselves, each of which knows its owner. `flowsWithWork` returns only
+   * flows that are active and have somebody due, so a thousand idle tenants
+   * cost one indexed query rather than a thousand audience resolutions.
+   */
+  const due = await flowsWithWork();
+  if (due.length === 0) {
     return NextResponse.json({ ran: 0, flows: [], at: now.toISOString() });
   }
 
   const results = [];
-  for (const flow of flows) {
+  for (const { flowId, userId } of due) {
+    const flow = await readFlow(userId, flowId);
+    if (!flow || flow.status !== "active") continue;
     try {
-      results.push(await tickFlow(flow, now));
+      results.push(await tickFlow(userId, flow, now));
     } catch (error) {
       // One broken flow must not stop the others: a flow whose audience cannot
       // be resolved is a configuration problem, and the flows either side of it
@@ -100,9 +113,9 @@ function unauthorized(request: Request): NextResponse | null {
   return null;
 }
 
-async function tickFlow(flow: Flow, now: Date) {
-  const state = await readState(flow.id);
-  const resolved = await resolveAudience({ filter: flow.entry });
+async function tickFlow(userId: string, flow: Flow, now: Date) {
+  const state = await readState(userId, flow.id);
+  const resolved = await resolveAudience(userId, { filter: flow.entry });
 
   /*
    * A test flow addresses one hand-typed number and never reads the audience,
@@ -110,7 +123,7 @@ async function tickFlow(flow: Flow, now: Date) {
    * applies: a number that asked not to be messaged is not a number to test on.
    */
   const recipients = flow.testPhone
-    ? testRecipient(flow.testPhone, resolved.config.defaultDialCode, await readOptOutSet())
+    ? testRecipient(flow.testPhone, resolved.config.defaultDialCode, await readOptOutSet(userId))
     : resolved.recipients;
 
   // Reachability is resolved by the same code a broadcast uses, so a flow can
@@ -143,7 +156,7 @@ async function tickFlow(flow: Flow, now: Date) {
     const session = await client.ensureSendable().catch(() => null);
     if (!session || !isSessionSendable(session)) {
       state.lastTickAt = now.toISOString();
-      await writeState(state);
+      await writeState(userId, state);
       return {
         id: flow.id,
         name: flow.name,
@@ -206,7 +219,7 @@ async function tickFlow(flow: Flow, now: Date) {
   state.stats.completed += completed;
   state.stats.failed += failed;
   state.lastTickAt = now.toISOString();
-  await writeState(state);
+  await writeState(userId, state);
 
   return {
     id: flow.id,

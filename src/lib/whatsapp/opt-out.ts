@@ -43,11 +43,12 @@ function toEntry(row: OptOutRow): OptOutEntry {
   };
 }
 
-export async function readOptOuts(): Promise<OptOutEntry[]> {
+export async function readOptOuts(userId: string): Promise<OptOutEntry[]> {
   try {
     const rows = await db()<OptOutRow[]>`
       select phone, reason, opted_out_at
       from whatsapp_opt_outs
+      where user_id = ${userId}
       order by opted_out_at desc
     `;
     return rows.map(toEntry);
@@ -68,8 +69,8 @@ export async function readOptOuts(): Promise<OptOutEntry[]> {
  * someone who opted out. Callers must therefore treat this as required rather
  * than best-effort; `readOptOutSetStrict` is what the send path uses.
  */
-export async function readOptOutSet(): Promise<Set<string>> {
-  return new Set((await readOptOuts()).map((e) => e.e164));
+export async function readOptOutSet(userId: string): Promise<Set<string>> {
+  return new Set((await readOptOuts(userId)).map((e) => e.e164));
 }
 
 /**
@@ -78,35 +79,39 @@ export async function readOptOutSet(): Promise<Set<string>> {
  * Used by anything that is about to send. Failing a broadcast is recoverable;
  * messaging someone who asked you to stop is not.
  */
-export async function readOptOutSetStrict(): Promise<Set<string>> {
-  const rows = await db()<{ phone: string }[]>`select phone from whatsapp_opt_outs`;
+export async function readOptOutSetStrict(userId: string): Promise<Set<string>> {
+  const rows = await db()<{ phone: string }[]>`
+    select phone from whatsapp_opt_outs where user_id = ${userId}
+  `;
   return new Set(rows.map((r) => r.phone));
 }
 
-export async function addOptOut(e164: string, reason?: string): Promise<OptOutEntry[]> {
+export async function addOptOut(userId: string, e164: string, reason?: string): Promise<OptOutEntry[]> {
   const digits = e164.replace(/\D/g, "");
   if (!digits) throw new Error("A phone number is required.");
 
   // Idempotent: asking twice keeps the original timestamp and reason, because
   // when they first asked is the fact worth keeping.
   await db()`
-    insert into whatsapp_opt_outs (phone, reason)
-    values (${digits}, ${reason ?? null})
-    on conflict (phone) do nothing
+    insert into whatsapp_opt_outs (user_id, phone, reason)
+    values (${userId}, ${digits}, ${reason ?? null})
+    on conflict (user_id, phone) do nothing
   `;
-  return readOptOuts();
+  return readOptOuts(userId);
 }
 
-export async function removeOptOut(e164: string): Promise<OptOutEntry[]> {
+export async function removeOptOut(userId: string, e164: string): Promise<OptOutEntry[]> {
   const digits = e164.replace(/\D/g, "");
-  await db()`delete from whatsapp_opt_outs where phone = ${digits}`;
-  return readOptOuts();
+  await db()`delete from whatsapp_opt_outs where user_id = ${userId} and phone = ${digits}`;
+  return readOptOuts(userId);
 }
 
 /** Whether one number has opted out. An indexed primary-key lookup. */
-export async function isOptedOut(e164: string): Promise<boolean> {
+export async function isOptedOut(userId: string, e164: string): Promise<boolean> {
   const digits = e164.replace(/\D/g, "");
   if (!digits) return false;
-  const rows = await db()`select 1 from whatsapp_opt_outs where phone = ${digits}`;
+  const rows = await db()`
+    select 1 from whatsapp_opt_outs where user_id = ${userId} and phone = ${digits}
+  `;
   return rows.length > 0;
 }

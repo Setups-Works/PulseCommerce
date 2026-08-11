@@ -11,9 +11,10 @@ export const dynamic = "force-dynamic";
  * Server-to-server callback from WooCommerce carrying the freshly issued key.
  *
  * This is called by the store, not the browser, so there is no session here.
- * The `user_id` we set when starting the flow is a signed token carrying the
- * store URL, and verifying it is what stops anyone POSTing arbitrary
- * credentials at this endpoint.
+ * The `user_id` we set when starting the flow is a signed token carrying both
+ * the store URL and the account to attach it to. Verifying it is what stops
+ * anyone POSTing arbitrary credentials at this endpoint, and it is the only
+ * thing that says whose store this is — nothing else in the request does.
  *
  * The connection is persisted *here* rather than on the browser's return leg,
  * because on serverless the two legs can land on different instances.
@@ -41,13 +42,15 @@ export async function POST(request: Request) {
 
   const { user_id: state, consumer_key, consumer_secret } = parsed.data;
 
-  const storeUrl = await verifyState(state);
-  if (!storeUrl) {
+  const pending = await verifyState(state);
+  if (!pending) {
     return NextResponse.json(
       { success: false, error: "Unknown or expired authorization." },
       { status: 400 },
     );
   }
+
+  const { storeUrl, userId } = pending;
 
   const config = {
     url: storeUrl,
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await upsertStore({ ...config, name: storeName });
+    await upsertStore(userId, { ...config, name: storeName });
   } catch (error) {
     console.error("[woo-auth] could not persist the connection", error);
     return NextResponse.json({ success: false, error: "Could not persist the connection." }, { status: 500 });

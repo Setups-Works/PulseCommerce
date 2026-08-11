@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireTenant } from "@/lib/auth/tenant";
 import { z } from "zod";
 import { runReadTool } from "@/lib/ai/execute";
 import { ACTION_TOOLS, SYSTEM_PROMPT, pickTools } from "@/lib/ai/tools";
@@ -73,6 +74,10 @@ interface ToolCall {
 }
 
 export async function POST(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const key = process.env.GROQ_API_KEY;
   if (!key) {
     return NextResponse.json(
@@ -189,7 +194,7 @@ export async function POST(request: Request) {
 
       for (const call of calls) {
         const input = safeParse(call.function.arguments);
-        const result = await runReadTool(call.function.name, input);
+        const result = await runReadTool(userId, call.function.name, input);
         used.push({ name: call.function.name, input, result });
 
         conversation.push({

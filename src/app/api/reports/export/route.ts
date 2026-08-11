@@ -5,6 +5,7 @@ import { sheetsToCsv, sheetToCsv } from "@/lib/export/csv";
 import { buildSheet, REPORT_IDS, type ReportId, type Sheet } from "@/lib/export/datasets";
 import { buildPdf } from "@/lib/export/pdf";
 import { buildWorkbook } from "@/lib/export/xlsx";
+import { requireStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { isNotConnected } from "@/lib/store/errors";
 import { WooApiError } from "@/lib/woo/client";
@@ -29,6 +30,10 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+  const { store } = resolved.value;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
   const { format, reports, from, to, granularity, limit } = parsed.data;
 
   try {
-    const snapshot = await loadSnapshot();
+    const snapshot = await loadSnapshot(store);
     const result = getAnalytics(snapshot, {
       range: from && to ? { from, to } : undefined,
       granularity,

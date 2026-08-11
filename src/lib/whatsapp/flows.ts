@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AudienceFilter } from "@/lib/audience";
 import type { CustomerRecord } from "@/lib/analytics/types";
-import { getStore } from "@/lib/store/kv";
+import { db } from "@/lib/db/client";
 import type { BroadcastMessage } from "./broadcast";
 
 /**
@@ -116,12 +116,18 @@ export const MAX_SENDS_PER_TICK = 60;
 export const MAX_ACTIVE = 5_000;
 export const MAX_STEPS = 10;
 
-const FLOW_PREFIX = "whatsapp-flow";
-const STATE_PREFIX = "whatsapp-flow-state";
-const INDEX_KEY = "whatsapp-flow-index";
-
-const flowKey = (id: string) => `${FLOW_PREFIX}-${id}`;
-const stateKey = (id: string) => `${STATE_PREFIX}-${id}`;
+/*
+ * Flows and their enrolments are two tables, not one document.
+ *
+ * The definition — name, steps, entry filter — is written whole and never
+ * queried into, so it stays as jsonb. The enrolments are the opposite: one row
+ * per customer, read by "who is due", written one at a time as people advance.
+ *
+ * As a single document they shared a read-modify-write cycle, and two
+ * enrolments advancing in the same tick would overwrite each other. A row each
+ * cannot collide, and "who is due now" becomes an index scan rather than
+ * deserialising every enrolment in the flow to filter in JavaScript.
+ */
 
 const DAY_MS = 86_400_000;
 
@@ -237,83 +243,240 @@ export function emptyState(flowId: string): FlowState {
   };
 }
 
-export async function readFlow(id: string): Promise<Flow | null> {
+interface FlowRow {
+  id: string;
+  user_id: string;
+  name: string;
+  status: string;
+  definition: {
+    entry: AudienceFilter;
+    steps: FlowStep[];
+    exitOn: FlowExit;
+    testPhone?: string;
+    stats?: FlowStats;
+    lastTickAt?: string | null;
+  };
+  created_at: Date;
+  updated_at: Date;
+}
+
+function toFlow(row: FlowRow): Flow {
+  return {
+    id: row.id,
+    name: row.name,
+    status: row.status as FlowStatus,
+    entry: row.definition.entry,
+    steps: row.definition.steps,
+    exitOn: row.definition.exitOn,
+    ...(row.definition.testPhone ? { testPhone: row.definition.testPhone } : {}),
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+export async function readFlow(userId: string, id: string): Promise<Flow | null> {
   try {
-    const raw = await getStore().get(flowKey(id));
-    return raw ? (JSON.parse(raw) as Flow) : null;
+    const [row] = await db()<FlowRow[]>`
+      select id, user_id, name, status, definition, created_at, updated_at
+      from whatsapp_flows where id = ${id} and user_id = ${userId}
+    `;
+    return row ? toFlow(row) : null;
   } catch {
     return null;
   }
 }
 
-export async function writeFlow(flow: Flow): Promise<void> {
-  flow.updatedAt = new Date().toISOString();
-  await getStore().set(flowKey(flow.id), JSON.stringify(flow));
+export async function writeFlow(userId: string, flow: Flow): Promise<void> {
+  await db()`
+    update whatsapp_flows set
+      name = ${flow.name},
+      status = ${flow.status},
+      definition = ${db().json({
+        entry: flow.entry,
+        steps: flow.steps,
+        exitOn: flow.exitOn,
+        ...(flow.testPhone ? { testPhone: flow.testPhone } : {}),
+      } as never)}
+    where id = ${flow.id} and user_id = ${userId}
+  `;
 }
 
-export async function readState(id: string): Promise<FlowState> {
+/**
+ * The live state of a flow, assembled from its enrolment rows.
+ *
+ * `seen` is every customer ever enrolled, which is what stops the entry filter
+ * re-enrolling somebody each tick. It is derived from the rows rather than
+ * kept as a separate list, so the two can never disagree.
+ */
+export async function readState(userId: string, id: string): Promise<FlowState> {
   try {
-    const raw = await getStore().get(stateKey(id));
-    return raw ? (JSON.parse(raw) as FlowState) : emptyState(id);
+    const rows = await db()<
+      {
+        customer_key: string;
+        chat_id: string | null;
+        step_index: number;
+        status: string;
+        orders_at_entry: number;
+        enrolled_at: Date;
+        last_sent_at: Date | null;
+        due_at: Date | null;
+      }[]
+    >`
+      select customer_key, chat_id, step_index, status, orders_at_entry,
+             enrolled_at, last_sent_at, due_at
+      from whatsapp_enrolments e
+      where e.flow_id = ${id}
+        and exists (select 1 from whatsapp_flows f
+                    where f.id = e.flow_id and f.user_id = ${userId})
+    `;
+
+    const active: Enrolment[] = [];
+    const seen: string[] = [];
+    const stats: FlowStats = { enrolled: 0, sent: 0, completed: 0, exited: 0, failed: 0 };
+
+    for (const row of rows) {
+      seen.push(row.customer_key);
+      stats.enrolled += 1;
+      if (row.last_sent_at) stats.sent += 1;
+
+      if (row.status === "active") {
+        active.push({
+          customerKey: row.customer_key,
+          chatId: row.chat_id ?? "",
+          enrolledAt: row.enrolled_at.toISOString(),
+          step: row.step_index,
+          dueAt: (row.due_at ?? row.enrolled_at).toISOString(),
+          ordersAtEntry: row.orders_at_entry,
+          ...(row.last_sent_at ? { lastSentAt: row.last_sent_at.toISOString() } : {}),
+        });
+      } else if (row.status === "completed") stats.completed += 1;
+      else if (row.status === "exited") stats.exited += 1;
+      else if (row.status === "failed") stats.failed += 1;
+    }
+
+    const [meta] = await db()<{ definition: { lastTickAt?: string | null } }[]>`
+      select definition from whatsapp_flows where id = ${id} and user_id = ${userId}
+    `;
+
+    return { flowId: id, active, seen, stats, lastTickAt: meta?.definition?.lastTickAt ?? null };
   } catch {
     return emptyState(id);
   }
 }
 
-export async function writeState(state: FlowState): Promise<void> {
-  await getStore().set(stateKey(state.flowId), JSON.stringify(state));
+/**
+ * Persists a tick's outcome.
+ *
+ * Each enrolment is written as its own upsert rather than the whole state
+ * being replaced, which is the entire point of the table: a tick that fails
+ * halfway has still advanced the people it got to, and a concurrent tick
+ * cannot undo them.
+ */
+export async function writeState(userId: string, state: FlowState): Promise<void> {
+  const owned = await db()`
+    select 1 from whatsapp_flows where id = ${state.flowId} and user_id = ${userId}
+  `;
+  if (owned.length === 0) return;
+
+  await db().begin(async (tx) => {
+    for (const e of state.active) {
+      await tx`
+        insert into whatsapp_enrolments
+          (flow_id, customer_key, chat_id, step_index, status, orders_at_entry, enrolled_at, last_sent_at, due_at)
+        values (
+          ${state.flowId}, ${e.customerKey}, ${e.chatId}, ${e.step}, 'active',
+          ${e.ordersAtEntry}, ${e.enrolledAt}, ${e.lastSentAt ?? null}, ${e.dueAt}
+        )
+        on conflict (flow_id, customer_key) do update set
+          step_index = excluded.step_index,
+          status = 'active',
+          last_sent_at = excluded.last_sent_at,
+          due_at = excluded.due_at
+      `;
+    }
+
+    // Anyone in `seen` but no longer active has left the flow. Recording that
+    // is what keeps them from being re-enrolled by the entry filter.
+    const activeKeys = new Set(state.active.map((e) => e.customerKey));
+    const departed = state.seen.filter((k) => !activeKeys.has(k));
+    if (departed.length) {
+      await tx`
+        update whatsapp_enrolments set status = 'completed'
+        where flow_id = ${state.flowId}
+          and customer_key in ${tx(departed)}
+          and status = 'active'
+      `;
+    }
+
+    await tx`
+      update whatsapp_flows
+      set definition = definition || ${tx.json({ lastTickAt: state.lastTickAt } as never)}
+      where id = ${state.flowId}
+    `;
+  });
 }
 
-export async function listFlowIds(): Promise<string[]> {
-  try {
-    const raw = await getStore().get(INDEX_KEY);
-    const parsed = raw ? (JSON.parse(raw) as string[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+export async function createFlow(
+  userId: string,
+  input: {
+    name: string;
+    entry: AudienceFilter;
+    steps: FlowStep[];
+    exitOn: FlowExit;
+    testPhone?: string;
+    status?: FlowStatus;
+  },
+): Promise<Flow> {
+  const [row] = await db()<FlowRow[]>`
+    insert into whatsapp_flows (user_id, name, status, definition)
+    values (
+      ${userId},
+      ${input.name},
+      -- Draft by default: creating a flow and starting to send to thousands of
+      -- people should never be the same action.
+      ${input.status ?? "draft"},
+      ${db().json({
+        entry: input.entry,
+        steps: input.steps,
+        exitOn: input.exitOn,
+        ...(input.testPhone ? { testPhone: input.testPhone } : {}),
+      } as never)}
+    )
+    returning id, user_id, name, status, definition, created_at, updated_at
+  `;
+  return toFlow(row);
 }
 
-export async function createFlow(input: {
-  name: string;
-  entry: AudienceFilter;
-  steps: FlowStep[];
-  exitOn: FlowExit;
-  testPhone?: string;
-  status?: FlowStatus;
-}): Promise<Flow> {
-  const now = new Date().toISOString();
-  const flow: Flow = {
-    id: randomUUID(),
-    name: input.name,
-    // Draft by default: creating a flow and starting to send to thousands of
-    // people should never be the same action.
-    status: input.status ?? "draft",
-    entry: input.entry,
-    steps: input.steps,
-    exitOn: input.exitOn,
-    ...(input.testPhone ? { testPhone: input.testPhone } : {}),
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await writeFlow(flow);
-  const ids = [flow.id, ...(await listFlowIds()).filter((x) => x !== flow.id)];
-  await getStore().set(INDEX_KEY, JSON.stringify(ids));
-  return flow;
+export async function deleteFlow(userId: string, id: string): Promise<void> {
+  // Enrolments go with it through the cascade.
+  await db()`delete from whatsapp_flows where id = ${id} and user_id = ${userId}`;
 }
 
-export async function deleteFlow(id: string): Promise<void> {
-  const ids = (await listFlowIds()).filter((x) => x !== id);
-  await getStore().set(INDEX_KEY, JSON.stringify(ids));
-  await getStore().delete(flowKey(id)).catch(() => {});
-  await getStore().delete(stateKey(id)).catch(() => {});
+export async function listFlows(userId: string): Promise<Flow[]> {
+  const rows = await db()<FlowRow[]>`
+    select id, user_id, name, status, definition, created_at, updated_at
+    from whatsapp_flows where user_id = ${userId}
+    order by created_at desc
+  `;
+  return rows.map(toFlow);
 }
 
-export async function listFlows(): Promise<Flow[]> {
-  const ids = await listFlowIds();
-  const flows = await Promise.all(ids.map((id) => readFlow(id)));
-  return flows.filter((f): f is Flow => f !== null);
+/** Flows with at least one enrolment due, for the scheduler. */
+export async function flowsWithWork(): Promise<{ flowId: string; userId: string }[]> {
+  const rows = await db()<{ id: string; user_id: string }[]>`
+    select distinct f.id, f.user_id
+    from whatsapp_flows f
+    where f.status = 'active'
+      and (
+        -- Either somebody is due a step...
+        exists (select 1 from whatsapp_enrolments e
+                where e.flow_id = f.id and e.status = 'active'
+                  and e.due_at is not null and e.due_at <= now())
+        -- ...or the flow has never run, so its entry filter needs evaluating.
+        or not exists (select 1 from whatsapp_enrolments e where e.flow_id = f.id)
+      )
+  `;
+  return rows.map((r) => ({ flowId: r.id, userId: r.user_id }));
 }
 
 /** What the UI shows about a flow without loading every enrolment. */

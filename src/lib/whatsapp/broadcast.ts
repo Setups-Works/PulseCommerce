@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getStore } from "@/lib/store/kv";
+import { db } from "@/lib/db/client";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { MAX_BATCH_SIZE, type WhatsAppConfig } from "./config";
 import { maskPhone, normalisePhone } from "./phone";
@@ -79,47 +79,169 @@ export interface BroadcastJob {
   error?: string;
 }
 
-const JOB_PREFIX = "whatsapp-broadcast";
-const INDEX_KEY = "whatsapp-broadcast-index";
-/** Keeps the history list bounded; jobs beyond this are dropped oldest-first. */
+/**
+ * Broadcasts, and their recipients, as two tables.
+ *
+ * A broadcast to twenty thousand people used to be one JSON document holding
+ * every recipient. Advancing the cursor rewrote the whole thing — megabytes
+ * per batch — and two overlapping progress writes lost each other, which on a
+ * send means either stalling or messaging somebody twice.
+ *
+ * Recipients are rows now. Progress is an update to the rows that were sent,
+ * and "how far along is this" is a count rather than a deserialisation.
+ */
+
+/** Keeps the history bounded; older broadcasts are dropped oldest-first. */
 const MAX_HISTORY = 25;
 
-const jobKey = (id: string) => `${JOB_PREFIX}-${id}`;
+interface BroadcastRow {
+  id: string;
+  status: string;
+  message: BroadcastMessage & {
+    audienceLabel?: string;
+    cursor?: number;
+    batches?: { batchId: string; size: number; submittedAt: string }[];
+    matched?: number;
+    delayBetweenMessagesMs?: number;
+  };
+  skipped: BroadcastSkips;
+  error: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
 
-export async function readBroadcast(id: string): Promise<BroadcastJob | null> {
+export async function readBroadcast(userId: string, id: string): Promise<BroadcastJob | null> {
   try {
-    const raw = await getStore().get(jobKey(id));
-    return raw ? (JSON.parse(raw) as BroadcastJob) : null;
+    const [row] = await db()<BroadcastRow[]>`
+      select id, status, message, skipped, error, created_at, updated_at
+      from whatsapp_broadcasts where id = ${id} and user_id = ${userId}
+    `;
+    if (!row) return null;
+
+    const recipients = await db()<
+      {
+        customer_key: string;
+        chat_id: string | null;
+        name: string | null;
+        vars: Partial<TemplateVariables>;
+      }[]
+    >`
+      select customer_key, chat_id, name, vars
+      from whatsapp_broadcast_recipients where broadcast_id = ${id}
+      -- Stable order: the cursor is a position in this list, so it has to mean
+      -- the same thing on every read or a resumed send skips or repeats people.
+      order by customer_key
+    `;
+
+    const { audienceLabel, cursor, batches, matched, delayBetweenMessagesMs, ...message } =
+      row.message;
+
+    return {
+      id: row.id,
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+      status: row.status as BroadcastStatus,
+      audienceLabel: audienceLabel ?? "",
+      message: message as BroadcastMessage,
+      recipients: recipients.map((r) => ({
+        key: r.customer_key,
+        chatId: r.chat_id ?? "",
+        name: r.name ?? "",
+        vars: r.vars ?? {},
+      })),
+      cursor: cursor ?? 0,
+      batches: batches ?? [],
+      skipped: row.skipped,
+      matched: matched ?? recipients.length,
+      delayBetweenMessagesMs: delayBetweenMessagesMs ?? 4000,
+      ...(row.error ? { error: row.error } : {}),
+    };
   } catch {
     return null;
   }
 }
 
-export async function writeBroadcast(job: BroadcastJob): Promise<void> {
-  job.updatedAt = new Date().toISOString();
-  await getStore().set(jobKey(job.id), JSON.stringify(job));
+export async function writeBroadcast(userId: string, job: BroadcastJob): Promise<void> {
+  await db().begin(async (tx) => {
+    await tx`
+      insert into whatsapp_broadcasts (id, user_id, status, message, skipped, total, handed_off, error)
+      values (
+        ${job.id}, ${userId}, ${job.status},
+        ${tx.json({
+          ...job.message,
+          audienceLabel: job.audienceLabel,
+          cursor: job.cursor,
+          batches: job.batches,
+          matched: job.matched,
+          delayBetweenMessagesMs: job.delayBetweenMessagesMs,
+        } as never)},
+        ${tx.json(job.skipped as never)},
+        ${job.recipients.length}, ${job.cursor}, ${job.error ?? null}
+      )
+      on conflict (id) do update set
+        status = excluded.status, message = excluded.message,
+        skipped = excluded.skipped, total = excluded.total,
+        handed_off = excluded.handed_off, error = excluded.error
+    `;
+
+    if (job.recipients.length) {
+      // Chunked: one statement per five hundred keeps the parameter count
+      // inside Postgres's limit on a large audience.
+      for (let i = 0; i < job.recipients.length; i += 500) {
+        const chunk = job.recipients.slice(i, i + 500);
+        await tx`
+          insert into whatsapp_broadcast_recipients ${tx(
+            chunk.map((r, offset) => ({
+              broadcast_id: job.id,
+              customer_key: r.key,
+              chat_id: r.chatId,
+              name: r.name,
+              vars: tx.json(r.vars as never),
+              // Everything before the cursor has been handed to the gateway.
+              // Derived rather than stored on the recipient, because the cursor
+              // is the single source of truth for progress.
+              status: i + offset < job.cursor ? "sent" : "pending",
+            })) as never,
+          )}
+          on conflict (broadcast_id, customer_key) do update set
+            status = excluded.status, chat_id = excluded.chat_id,
+            name = excluded.name, vars = excluded.vars
+        `;
+      }
+    }
+  });
 }
 
-export async function listBroadcastIds(): Promise<string[]> {
+export async function listBroadcastIds(userId: string): Promise<string[]> {
   try {
-    const raw = await getStore().get(INDEX_KEY);
-    const parsed = raw ? (JSON.parse(raw) as string[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    const rows = await db()<{ id: string }[]>`
+      select id from whatsapp_broadcasts where user_id = ${userId}
+      order by created_at desc limit ${MAX_HISTORY}
+    `;
+    return rows.map((r) => r.id);
   } catch {
     return [];
   }
 }
 
-async function indexBroadcast(id: string): Promise<void> {
-  const ids = [id, ...(await listBroadcastIds()).filter((x) => x !== id)];
-  const kept = ids.slice(0, MAX_HISTORY);
-  await getStore().set(INDEX_KEY, JSON.stringify(kept));
-  // Drop the payloads of anything that fell off the end, so old recipient
-  // lists do not linger in storage indefinitely.
-  for (const stale of ids.slice(MAX_HISTORY)) {
-    await getStore().delete(jobKey(stale)).catch(() => {});
-  }
+/**
+ * Drops broadcasts beyond the history limit.
+ *
+ * Recipient rows go with them through the cascade, which matters: a finished
+ * broadcast's recipient list is a list of who was messaged, and keeping every
+ * one of those forever is not something anybody asked for.
+ */
+async function indexBroadcast(userId: string): Promise<void> {
+  await db()`
+    delete from whatsapp_broadcasts
+    where user_id = ${userId}
+      and id not in (
+        select id from whatsapp_broadcasts where user_id = ${userId}
+        order by created_at desc limit ${MAX_HISTORY}
+      )
+  `;
 }
+
 
 export interface ResolveResult {
   recipients: BroadcastRecipient[];
@@ -246,7 +368,7 @@ function firstName(full: string): string {
   return first;
 }
 
-export async function createBroadcast(input: {
+export async function createBroadcast(userId: string, input: {
   audienceLabel: string;
   message: BroadcastMessage;
   recipients: BroadcastRecipient[];
@@ -270,8 +392,8 @@ export async function createBroadcast(input: {
     delayBetweenMessagesMs: input.delayBetweenMessagesMs,
   };
 
-  await writeBroadcast(job);
-  await indexBroadcast(job.id);
+  await writeBroadcast(userId, job);
+  await indexBroadcast(userId);
   return job;
 }
 

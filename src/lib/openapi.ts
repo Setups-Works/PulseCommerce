@@ -37,7 +37,10 @@ export const openApiDocument = {
       "who is not a customer of the connected store or who has opted out.\n\n" +
       "## Authentication\n\n" +
       "Every endpoint requires an API key except the connect flow, the scheduler " +
-      "hook (which authenticates with `CRON_SECRET`) and this document.\n\n" +
+      "hooks (which authenticate with `CRON_SECRET`) and this document.\n\n" +
+      "Each key belongs to an account, and an account owns its own WooCommerce " +
+      "store and WhatsApp connection. A key therefore sees exactly one tenant's " +
+      "data — yours — and there is no parameter that changes which.\n\n" +
       "Create a key in **Settings → API keys**, then send it on each request:\n\n" +
       "```bash\n" +
       "curl https://your-deployment/api/analytics \\\n" +
@@ -46,7 +49,12 @@ export const openApiDocument = {
       "A missing or invalid key returns 401; a key without the scope an endpoint " +
       "needs returns 403 naming it. Both include a `hint` field saying what to do.\n\n" +
       "Keys can neither create nor revoke keys — that requires a dashboard " +
-      "session, so a leaked key cannot extend or replace itself.",
+      "session, so a leaked key cannot extend or replace itself.\n\n" +
+      "## Freshness\n\n" +
+      "Analytics are computed from a local mirror of your store rather than by " +
+      "calling WooCommerce on each request, which is what makes them fast. The " +
+      "mirror refreshes every two hours; `GET /api/sync` reports when it last " +
+      "ran, and `POST /api/sync` pulls immediately.",
   },
   servers: [{ url: "/", description: "This deployment" }],
   /*
@@ -66,8 +74,85 @@ export const openApiDocument = {
     { name: "Inbox", description: "Conversations and replies" },
     { name: "Auth", description: "Optional password sessions" },
     { name: "API keys", description: "Credentials for calling this API from your own code" },
+    { name: "Sync", description: "The local mirror of your WooCommerce store" },
   ],
   paths: {
+    "/api/sync": {
+      get: {
+        tags: ["Sync"],
+        summary: "How current the mirrored data is",
+        description:
+          "Every figure this API returns is as fresh as the last sync, so this is " +
+          "what to check before treating a number as current. A failed run is " +
+          "reported rather than hidden — stale figures labelled stale are better " +
+          "than stale figures presented as live.",
+        responses: {
+          200: {
+            description: "Row counts and the last run.",
+            content: json({
+              type: "object",
+              properties: {
+                lastSyncAt: { type: "string", format: "date-time", nullable: true },
+                orders: { type: "integer" },
+                customers: { type: "integer" },
+                products: { type: "integer" },
+                lastRun: {
+                  type: "object",
+                  nullable: true,
+                  properties: {
+                    status: { type: "string", enum: ["running", "succeeded", "failed"] },
+                    mode: { type: "string", enum: ["full", "incremental"] },
+                    error: { type: "string", nullable: true },
+                    finishedAt: { type: "string", format: "date-time", nullable: true },
+                  },
+                },
+              },
+            }),
+          },
+          409: errorResponse("No store is connected."),
+        },
+      },
+      post: {
+        tags: ["Sync"],
+        summary: "Pull from WooCommerce now",
+        description:
+          "Normally the schedule handles this. Use it after connecting a store, or " +
+          "when something changed in WooCommerce that you want reflected " +
+          "immediately.\n\nBy default only records modified since the last run are " +
+          "fetched. `?full=1` re-reads the whole history, which on a large store " +
+          "takes minutes.\n\nRequires the `write` scope: it causes real traffic " +
+          "against the merchant's shop.",
+        parameters: [
+          {
+            name: "full",
+            in: "query",
+            description: "Set to 1 to re-read the entire history.",
+            schema: { type: "string", enum: ["1"] },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Finished.",
+            content: json({
+              type: "object",
+              properties: {
+                ok: { type: "boolean" },
+                mode: { type: "string", enum: ["full", "incremental"] },
+                orders: { type: "integer" },
+                customers: { type: "integer" },
+                products: { type: "integer" },
+                warnings: { type: "array", items: { type: "string" } },
+                durationMs: { type: "integer" },
+              },
+            }),
+          },
+          403: errorResponse("The key lacks the write scope."),
+          409: errorResponse("No store is connected."),
+          502: errorResponse("WooCommerce could not be reached, or refused the key."),
+        },
+      },
+    },
+
     "/api/keys": {
       get: {
         tags: ["API keys"],

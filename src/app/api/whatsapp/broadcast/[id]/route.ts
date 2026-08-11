@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireTenant } from "@/lib/auth/tenant";
 import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import {
@@ -18,9 +19,13 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 /** Progress for one broadcast. */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { id } = await params;
-  const job = await readBroadcast(id);
+  const job = await readBroadcast(userId, id);
   if (!job) return NextResponse.json({ error: "No such broadcast." }, { status: 404 });
   return NextResponse.json(progressOf(job));
 }
@@ -34,9 +39,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
  * while the campaign page is open, and the cursor in storage means a closed tab
  * pauses the job rather than losing it.
  */
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { id } = await params;
-  const job = await readBroadcast(id);
+  const job = await readBroadcast(userId, id);
   if (!job) return NextResponse.json({ error: "No such broadcast." }, { status: 404 });
 
   if (job.status === "cancelled" || job.status === "completed" || job.status === "failed") {
@@ -45,13 +54,13 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   if (job.cursor >= job.recipients.length) {
     job.status = "completed";
-    await writeBroadcast(job);
+    await writeBroadcast(userId, job);
     return NextResponse.json(progressOf(job));
   }
 
   const config = await readWhatsAppConfig();
   if (!config) {
-    return await fail(job, "The WhatsApp gateway was disconnected while this broadcast was running.");
+    return await fail(userId, job, "The WhatsApp gateway was disconnected while this broadcast was running.");
   }
 
   // Give the batch already in flight time to drain before adding another.
@@ -79,6 +88,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const session = await client.ensureSendable().catch(() => null);
   if (!session || !isSessionSendable(session)) {
     return await fail(
+      userId,
       job,
       session
         ? `The WhatsApp session stopped being able to send (status "${session.status}", engine ${session.engineLoaded ? "loaded" : "not loaded"}). Re-link the number in Settings, then start a new broadcast.`
@@ -120,7 +130,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     job.cursor += chunk.length;
     if (job.cursor >= job.recipients.length) job.status = "completed";
 
-    await writeBroadcast(job);
+    await writeBroadcast(userId, job);
     return NextResponse.json(progressOf(job));
   } catch (error) {
     const message =
@@ -129,19 +139,23 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
         : error instanceof Error
           ? error.message
           : "The gateway rejected the batch.";
-    return await fail(job, message);
+    return await fail(userId, job, message);
   }
 }
 
 /** Stops a broadcast. Batches already accepted by OpenWA still go out. */
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { id } = await params;
-  const job = await readBroadcast(id);
+  const job = await readBroadcast(userId, id);
   if (!job) return NextResponse.json({ error: "No such broadcast." }, { status: 404 });
 
   if (job.status === "sending" || job.status === "paused") {
     job.status = "cancelled";
-    await writeBroadcast(job);
+    await writeBroadcast(userId, job);
 
     // Best effort: ask the gateway to drop the batch it is still working
     // through. Messages it has already delivered cannot be recalled.
@@ -155,9 +169,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   return NextResponse.json(progressOf(job));
 }
 
-async function fail(job: BroadcastJob, error: string) {
+async function fail(userId: string, job: BroadcastJob, error: string) {
   job.status = "failed";
   job.error = error;
-  await writeBroadcast(job);
+  await writeBroadcast(userId, job);
   return NextResponse.json({ ...progressOf(job), error }, { status: 502 });
 }

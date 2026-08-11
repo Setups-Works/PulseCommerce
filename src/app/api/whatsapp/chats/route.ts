@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAnalytics } from "@/lib/analytics/cache";
+import { requireStore, type TenantStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { WhatsAppApiError, WhatsAppClient, type WhatsAppChat } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
@@ -33,7 +34,11 @@ export interface InboxChat extends WhatsAppChat {
  * inbox wait on a full order-history pull, and a list of numbers now is worth
  * more than a list of names in four minutes.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+  const { store } = resolved.value;
+
   const config = await readWhatsAppConfig();
   if (!config) {
     return NextResponse.json({ error: "No WhatsApp gateway is connected." }, { status: 409 });
@@ -41,7 +46,7 @@ export async function GET() {
 
   try {
     const chats = await new WhatsAppClient(config).listChats(80);
-    const enriched = await withCustomerNames(chats, config.defaultDialCode);
+    const enriched = await withCustomerNames(store, chats, config.defaultDialCode);
     return NextResponse.json({ chats: enriched });
   } catch (error) {
     if (error instanceof WhatsAppApiError) {
@@ -58,6 +63,7 @@ export async function GET() {
 }
 
 async function withCustomerNames(
+  store: TenantStore,
   chats: WhatsAppChat[],
   defaultDialCode: string,
 ): Promise<InboxChat[]> {
@@ -70,7 +76,7 @@ async function withCustomerNames(
   });
 
   const lookup = (async () => {
-    const snapshot = await loadSnapshot();
+    const snapshot = await loadSnapshot(store);
     const analytics = getAnalytics(snapshot);
     const phoneByKey = phoneMapFromSnapshot(snapshot);
 

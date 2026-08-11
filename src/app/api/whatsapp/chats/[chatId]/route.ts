@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireTenant } from "@/lib/auth/tenant";
 import { z } from "zod";
 import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
@@ -58,6 +59,10 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ chatId: string }> },
 ) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { chatId: rawParam } = await params;
   const raw = decodeURIComponent(rawParam);
 
@@ -100,7 +105,7 @@ export async function POST(
   }
 
   const digits = chatId.split("@")[0];
-  if ((await readOptOutSet()).has(digits)) {
+  if ((await readOptOutSet(userId)).has(digits)) {
     return NextResponse.json(
       { error: "That number is on the opt-out list and will not be messaged." },
       { status: 409 },

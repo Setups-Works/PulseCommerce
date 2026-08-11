@@ -3,6 +3,7 @@
 import { Activity, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { StoreSwitcher } from "@/components/layout/store-switcher";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import {
@@ -64,6 +65,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t group-data-[collapsible=icon]:hidden">
+        <AccountMenu />
         <StoreSwitcher />
         {data?.meta.storeUrl ? (
           <a

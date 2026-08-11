@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAnalytics } from "@/lib/analytics/cache";
 import type { Granularity } from "@/lib/analytics/types";
 import { isNotConnected } from "@/lib/store/errors";
+import { requireStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { WooApiError } from "@/lib/woo/client";
 
@@ -17,6 +18,10 @@ export const dynamic = "force-dynamic";
  * fetch from WooCommerce.
  */
 export async function GET(request: Request, { params }: { params: Promise<{ key: string }> }) {
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+  const { store } = resolved.value;
+
   const { key } = await params;
   const search = new URL(request.url).searchParams;
 
@@ -29,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
       : undefined;
 
   try {
-    const snapshot = await loadSnapshot();
+    const snapshot = await loadSnapshot(store);
     const result = getAnalytics(snapshot, {
       range: from && to ? { from, to } : undefined,
       granularity,

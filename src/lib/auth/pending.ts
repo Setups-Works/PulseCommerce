@@ -7,9 +7,21 @@
  *
  * That something is a *signed, self-contained token* rather than a server-side
  * record. WooCommerce echoes the `user_id` parameter back on both legs, so the
- * token carries the store URL with it and needs no shared storage — which
- * matters because on serverless the two legs can land on different instances
- * that share no filesystem.
+ * token carries what it needs with it and requires no shared storage — which
+ * matters because on serverless the two legs can land on different instances.
+ *
+ * ─── Why the account is in the token ───────────────────────────────────────
+ *
+ * The credentials arrive on a server-to-server POST from the merchant's shop.
+ * That request carries no cookie and no key: it is WooCommerce calling us, not
+ * the person who started the flow. In a multi-tenant product there is
+ * therefore nothing in the callback itself that says whose store this is.
+ *
+ * So the account id is signed into the state when the flow begins, while there
+ * is still a session to read it from, and recovered from the signature on the
+ * way back. Anything less — trusting a query parameter, guessing from the URL,
+ * assuming the most recent visitor — would let one person's authorization
+ * attach a store to somebody else's account.
  */
 
 const TTL_MS = 15 * 60 * 1000;
@@ -27,10 +39,17 @@ export class MissingAuthSecretError extends Error {
 interface StatePayload {
   /** Store being authorized. */
   u: string;
+  /** Account the store will be attached to. */
+  a: string;
   /** Issued at (ms). */
   t: number;
   /** Random, so two authorizations of the same store differ. */
   n: string;
+}
+
+export interface PendingAuthorization {
+  storeUrl: string;
+  userId: string;
 }
 
 function secret(): string {
@@ -68,9 +87,9 @@ async function key(): Promise<CryptoKey> {
  * query parameter: the signature is truncated to 16 bytes, which is ample for
  * a token that also expires in 15 minutes.
  */
-export async function createState(storeUrl: string): Promise<string> {
+export async function createState(storeUrl: string, userId: string): Promise<string> {
   const nonce = b64url(crypto.getRandomValues(new Uint8Array(9)));
-  const payload: StatePayload = { u: storeUrl, t: Date.now(), n: nonce };
+  const payload: StatePayload = { u: storeUrl, a: userId, t: Date.now(), n: nonce };
   const body = b64url(new TextEncoder().encode(JSON.stringify(payload)));
   const signature = new Uint8Array(
     await crypto.subtle.sign("HMAC", await key(), new TextEncoder().encode(body)),
@@ -78,8 +97,10 @@ export async function createState(storeUrl: string): Promise<string> {
   return `${body}.${b64url(signature)}`;
 }
 
-/** Returns the store URL the token was issued for, or null if it isn't valid. */
-export async function verifyState(token: string | null | undefined): Promise<string | null> {
+/** Returns what the token was issued for, or null if it is not valid. */
+export async function verifyState(
+  token: string | null | undefined,
+): Promise<PendingAuthorization | null> {
   if (!token) return null;
   const [body, signature] = token.split(".");
   if (!body || !signature) return null;
@@ -100,8 +121,11 @@ export async function verifyState(token: string | null | undefined): Promise<str
     const payload = JSON.parse(new TextDecoder().decode(fromB64url(body))) as StatePayload;
     if (typeof payload.t !== "number" || Date.now() - payload.t > TTL_MS) return null;
     if (typeof payload.u !== "string" || !payload.u) return null;
+    // A token without an account predates multi-tenancy and has nowhere to
+    // attach a store, so it is refused rather than guessed at.
+    if (typeof payload.a !== "string" || !payload.a) return null;
 
-    return payload.u;
+    return { storeUrl: payload.u, userId: payload.a };
   } catch {
     return null;
   }

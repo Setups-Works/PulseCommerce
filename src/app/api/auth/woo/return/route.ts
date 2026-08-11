@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authConfigured, createSession, SESSION_COOKIE, SESSION_COOKIE_OPTIONS } from "@/lib/auth/session";
+import { resolveTenant } from "@/lib/auth/tenant";
 import { readStoreConfig } from "@/lib/store/config";
 
 export const runtime = "nodejs";
@@ -19,24 +19,25 @@ export async function GET(request: Request) {
 
   if (declined) return redirect("/?auth=denied");
 
+  /*
+   * The session already exists — the flow could not have started without one,
+   * because the account has to be signed into the state token. All this leg
+   * does is find out whether the credentials arrived.
+   */
+  const tenant = await resolveTenant(request);
+  if (!tenant) return redirect("/login?next=/settings");
+
   // The callback POST and this redirect race. Woo normally sends the callback
   // first, but give it a moment before concluding it never arrived.
-  let config = await readStoreConfig();
+  let config = await readStoreConfig(tenant.userId);
   for (let attempt = 0; attempt < 12 && !config; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 400));
-    config = await readStoreConfig();
+    config = await readStoreConfig(tenant.userId);
   }
 
-  if (!config) return redirect("/?auth=no_credentials");
+  if (!config) return redirect("/settings?auth=no_credentials");
 
-  const response = redirect("/dashboard?auth=connected");
-
-  // Completing the store authorization is itself proof of access, so it also
-  // establishes a session when auth is configured.
-  if (authConfigured()) {
-    const token = await createSession({ via: "woo-auth", storeUrl: config.url });
-    response.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
-  }
-
-  return response;
+  // Straight into the first sync: a store with no data behind it looks broken,
+  // and the pull is the slow part worth starting immediately.
+  return redirect("/onboarding/sync?auth=connected");
 }

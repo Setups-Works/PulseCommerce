@@ -18,3 +18,18 @@ export class GatewayNotConnectedError extends Error {
 export function isGatewayNotConnected(error: unknown): error is GatewayNotConnectedError {
   return error instanceof GatewayNotConnectedError;
 }
+
+/**
+ * No WooCommerce store is connected, so there is no audience to resolve.
+ *
+ * Distinct from the gateway not being connected: one means "we cannot send",
+ * the other means "there is nobody to send to". They are fixed on different
+ * settings screens, so telling them apart is what makes the message useful.
+ */
+export class NoStoreError extends Error {
+  readonly code = "not_connected";
+  constructor() {
+    super("No WooCommerce store is connected, so there is no audience to resolve.");
+    this.name = "NoStoreError";
+  }
+}

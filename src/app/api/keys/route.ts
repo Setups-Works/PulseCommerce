@@ -1,38 +1,51 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createApiKey, listApiKeys, SCOPES } from "@/lib/auth/api-key";
+import { resolveTenant } from "@/lib/auth/tenant";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Managing the keys that grant access to this API.
+ * The keys that grant access to this API.
  *
- * Session only. Proxy sets `x-pulse-key-id` when it authenticated a request
- * with an API key, and its presence is what this refuses: a key that can mint
- * keys is a key that cannot meaningfully be revoked, because whoever holds it
- * issues a replacement the moment you revoke it — and a read-only key would
- * become a way to grant itself write access.
- *
- * Issuing a key therefore requires proving control of the store, which means
- * the WooCommerce authorization flow.
+ * Session only. A key that can mint keys cannot meaningfully be revoked —
+ * whoever holds it issues a replacement the moment you revoke it — and a
+ * read-only key would become a way to grant itself write access. So managing
+ * keys requires being signed in, which means proving control of the account
+ * rather than merely holding one of its credentials.
  */
-function sessionOnly(request: Request): NextResponse | null {
-  if (!request.headers.get("x-pulse-key-id")) return null;
-  return NextResponse.json(
-    {
-      error: "API keys cannot be managed with an API key.",
-      hint: "Sign in through the dashboard — connecting your WooCommerce store establishes the session this needs.",
-    },
-    { status: 403 },
-  );
+async function requireSession() {
+  const tenant = await resolveTenant();
+  if (!tenant) {
+    return {
+      tenant: null,
+      response: NextResponse.json(
+        { error: "Sign in to manage API keys.", hint: "Open Settings → API keys while signed in." },
+        { status: 401 },
+      ),
+    };
+  }
+  if (tenant.via === "api-key") {
+    return {
+      tenant: null,
+      response: NextResponse.json(
+        {
+          error: "API keys cannot be managed with an API key.",
+          hint: "Sign in through the dashboard instead.",
+        },
+        { status: 403 },
+      ),
+    };
+  }
+  return { tenant, response: null };
 }
 
-export async function GET(request: Request) {
-  const blocked = sessionOnly(request);
-  if (blocked) return blocked;
+export async function GET() {
+  const { tenant, response } = await requireSession();
+  if (!tenant) return response;
 
-  return NextResponse.json({ keys: await listApiKeys() });
+  return NextResponse.json({ keys: await listApiKeys(tenant.userId) });
 }
 
 const createSchema = z.object({
@@ -41,8 +54,8 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const blocked = sessionOnly(request);
-  if (blocked) return blocked;
+  const { tenant, response } = await requireSession();
+  if (!tenant) return response;
 
   let body: unknown;
   try {
@@ -59,15 +72,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const { record, key } = await createApiKey(parsed.data.name, parsed.data.scopes);
+  const { record, key } = await createApiKey(parsed.data.name, parsed.data.scopes, tenant.userId);
 
   /*
-   * The only response that will ever contain the key itself. It is not stored
-   * in a recoverable form, so there is no endpoint that can return it again —
-   * see api-key.ts. The client is responsible for showing it once.
+   * The only response that will ever carry the key. Only a digest is stored,
+   * so no endpoint can return it again — the client has to show it once and
+   * the person has to copy it.
    */
   return NextResponse.json(
-    { key, record: { ...record, hash: undefined } },
+    { key, record },
     { status: 201, headers: { "Cache-Control": "no-store" } },
   );
 }

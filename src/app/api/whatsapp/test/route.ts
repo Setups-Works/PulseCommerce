@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireTenant } from "@/lib/auth/tenant";
 import { z } from "zod";
 import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
@@ -25,6 +26,10 @@ const schema = z.object({
  * being a test is not a reason to message someone who asked you to stop.
  */
 export async function POST(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -60,7 +65,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if ((await readOptOutSet()).has(normalised.e164)) {
+  if ((await readOptOutSet(userId)).has(normalised.e164)) {
     return NextResponse.json(
       { error: "That number is on the opt-out list and will not be messaged." },
       { status: 409 },

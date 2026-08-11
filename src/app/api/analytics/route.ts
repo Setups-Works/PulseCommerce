@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAnalyticsCached } from "@/lib/analytics/cache";
 import type { Granularity } from "@/lib/analytics/types";
+import { requireStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { isNotConnected } from "@/lib/store/errors";
 import { WooApiError } from "@/lib/woo/client";
@@ -15,6 +16,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+  const { store } = resolved.value;
+
   const params = new URL(request.url).searchParams;
 
   const from = params.get("from") ?? undefined;
@@ -26,7 +31,7 @@ export async function GET(request: Request) {
       : undefined;
 
   try {
-    const snapshot = await loadSnapshot({ refresh: params.get("refresh") === "1" });
+    const snapshot = await loadSnapshot(store, { refresh: params.get("refresh") === "1" });
 
     const result = await getAnalyticsCached(snapshot, {
       range: from && to ? { from, to } : undefined,

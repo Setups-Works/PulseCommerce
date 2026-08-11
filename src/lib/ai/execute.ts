@@ -1,6 +1,8 @@
 import { getAnalytics } from "@/lib/analytics/cache";
 import { applyAudience, EMPTY_AUDIENCE, type AudienceFilter } from "@/lib/audience";
 import { isNotConnected } from "@/lib/store/errors";
+import { activeStore } from "@/lib/auth/tenant";
+import { NoStoreError } from "@/lib/whatsapp/errors";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { isSessionSendable, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
@@ -24,25 +26,46 @@ import { resolveAudience } from "@/lib/whatsapp/recipients";
 
 type Json = Record<string, unknown>;
 
-export async function runReadTool(name: string, input: Json): Promise<Json> {
+/**
+ * Runs one assistant tool.
+ *
+ * Threaded with the tenant rather than resolving it internally: these are
+ * called in a loop from the chat route, which already knows who is asking, and
+ * a tool that resolved its own caller could disagree with the conversation it
+ * is part of.
+ */
+/**
+ * The tenant's store, or a clear failure.
+ *
+ * The assistant's tools all read the connected store, so there is one place
+ * that turns "no store yet" into something the model can relay rather than a
+ * stack trace mid-conversation.
+ */
+async function requireActiveStore(userId: string) {
+  const store = await activeStore(userId);
+  if (!store) throw new NoStoreError();
+  return store;
+}
+
+export async function runReadTool(userId: string, name: string, input: Json): Promise<Json> {
   try {
     switch (name) {
       case "get_analytics":
-        return await analytics(input);
+        return await analytics(userId, input);
       case "get_customer_segments":
-        return await segments();
+        return await segments(userId);
       case "get_top_customers":
-        return await topCustomers(sizeOf(input.size), input.sortBy === "orders");
+        return await topCustomers(userId, sizeOf(input.size), input.sortBy === "orders");
       case "get_products":
-        return await products(sizeOf(input.size), input.rank === "worst");
+        return await products(userId, sizeOf(input.size), input.rank === "worst");
       case "find_product":
-        return await findProduct(String(input.query ?? ""));
+        return await findProduct(userId, String(input.query ?? ""));
       case "get_inventory_risk":
-        return await inventory();
+        return await inventory(userId);
       case "get_audience_size":
-        return await audienceSize(input);
+        return await audienceSize(userId, input);
       case "get_flows":
-        return await flows();
+        return await flows(userId);
       case "get_menu":
         return await menu();
       case "get_whatsapp_status":
@@ -70,16 +93,16 @@ function sizeOf(size: unknown): number {
   return 5;
 }
 
-async function withAnalytics(range?: { from?: string; to?: string }) {
-  const snapshot = await loadSnapshot();
+async function withAnalytics(userId: string, range?: { from?: string; to?: string }) {
+  const snapshot = await loadSnapshot(await requireActiveStore(userId));
   const hasRange = Boolean(range?.from && range?.to);
   return getAnalytics(snapshot, {
     range: hasRange ? { from: range!.from!, to: range!.to! } : undefined,
   });
 }
 
-async function analytics(input: Json): Promise<Json> {
-  const a = await withAnalytics({ from: str(input.from), to: str(input.to) });
+async function analytics(userId: string, input: Json): Promise<Json> {
+  const a = await withAnalytics(userId, { from: str(input.from), to: str(input.to) });
   const k = a.kpis;
 
   /*
@@ -110,11 +133,11 @@ async function analytics(input: Json): Promise<Json> {
   };
 }
 
-async function segments(): Promise<Json> {
+async function segments(userId: string): Promise<Json> {
   // The engine already computes these breakdowns for the screens; recomputing
   // them here is how an assistant ends up quoting a number the dashboard does
   // not show.
-  const a = await withAnalytics();
+  const a = await withAnalytics(userId);
 
   return {
     currency: a.meta.currency,
@@ -125,8 +148,8 @@ async function segments(): Promise<Json> {
   };
 }
 
-async function topCustomers(limit: number, byOrders = false): Promise<Json> {
-  const a = await withAnalytics();
+async function topCustomers(userId: string, limit: number, byOrders = false): Promise<Json> {
+  const a = await withAnalytics(userId);
   // "Most valuable" and "orders most often" are usually different people, and
   // answering one when asked the other is the kind of wrong that sounds right.
   const rows = [...a.customers.records]
@@ -152,8 +175,8 @@ async function topCustomers(limit: number, byOrders = false): Promise<Json> {
   return { currency: a.meta.currency, rankedBy: byOrders ? "orders" : "spend", customers: rows };
 }
 
-async function products(limit: number, slowMovers: boolean): Promise<Json> {
-  const a = await withAnalytics();
+async function products(userId: string, limit: number, slowMovers: boolean): Promise<Json> {
+  const a = await withAnalytics(userId);
   const rows = [...a.products.products].sort((x, y) =>
     slowMovers ? x.revenue - y.revenue : y.revenue - x.revenue,
   );
@@ -183,8 +206,8 @@ async function products(limit: number, slowMovers: boolean): Promise<Json> {
  * the model fills the gap itself, and what it fills it with is example.com —
  * which then reaches a customer.
  */
-async function findProduct(query: string): Promise<Json> {
-  const snapshot = await loadSnapshot();
+async function findProduct(userId: string, query: string): Promise<Json> {
+  const snapshot = await loadSnapshot(await requireActiveStore(userId));
   const needle = query.trim().toLowerCase();
   if (!needle) return { error: "Give a product name to search for." };
 
@@ -213,8 +236,8 @@ async function findProduct(query: string): Promise<Json> {
     : { products: [], note: `Nothing in the catalogue matches "${query}".` };
 }
 
-async function inventory(): Promise<Json> {
-  const a = await withAnalytics();
+async function inventory(userId: string): Promise<Json> {
+  const a = await withAnalytics(userId);
   const risky = a.inventory.records
     .filter((i) => i.status === "out-of-stock" || i.status === "critical" || i.status === "low")
     // Ordered by the revenue behind each, not by how empty the shelf is: a
@@ -240,7 +263,7 @@ async function inventory(): Promise<Json> {
   };
 }
 
-async function audienceSize(input: Json): Promise<Json> {
+async function audienceSize(userId: string, input: Json): Promise<Json> {
   const filter: AudienceFilter = {
     ...EMPTY_AUDIENCE,
     segments: arr(input.segments) as AudienceFilter["segments"],
@@ -253,7 +276,7 @@ async function audienceSize(input: Json): Promise<Json> {
     requireEmail: false,
   };
 
-  const resolved = await resolveAudience({ filter });
+  const resolved = await resolveAudience(userId, { filter });
 
   // Counts and reasons only — the masked sample the dry run shows a human is
   // still a phone number, and does not go to a model.
@@ -265,9 +288,9 @@ async function audienceSize(input: Json): Promise<Json> {
   };
 }
 
-async function flows(): Promise<Json> {
-  const all = await listFlows();
-  const rows = await Promise.all(all.map(async (f) => summarise(f, await readState(f.id))));
+async function flows(userId: string): Promise<Json> {
+  const all = await listFlows(userId);
+  const rows = await Promise.all(all.map(async (f) => summarise(f, await readState(userId, f.id))));
   return { flows: rows };
 }
 

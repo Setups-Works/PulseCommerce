@@ -40,6 +40,10 @@ export type Scope = (typeof SCOPES)[number];
 
 export interface ApiKeyRecord {
   id: string;
+  /** The tenant this key acts as. Every query it drives is scoped to them. */
+  userId: string;
+  /** For display in an audit list; null if the account has been deleted. */
+  ownerEmail: string | null;
   name: string;
   display: string;
   scopes: Scope[];
@@ -50,6 +54,8 @@ export interface ApiKeyRecord {
 
 interface KeyRow {
   id: string;
+  user_id: string;
+  owner_email: string | null;
   name: string;
   display: string;
   scopes: string[];
@@ -61,6 +67,8 @@ interface KeyRow {
 function toRecord(row: KeyRow): ApiKeyRecord {
   return {
     id: row.id,
+    userId: row.user_id,
+    ownerEmail: row.owner_email,
     name: row.name,
     display: row.display,
     scopes: row.scopes as Scope[],
@@ -91,7 +99,7 @@ export interface CreatedKey {
 export async function createApiKey(
   name: string,
   scopes: Scope[],
-  userId?: string,
+  userId: string,
 ): Promise<CreatedKey> {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -106,35 +114,47 @@ export async function createApiKey(
   const effective = scopes.length ? scopes : (["read"] as Scope[]);
 
   const [row] = await db()<KeyRow[]>`
-    insert into api_keys (user_id, name, hash, display, scopes)
-    values (
-      ${userId ?? null},
-      ${name.trim().slice(0, 60) || "Untitled key"},
-      ${await sha256(key)},
-      ${`${PREFIX}${body.slice(0, 4)}…${body.slice(-4)}`},
-      ${effective}
+    with inserted as (
+      insert into api_keys (user_id, name, hash, display, scopes)
+      values (
+        ${userId},
+        ${name.trim().slice(0, 60) || "Untitled key"},
+        ${await sha256(key)},
+        ${`${PREFIX}${body.slice(0, 4)}…${body.slice(-4)}`},
+        ${effective}
+      )
+      returning *
     )
-    returning id, name, display, scopes, created_at, last_used_at, revoked_at
+    select i.id, i.user_id, p.email as owner_email, i.name, i.display, i.scopes,
+           i.created_at, i.last_used_at, i.revoked_at
+    from inserted i left join profiles p on p.id = i.user_id
   `;
 
   return { record: toRecord(row), key };
 }
 
 /** Revoked rather than deleted, so an audit of past access stays possible. */
-export async function revokeApiKey(id: string): Promise<boolean> {
+/**
+ * Revokes a key. Scoped to its owner: an id from a request body is an
+ * assertion, and without the user_id predicate one tenant could revoke
+ * another's integrations by guessing a uuid.
+ */
+export async function revokeApiKey(id: string, userId: string): Promise<boolean> {
   const rows = await db()`
     update api_keys set revoked_at = now()
-    where id = ${id} and revoked_at is null
+    where id = ${id} and user_id = ${userId} and revoked_at is null
     returning id
   `;
   return rows.length > 0;
 }
 
-export async function listApiKeys(): Promise<ApiKeyRecord[]> {
+export async function listApiKeys(userId: string): Promise<ApiKeyRecord[]> {
   const rows = await db()<KeyRow[]>`
-    select id, name, display, scopes, created_at, last_used_at, revoked_at
-    from api_keys
-    order by revoked_at nulls first, created_at desc
+    select k.id, k.user_id, p.email as owner_email, k.name, k.display, k.scopes,
+           k.created_at, k.last_used_at, k.revoked_at
+    from api_keys k left join profiles p on p.id = k.user_id
+    where k.user_id = ${userId}
+    order by k.revoked_at nulls first, k.created_at desc
   `;
   return rows.map(toRecord);
 }
@@ -167,13 +187,18 @@ export async function verifyApiKey(presented: string): Promise<ApiKeyRecord | nu
    * of authenticating.
    */
   const [row] = await db()<KeyRow[]>`
-    update api_keys
-       set last_used_at = case
-             when last_used_at is null or last_used_at < now() - interval '1 hour'
-             then now() else last_used_at
-           end
-     where hash = ${hash} and revoked_at is null
-    returning id, name, display, scopes, created_at, last_used_at, revoked_at
+    with touched as (
+      update api_keys
+         set last_used_at = case
+               when last_used_at is null or last_used_at < now() - interval '1 hour'
+               then now() else last_used_at
+             end
+       where hash = ${hash} and revoked_at is null
+      returning *
+    )
+    select t.id, t.user_id, p.email as owner_email, t.name, t.display, t.scopes,
+           t.created_at, t.last_used_at, t.revoked_at
+    from touched t left join profiles p on p.id = t.user_id
   `;
 
   return row ? toRecord(row) : null;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createState, MissingAuthSecretError } from "@/lib/auth/pending";
-import { storageIsDurable } from "@/lib/store/kv";
+import { resolveTenant } from "@/lib/auth/tenant";
+import { databaseConfigured } from "@/lib/db/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,8 +39,16 @@ export async function GET(request: Request) {
     return fail("bad_store_url");
   }
 
-  // Without durable storage the credentials would arrive and vanish.
-  if (!storageIsDurable()) return fail("no_storage");
+  // Without a database the credentials would arrive and vanish.
+  if (!databaseConfigured()) return fail("no_storage");
+
+  /*
+   * The store is attached to an account, and the callback that delivers the
+   * credentials carries no session — so the account has to be established
+   * here, while there is one to read, and signed into the state token.
+   */
+  const tenant = await resolveTenant(request);
+  if (!tenant) return fail("not_signed_in");
 
   const appUrl = publicAppUrl(request);
   const problem = describeCallbackProblem(appUrl);
@@ -47,7 +56,7 @@ export async function GET(request: Request) {
 
   let state: string;
   try {
-    state = await createState(storeUrl);
+    state = await createState(storeUrl, tenant.userId);
   } catch (error) {
     if (error instanceof MissingAuthSecretError) return fail("missing_auth_secret");
     throw error;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireTenant } from "@/lib/auth/tenant";
 import { z } from "zod";
 import { isNotConnected } from "@/lib/store/errors";
 import { isGatewayNotConnected } from "@/lib/whatsapp/errors";
@@ -31,6 +32,10 @@ const schema = z.object({
  * sample, and the message as one real recipient would receive it.
  */
 export async function POST(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const resolved = await resolveAudience({
+    const resolved = await resolveAudience(userId, {
       filter: parsed.data.filter,
       range: parsed.data.range,
       customerKeys: parsed.data.customerKeys,

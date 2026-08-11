@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { AUTH_MESSAGES } from "@/components/auth-outcome";
 import { hostOf, useConnectedStores } from "@/components/layout/store-switcher";
 import { PageShell } from "@/components/dashboard/page-state";
+import { ApiKeysCard } from "@/components/settings/api-keys-card";
+import { SyncCard } from "@/components/settings/sync-card";
 import { WhatsAppSettingsCard } from "@/components/whatsapp/whatsapp-settings-card";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -387,6 +389,10 @@ export default function SettingsPage() {
 
       {/* --- WhatsApp gateway ---------------------------------------------- */}
       <WhatsAppSettingsCard />
+
+      <SyncCard />
+
+      <ApiKeysCard />
 
       {/* --- How data is handled ------------------------------------------ */}
       <Card>

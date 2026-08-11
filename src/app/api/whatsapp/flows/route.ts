@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireTenant } from "@/lib/auth/tenant";
 import {
   createFlow,
   listFlows,
@@ -40,10 +41,14 @@ const createSchema = z.object({
 });
 
 /** Every flow, with its progress. */
-export async function GET() {
-  const flows = await listFlows();
+export async function GET(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
+  const flows = await listFlows(userId);
   const summaries = await Promise.all(
-    flows.map(async (flow) => summarise(flow, await readState(flow.id))),
+    flows.map(async (flow) => summarise(flow, await readState(userId, flow.id))),
   );
 
   return NextResponse.json({ flows: summaries });
@@ -57,6 +62,10 @@ export async function GET() {
  * becomes messages that cannot be recalled.
  */
 export async function POST(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -72,6 +81,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const flow = await createFlow({ ...parsed.data, status: "draft" });
-  return NextResponse.json({ flow: summarise(flow, await readState(flow.id)) }, { status: 201 });
+  const flow = await createFlow(userId, { ...parsed.data, status: "draft" });
+  return NextResponse.json({ flow: summarise(flow, await readState(userId, flow.id)) }, { status: 201 });
 }

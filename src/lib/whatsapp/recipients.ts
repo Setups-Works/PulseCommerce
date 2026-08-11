@@ -2,11 +2,12 @@ import { getAnalytics } from "@/lib/analytics/cache";
 import { customerKey } from "@/lib/analytics/helpers";
 import type { CustomerRecord } from "@/lib/analytics/types";
 import { applyAudience, type AudienceFilter } from "@/lib/audience";
+import { activeStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
-import { GatewayNotConnectedError } from "./errors";
+import { GatewayNotConnectedError, NoStoreError } from "./errors";
 import type { StoreSnapshot } from "@/lib/woo/types";
 import { readWhatsAppConfig, type WhatsAppConfig } from "./config";
-import { readOptOutSet } from "./opt-out";
+import { readOptOutSetStrict } from "./opt-out";
 import { resolveRecipients, type RecipientContext, type ResolveResult } from "./broadcast";
 
 /**
@@ -59,13 +60,19 @@ export interface ResolvedAudience extends ResolveResult {
   currency: string;
 }
 
-export async function resolveAudience(request: AudienceRequest): Promise<ResolvedAudience> {
+export async function resolveAudience(
+  userId: string,
+  request: AudienceRequest,
+): Promise<ResolvedAudience> {
   const config = await readWhatsAppConfig();
   if (!config) {
     throw new GatewayNotConnectedError();
   }
 
-  const snapshot = await loadSnapshot();
+  const store = await activeStore(userId);
+  if (!store) throw new NoStoreError();
+
+  const snapshot = await loadSnapshot(store);
   const analytics = getAnalytics(snapshot, { range: request.range });
 
   let audience = applyAudience(analytics.customers.records, request.filter);
@@ -76,7 +83,7 @@ export async function resolveAudience(request: AudienceRequest): Promise<Resolve
     const wanted = new Set(request.customerKeys);
     audience = audience.filter((c) => wanted.has(c.key));
   }
-  const [phoneByKey, optedOut] = [phoneMapFromSnapshot(snapshot), await readOptOutSet()];
+  const [phoneByKey, optedOut] = [phoneMapFromSnapshot(snapshot), await readOptOutSetStrict(userId)];
 
   return {
     ...resolveRecipients(audience, phoneByKey, optedOut, config, contextFrom(snapshot, analytics.meta.currency)),

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireTenant } from "@/lib/auth/tenant";
 import {
   deleteFlow,
   readFlow,
@@ -17,12 +18,16 @@ const patchSchema = z.object({
 });
 
 /** One flow, its steps, and how far along everyone in it is. */
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { id } = await context.params;
-  const flow = await readFlow(id);
+  const flow = await readFlow(userId, id);
   if (!flow) return NextResponse.json({ error: "No such flow." }, { status: 404 });
 
-  const state = await readState(id);
+  const state = await readState(userId, id);
   return NextResponse.json({
     flow: { ...summarise(flow, state), entry: flow.entry, steps: flow.steps },
     /*
@@ -45,8 +50,12 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
  * gives them a sequence nobody designed. Build a new flow instead.
  */
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { id } = await context.params;
-  const flow = await readFlow(id);
+  const flow = await readFlow(userId, id);
   if (!flow) return NextResponse.json({ error: "No such flow." }, { status: 404 });
 
   let body: unknown;
@@ -66,9 +75,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   if (parsed.data.name) flow.name = parsed.data.name;
   if (parsed.data.status) flow.status = parsed.data.status;
-  await writeFlow(flow);
+  await writeFlow(userId, flow);
 
-  return NextResponse.json({ flow: summarise(flow, await readState(id)) });
+  return NextResponse.json({ flow: summarise(flow, await readState(userId, id)) });
 }
 
 /**
@@ -78,11 +87,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
  * mean; this throws away the record of who has already been messaged, so a flow
  * recreated afterwards would start everyone from step one.
  */
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const { id } = await context.params;
-  const flow = await readFlow(id);
+  const flow = await readFlow(userId, id);
   if (!flow) return NextResponse.json({ error: "No such flow." }, { status: 404 });
 
-  await deleteFlow(id);
+  await deleteFlow(userId, id);
   return NextResponse.json({ deleted: true });
 }

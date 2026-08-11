@@ -1,88 +1,71 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { readPresentedKey, verifyApiKey, type Scope } from "@/lib/auth/api-key";
-import { authConfigured, SESSION_COOKIE, verifySession } from "@/lib/auth/session";
-import { isServerless } from "@/lib/store/kv";
+import { databaseConfigured } from "@/lib/db/client";
 
 /**
  * The single place a request is allowed in.
  *
  * This replaces `middleware.ts`, which Next 16 deprecated. The rename is not
- * cosmetic here: Proxy runs on the Node.js runtime, so this file can reach the
- * key store through the same `getStore()` abstraction as everything else,
- * including the filesystem backend a local install uses. On the Edge runtime
- * it could not, and API-key checking would have had to be repeated in all
- * twenty-five route handlers — where the first one anybody forgot would be a
- * silent hole.
+ * cosmetic here: Proxy runs on the Node.js runtime, so this file can reach
+ * Postgres directly to verify an API key. On the Edge runtime it could not,
+ * and that check would have had to be repeated in twenty-eight route handlers
+ * — where the first one anybody forgot would be a silent hole.
  *
- * ─── What this fixes ───────────────────────────────────────────────────────
+ * ─── What it does, and does not, protect ───────────────────────────────────
  *
- * The previous gate had two independent faults, and either alone was enough to
- * leave the API fully public:
+ * No page is gated. Marketing, the reference, and the whole dashboard shell
+ * render for anyone. What a signed-out visitor does not get is *data*: the API
+ * requires a session or a key, so the shell renders and asks them to sign in
+ * rather than a redirect deciding it for them.
  *
- *   1. It armed on `AUTH_SECRET && APP_PASSWORD`. But a password is only one
- *      way in — completing the WooCommerce authorization also mints a session.
- *      A deployment with AUTH_SECRET and no APP_PASSWORD had working sessions
- *      and no gate, which was this deployment.
- *   2. Its protected list named pages only. `/api/analytics` — the whole order
- *      history — was never covered, so even correctly armed it would have
- *      served that to anyone.
+ * The line being drawn is between the interface and the contents. A login wall
+ * in front of a chart nobody can read anyway protects nothing; the protection
+ * has to sit on the response that carries the order history, which is where it
+ * is.
  *
- * Both are addressed by gating on `authConfigured()` alone and by treating
- * `/api` as protected by default, with exceptions written down below rather
- * than arrived at by omission.
+ * ─── Why it also touches cookies ───────────────────────────────────────────
+ *
+ * Supabase access tokens are short-lived and refreshed against the refresh
+ * token. A server component cannot set a cookie, so if the refresh did not
+ * happen here it would never be persisted, and every request would arrive with
+ * an expired token and re-refresh. This runs before the render and can write,
+ * which makes it the right and only place for it.
  */
 
 /**
  * Paths that must stay reachable unauthenticated, and why. Anything not listed
- * here needs a session or a key — the default is closed.
+ * needs a session or a key — the default is closed.
  */
 const PUBLIC_API = new Set([
   // The store calls this one, not a browser, and it authenticates itself with
-  // the signed `user_id` state we issued. It cannot carry our session.
+  // the signed state we issued — which is also the only thing that says whose
+  // account the store attaches to.
   "/api/auth/woo/callback",
-  // The two browser legs of the connect flow. By definition they run before
-  // there is anything to authenticate with.
+  // The browser legs of the connect flow.
   "/api/auth/woo/start",
   "/api/auth/woo/return",
-  // Establishes and clears the session; gating it would be circular.
+  // Reports whether you are signed in. Gating it would be circular.
   "/api/auth/session",
-  // Self-gating: open only while the deployment has no owner, and thereafter
-  // it requires a session of its own. See the handler.
-  "/api/auth/register",
   // Describes the API's shape. No store data, no credentials — and it is what
   // a developer reads to find out how to authenticate in the first place.
   "/api/openapi",
-  // Checks a bearer token against CRON_SECRET itself, and the scheduler has no
-  // session. Verified in the handler, not skipped.
+  // Authenticates with CRON_SECRET itself, checked in the handler. The
+  // scheduler has no session and no key.
   "/api/cron/flows",
+  "/api/cron/sync",
 ]);
-
-/*
- * No page is gated.
- *
- * Every route renders for anyone: marketing, the reference, and the whole
- * dashboard shell. What a signed-out visitor does not get is data — the
- * endpoints below still require a session or a key, so the shell renders and
- * asks them to sign in rather than a redirect deciding it for them.
- *
- * The distinction being drawn is between the interface and the contents. A
- * login wall in front of a chart nobody can read anyway protects nothing; the
- * protection has to sit on the response that carries the order history, which
- * is where it now is. It also means a redirect can never be the thing standing
- * between someone and a page they are entitled to see.
- */
 
 /**
  * Endpoints that are POSTs but change nothing a merchant would miss.
  *
- * Mapping scope to HTTP method alone would demand a write key to export a
- * report, which is wrong: these read the store and render something. They are
- * listed rather than inferred because the list is short and the inference
- * would be wrong in both directions.
+ * Mapping scope to method alone would demand a write key to export a report,
+ * which is wrong: these read and render. Listed rather than inferred, because
+ * the list is short and the inference would be wrong in both directions.
  *
- * `/api/ai/chat` is included on the same reasoning — it answers questions
- * about existing data. Note that it does bill against GROQ_API_KEY, so a read
- * key can cost money even though it cannot change anything.
+ * `/api/ai/chat` is here on the same reasoning — it answers questions about
+ * existing data. Note it does bill against GROQ_API_KEY, so a read key can
+ * cost money even though it cannot change anything.
  */
 const READ_ONLY_POSTS = new Set([
   "/api/reports/export",
@@ -100,55 +83,58 @@ function deny(status: number, error: string, hint: string) {
     { error, hint, docs: "/api-docs" },
     {
       status,
-      // Tells a client library which scheme to retry with instead of leaving it
-      // to guess from a bare 401.
+      // Tells a client library which scheme to retry with, instead of leaving
+      // it to guess from a bare 401.
       headers: { "WWW-Authenticate": 'Bearer realm="PulseCommerce API"' },
     },
   );
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (pathname.startsWith("/api/")) return gateApi(request, pathname);
-  return NextResponse.next();
-}
+  // Carries any refreshed auth cookies, whatever the outcome below.
+  const response = NextResponse.next({ request });
 
-async function gateApi(request: NextRequest, pathname: string) {
-  if (PUBLIC_API.has(pathname)) return NextResponse.next();
+  const supabase = createSupabase(request, response);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/api/")) return response;
+  if (PUBLIC_API.has(pathname)) return response;
 
   /*
-   * A hosted deployment with no AUTH_SECRET cannot verify anything, so it
-   * refuses rather than serving the order history to the open internet. This
-   * is the failure mode that put real customer data on a public URL, and
-   * "misconfigured" must not read the same as "no auth wanted".
-   *
-   * Locally it stays open: no AUTH_SECRET on a dev machine means clone-and-run.
+   * Without a database nothing can be verified, and serving the order history
+   * to the open internet is not an acceptable failure mode. This is the shape
+   * of the bug that put real customer data on a public URL: "misconfigured"
+   * must never read the same as "no auth wanted".
    */
-  if (!authConfigured()) {
-    if (!isServerless()) return NextResponse.next();
+  if (!databaseConfigured()) {
     return deny(
       503,
       "This deployment cannot authenticate requests.",
-      "AUTH_SECRET is not set, so sessions and API keys cannot be verified. Generate one with `openssl rand -hex 32`, set it on the host, and redeploy.",
+      "SUPABASE_DB_POOL_URL is not set, so sessions and API keys cannot be checked.",
     );
   }
 
-  // The dashboard's own fetches. Same session the pages use.
-  const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value).catch(() => null);
-  if (session) return NextResponse.next();
+  if (user) return response;
 
   const presented = readPresentedKey(request.headers);
   if (!presented) {
     return deny(
       401,
       "Authentication required.",
-      "Send an API key as `Authorization: Bearer pc_live_…`. Create one in Settings → API keys.",
+      "Sign in, or send an API key as `Authorization: Bearer pc_live_…`. Create one in Settings → API keys.",
     );
   }
 
   const key = await verifyApiKey(presented);
   if (!key) {
-    return deny(401, "That API key is not valid.", "It may have been revoked, or mistyped. Keys start with `pc_live_`.");
+    return deny(
+      401,
+      "That API key is not valid.",
+      "It may have been revoked, or mistyped. Keys start with `pc_live_`.",
+    );
   }
 
   const needed = scopeFor(pathname, request.method);
@@ -160,26 +146,43 @@ async function gateApi(request: NextRequest, pathname: string) {
     );
   }
 
-  /*
-   * Pass the caller's identity to the handler. Anything already carrying these
-   * names is stripped first — they arrive from the public internet, and a
-   * handler must not be able to be told who it is talking to by the request
-   * itself.
-   */
-  const headers = new Headers(request.headers);
-  headers.delete("x-pulse-key-id");
-  headers.delete("x-pulse-scopes");
-  headers.set("x-pulse-key-id", key.id);
-  headers.set("x-pulse-scopes", key.scopes.join(","));
+  return response;
+}
 
-  return NextResponse.next({ request: { headers } });
+/**
+ * A Supabase client wired to this request's cookies.
+ *
+ * `getUser` is what validates the token — never `getSession`, which returns
+ * whatever the cookie says without checking it. A cookie is client-controlled,
+ * so trusting it would let anyone claim any account.
+ */
+function createSupabase(request: NextRequest, response: NextResponse) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    // No Supabase configured: no sessions exist, so every caller falls through
+    // to the API-key path below.
+    return { auth: { getUser: async () => ({ data: { user: null } }) } } as ReturnType<
+      typeof createServerClient
+    >;
+  }
+
+  return createServerClient(url, key, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (list) => {
+        for (const { name, value, options } of list) response.cookies.set(name, value, options);
+      },
+    },
+  });
 }
 
 export const config = {
   matcher: [
     /*
      * Everything except Next internals and static assets. The API is included
-     * on purpose — its absence here is what left it open.
+     * on purpose — its absence from the old matcher is what left it open.
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],

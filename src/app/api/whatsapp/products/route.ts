@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isNotConnected } from "@/lib/store/errors";
+import { requireStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
 
 export const runtime = "nodejs";
@@ -15,12 +16,16 @@ export const maxDuration = 120;
  * the browser.
  */
 export async function GET(request: Request) {
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+  const { store } = resolved.value;
+
   const params = new URL(request.url).searchParams;
   const query = (params.get("q") ?? "").trim().toLowerCase();
   const limit = Math.min(Number(params.get("limit")) || 20, 50);
 
   try {
-    const snapshot = await loadSnapshot();
+    const snapshot = await loadSnapshot(store);
 
     const matches = snapshot.products
       .filter((product) => {

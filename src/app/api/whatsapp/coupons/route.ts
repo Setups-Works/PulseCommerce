@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { readStoreConfig } from "@/lib/store/config";
+import { requireStore, requireWrite } from "@/lib/auth/tenant";
 import { WooApiError, WooClient } from "@/lib/woo/client";
 
 export const runtime = "nodejs";
@@ -15,11 +15,11 @@ export const maxDuration = 60;
  * request is cheap. Coupons are deliberately not created here — the issued key
  * carries read scope, which is the guarantee this app is built on.
  */
-export async function GET() {
-  const config = await readStoreConfig();
-  if (!config) {
-    return NextResponse.json({ error: "No WooCommerce store is connected." }, { status: 409 });
-  }
+export async function GET(request: Request) {
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+  const { store } = resolved.value;
+  const config = { url: store.url, consumerKey: store.consumerKey, consumerSecret: store.consumerSecret };
 
   try {
     const coupons = await new WooClient(config).getCoupons();
@@ -86,10 +86,15 @@ const createSchema = z.object({
  * more than the order is a mistake nobody wants to discover from a customer.
  */
 export async function POST(request: Request) {
-  const config = await readStoreConfig();
-  if (!config) {
-    return NextResponse.json({ error: "No WooCommerce store is connected." }, { status: 409 });
-  }
+  const resolved = await requireStore(request);
+  if (!resolved.ok) return resolved.response;
+
+  // Creating a coupon costs the merchant money, so it needs write scope.
+  const denied = requireWrite(resolved.value.tenant);
+  if (denied) return denied;
+
+  const { store } = resolved.value;
+  const config = { url: store.url, consumerKey: store.consumerKey, consumerSecret: store.consumerSecret };
 
   let body: unknown;
   try {

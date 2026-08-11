@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authConfigured } from "@/lib/auth/session";
+import { currentUser } from "@/lib/supabase/server";
 import { readStoreConfig } from "@/lib/store/config";
-import { storageIsDurable } from "@/lib/store/kv";
+import { databaseConfigured } from "@/lib/db/client";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +25,17 @@ export default async function ConnectPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const config = await readStoreConfig();
   const params = await searchParams;
+
+  /*
+   * A store belongs to an account, so there has to be one before there is
+   * anything to connect it to. Sending them to sign in first and back here
+   * afterwards is the whole of the onboarding order.
+   */
+  const user = await currentUser();
+  if (!user) redirect("/login?next=/connect");
+
+  const config = await readStoreConfig(user.id);
 
   // Already connected, and not being sent here by a failed authorization.
   if (config && !params.auth) redirect("/dashboard");
@@ -165,8 +174,8 @@ export default async function ConnectPage({
  */
 function resolveOutcome(outcome: string | null): string | null {
   if (!outcome) return null;
-  if (outcome === "no_storage" && storageIsDurable()) return null;
-  if (outcome === "missing_auth_secret" && authConfigured()) return null;
+  if (outcome === "no_storage" && databaseConfigured()) return null;
+  if (outcome === "missing_auth_secret" && databaseConfigured()) return null;
   return outcome;
 }
 
