@@ -1,4 +1,4 @@
-import { getStore } from "@/lib/store/kv";
+import { db } from "@/lib/db/client";
 
 /**
  * Connection to a self-hosted OpenWA gateway.
@@ -29,9 +29,15 @@ export interface WhatsAppConfig {
   updatedAt?: string;
 }
 
-const CONFIG_KEY = "whatsapp-config";
-/** Session id discovered from the gateway when the environment omits one. */
-const ADOPTED_SESSION_KEY = "whatsapp-env-session";
+/*
+ * One row, in `whatsapp_config`. The table has a boolean primary key with a
+ * `check (id)` constraint, so a second row is impossible at the database level
+ * rather than by every write path remembering to say "where id = 1".
+ *
+ * `session_id` doubles as the slot for a session adopted from the gateway when
+ * the environment names none, which is why an env-configured gateway still
+ * reads and writes here.
+ */
 
 export const DEFAULT_SEND_DELAY_MS = 4000;
 /** OpenWA's own floor. Anything lower is rejected upstream. */
@@ -78,43 +84,86 @@ export async function readWhatsAppConfig(): Promise<WhatsAppConfig | null> {
     // be omitted and adopted from the gateway once, then remembered.
     const sessionId =
       process.env.WHATSAPP_SESSION_ID?.trim() ||
-      (await getStore().get(ADOPTED_SESSION_KEY).catch(() => null)) ||
+      (await readAdoptedSession()) ||
       "";
     return { ...fromEnv, sessionId };
   }
 
   try {
-    const raw = await getStore().get(CONFIG_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as WhatsAppConfig;
-    if (!parsed.baseUrl || !parsed.apiKey || !parsed.sessionId) return null;
+    const [row] = await db()<ConfigRow[]>`
+      select base_url, api_key, session_id, dial_code, send_delay_ms, updated_at
+      from whatsapp_config where id
+    `;
+    if (!row?.base_url || !row.api_key || !row.session_id) return null;
     return {
-      ...parsed,
-      defaultDialCode: (parsed.defaultDialCode ?? "").replace(/\D/g, ""),
+      baseUrl: row.base_url,
+      apiKey: row.api_key,
+      sessionId: row.session_id,
+      defaultDialCode: (row.dial_code ?? "").replace(/\D/g, ""),
       delayBetweenMessagesMs: Math.max(
         MIN_SEND_DELAY_MS,
-        parsed.delayBetweenMessagesMs || DEFAULT_SEND_DELAY_MS,
+        row.send_delay_ms || DEFAULT_SEND_DELAY_MS,
       ),
+      updatedAt: row.updated_at?.toISOString(),
     };
   } catch {
     return null;
   }
 }
 
-/** Remembers a session adopted from the gateway when the env named none. */
+interface ConfigRow {
+  base_url: string | null;
+  api_key: string | null;
+  session_id: string | null;
+  dial_code: string | null;
+  send_delay_ms: number | null;
+  updated_at: Date | null;
+}
+
+/** The session adopted from the gateway, when the environment named none. */
+async function readAdoptedSession(): Promise<string | null> {
+  try {
+    const [row] = await db()<{ session_id: string | null }[]>`
+      select session_id from whatsapp_config where id
+    `;
+    return row?.session_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remembers a session adopted from the gateway when the env named none.
+ *
+ * Touches only `session_id`: an env-configured gateway supplies the URL and
+ * key from the environment, and writing nulls over them here would break the
+ * next read.
+ */
 export async function rememberAdoptedSession(sessionId: string): Promise<void> {
-  await getStore().set(ADOPTED_SESSION_KEY, sessionId);
+  await db()`
+    insert into whatsapp_config (id, session_id) values (true, ${sessionId})
+    on conflict (id) do update set session_id = excluded.session_id
+  `;
 }
 
 export async function writeWhatsAppConfig(config: WhatsAppConfig): Promise<void> {
-  await getStore().set(
-    CONFIG_KEY,
-    JSON.stringify({ ...config, updatedAt: new Date().toISOString() }),
-  );
+  await db()`
+    insert into whatsapp_config (id, base_url, api_key, session_id, dial_code, send_delay_ms)
+    values (
+      true, ${config.baseUrl}, ${config.apiKey}, ${config.sessionId},
+      ${config.defaultDialCode}, ${config.delayBetweenMessagesMs}
+    )
+    on conflict (id) do update set
+      base_url      = excluded.base_url,
+      api_key       = excluded.api_key,
+      session_id    = excluded.session_id,
+      dial_code     = excluded.dial_code,
+      send_delay_ms = excluded.send_delay_ms
+  `;
 }
 
 export async function clearWhatsAppConfig(): Promise<void> {
-  await getStore().delete(CONFIG_KEY);
+  await db()`delete from whatsapp_config`;
 }
 
 /** Normalises a user-entered gateway URL, or throws with a usable message. */

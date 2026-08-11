@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readPresentedKey, verifyApiKey, type Scope } from "@/lib/auth/api-key";
 import { authConfigured, SESSION_COOKIE, verifySession } from "@/lib/auth/session";
-import { needsFirstAccount } from "@/lib/auth/users";
 import { isServerless } from "@/lib/store/kv";
 
 /**
@@ -58,24 +57,20 @@ const PUBLIC_API = new Set([
   "/api/cron/flows",
 ]);
 
-/** Pages that require a session. Everything else is public marketing. */
-const PROTECTED_PAGES = [
-  "/dashboard",
-  "/forecast",
-  "/customers",
-  "/acquisition",
-  "/cohorts",
-  "/products",
-  "/inventory",
-  "/orders",
-  "/campaigns",
-  "/reports",
-  "/settings",
-  "/assistant",
-  "/inbox",
-  "/flows",
-  "/menu",
-];
+/*
+ * No page is gated.
+ *
+ * Every route renders for anyone: marketing, the reference, and the whole
+ * dashboard shell. What a signed-out visitor does not get is data — the
+ * endpoints below still require a session or a key, so the shell renders and
+ * asks them to sign in rather than a redirect deciding it for them.
+ *
+ * The distinction being drawn is between the interface and the contents. A
+ * login wall in front of a chart nobody can read anyway protects nothing; the
+ * protection has to sit on the response that carries the order history, which
+ * is where it now is. It also means a redirect can never be the thing standing
+ * between someone and a page they are entitled to see.
+ */
 
 /**
  * Endpoints that are POSTs but change nothing a merchant would miss.
@@ -114,35 +109,8 @@ function deny(status: number, error: string, hint: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
   if (pathname.startsWith("/api/")) return gateApi(request, pathname);
-
-  const isProtected = PROTECTED_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  if (!isProtected) return NextResponse.next();
-
-  // With no AUTH_SECRET there are no sessions to check, so a local `git clone`
-  // and `npm run dev` still opens straight onto the dashboard.
-  if (!authConfigured()) return NextResponse.next();
-
-  const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value).catch(() => null);
-  if (session) return NextResponse.next();
-
-  /*
-   * A deployment nobody has claimed yet sends you to create the first account
-   * rather than to a sign-in form with no account to sign in to. A storage
-   * failure resolves to the sign-in form: it is the safe direction, since
-   * /signup refuses on the same error anyway.
-   */
-  let unclaimed = false;
-  try {
-    unclaimed = await needsFirstAccount();
-  } catch {
-    unclaimed = false;
-  }
-
-  const destination = new URL(unclaimed ? "/signup" : "/login", request.url);
-  destination.searchParams.set("next", pathname);
-  return NextResponse.redirect(destination);
+  return NextResponse.next();
 }
 
 async function gateApi(request: NextRequest, pathname: string) {
