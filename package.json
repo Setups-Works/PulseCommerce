@@ -20,6 +20,7 @@
   "dependencies": {
     "@remotion/cli": "^4.0.504",
     "@remotion/tailwind-v4": "^4.0.504",
+    "@scalar/nextjs-api-reference": "^0.11.13",
     "@shadcn/react": "^0.2.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",

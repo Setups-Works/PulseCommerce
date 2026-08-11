@@ -12,17 +12,20 @@ import { databaseConfigured } from "@/lib/db/client";
  * and that check would have had to be repeated in twenty-eight route handlers
  * — where the first one anybody forgot would be a silent hole.
  *
- * ─── What it does, and does not, protect ───────────────────────────────────
+ * ─── What it protects ──────────────────────────────────────────────────────
  *
- * No page is gated. Marketing, the reference, and the whole dashboard shell
- * render for anyone. What a signed-out visitor does not get is *data*: the API
- * requires a session or a key, so the shell renders and asks them to sign in
- * rather than a redirect deciding it for them.
+ * Two layers, because they fail differently.
  *
- * The line being drawn is between the interface and the contents. A login wall
- * in front of a chart nobody can read anyway protects nothing; the protection
- * has to sit on the response that carries the order history, which is where it
- * is.
+ * The API requires a session or an API key. That is the layer that matters: it
+ * is the response carrying the order history, and it is what an attacker would
+ * request directly rather than by loading a page.
+ *
+ * The dashboard pages additionally require a session, and redirect to sign-in
+ * without one. That is not what stops data leaking — the API check already
+ * does — it is so a signed-out visitor never lands on an application shell
+ * full of empty panels and failed requests, wondering what is broken.
+ *
+ * Marketing pages, sign-in, sign-up and the API reference stay open.
  *
  * ─── Why it also touches cookies ───────────────────────────────────────────
  *
@@ -90,6 +93,30 @@ function deny(status: number, error: string, hint: string) {
   );
 }
 
+/**
+ * Pages that require a session. Everything not listed — marketing, sign-in,
+ * sign-up, the API reference — is open.
+ */
+const PROTECTED_PAGES = [
+  "/dashboard",
+  "/forecast",
+  "/customers",
+  "/acquisition",
+  "/cohorts",
+  "/products",
+  "/inventory",
+  "/orders",
+  "/campaigns",
+  "/reports",
+  "/settings",
+  "/assistant",
+  "/inbox",
+  "/flows",
+  "/menu",
+  "/connect",
+  "/onboarding",
+];
+
 export async function proxy(request: NextRequest) {
   // Carries any refreshed auth cookies, whatever the outcome below.
   const response = NextResponse.next({ request });
@@ -100,7 +127,25 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith("/api/")) return response;
+
+  if (!pathname.startsWith("/api/")) {
+    const isProtected = PROTECTED_PAGES.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+    if (!isProtected || user) return response;
+
+    /*
+     * Remember where they were headed so signing in returns them there rather
+     * than dumping everyone on the dashboard. `next` is read back through a
+     * path-only check on the other side — see the auth callback — because a
+     * value from a URL is attacker-controllable and an absolute one would turn
+     * sign-in into an open redirect.
+     */
+    const login = new URL("/login", request.url);
+    login.searchParams.set("next", pathname);
+    return NextResponse.redirect(login);
+  }
+
   if (PUBLIC_API.has(pathname)) return response;
 
   /*
