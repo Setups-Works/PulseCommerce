@@ -234,8 +234,9 @@ function supabaseCredentials(): { url: string; serviceKey: string } | null {
    * be inspected, so they are accepted as given and left to fail at the
    * request if wrong.
    */
-  const role = jwtRole(serviceKey);
-  if (role === "anon") {
+  const claims = jwtClaims(serviceKey);
+
+  if (claims?.role === "anon") {
     console.error(
       "[store] SUPABASE_SERVICE_ROLE_KEY holds the anon key, not the service-role key. " +
         "kv_store denies the anon key by policy, so Supabase storage is being skipped. " +
@@ -244,19 +245,64 @@ function supabaseCredentials(): { url: string; serviceKey: string } | null {
     return null;
   }
 
+  /*
+   * The key must belong to the project in the URL.
+   *
+   * These two are set separately and drift apart whenever a project is
+   * replaced — one gets updated and the other is forgotten. A key for a
+   * project that no longer exists still decodes as `service_role`, so the role
+   * check above waves it through; the backend is then selected and every
+   * request fails against a project that is gone. That happened here: a
+   * deleted project's key stayed in the deployment, outranking a working Redis
+   * that was configured and healthy the whole time.
+   *
+   * The `ref` claim names the project the key was issued for, and the URL's
+   * first label is the project it points at, so the pair can be checked
+   * against itself with no network call.
+   */
+  const ref = claims?.ref;
+  const host = projectRef(url);
+  if (ref && host && ref !== host) {
+    console.error(
+      `[store] SUPABASE_SERVICE_ROLE_KEY was issued for project "${ref}" but ` +
+        `NEXT_PUBLIC_SUPABASE_URL points at "${host}". One of the two is stale, so ` +
+        "Supabase storage is being skipped. Update both from the current project's " +
+        "Settings → API.",
+    );
+    return null;
+  }
+
   return { url, serviceKey };
 }
 
-/** The `role` claim of a Supabase JWT, or null if it is not one. */
-function jwtRole(token: string): string | null {
+/** The payload of a Supabase JWT, or null if the key is not one. */
+function jwtClaims(token: string): { role?: string; ref?: string } | null {
   try {
     const payload = token.split(".")[1];
     if (!payload) return null;
-    const json = Buffer.from(payload, "base64url").toString("utf8");
-    const claims = JSON.parse(json) as { role?: unknown };
-    return typeof claims.role === "string" ? claims.role : null;
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<
+      string,
+      unknown
+    >;
+    return {
+      role: typeof claims.role === "string" ? claims.role : undefined,
+      ref: typeof claims.ref === "string" ? claims.ref : undefined,
+    };
   } catch {
-    // Not a JWT — a newer opaque key. Nothing to check.
+    // Not a JWT — a newer opaque publishable/secret key. Nothing to inspect.
+    return null;
+  }
+}
+
+/** The project ref in a Supabase URL: the first label of the hostname. */
+function projectRef(url: string): string | null {
+  try {
+    const host = new URL(url).hostname;
+    // Only `<ref>.supabase.co` encodes the ref. A custom domain does not, and
+    // guessing from one would reject a correctly-configured deployment.
+    if (!host.endsWith(".supabase.co")) return null;
+    return host.split(".")[0] || null;
+  } catch {
     return null;
   }
 }
