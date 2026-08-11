@@ -1768,6 +1768,7 @@ Built by
 <br/>
 
 [setups.works](https://setups.works)
+nitheesh rajendran
 
 <sub>Self-hosted · your data and your WhatsApp number stay on your infrastructure</sub>
 
