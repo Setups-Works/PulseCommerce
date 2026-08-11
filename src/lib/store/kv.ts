@@ -216,7 +216,49 @@ function supabaseCredentials(): { url: string; serviceKey: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
   if (!url || !serviceKey) return null;
+
+  /*
+   * Refuse the anon key.
+   *
+   * The two keys are visually near-identical — same length, same prefix, next
+   * to each other in the dashboard — and pasting the wrong one is an easy
+   * mistake that has already been made once on this project. The failure it
+   * causes is disproportionately confusing: `kv_store` has RLS enabled with no
+   * policies, so the anon key is refused on every single read and write. The
+   * app would select this backend, then 401 on the first request for the store
+   * config, and the visible symptom is "the store is not connected".
+   *
+   * A legacy Supabase key is an unsigned-readable JWT carrying its own role, so
+   * the mistake is detectable here, before anything depends on it. Newer
+   * publishable/secret keys are opaque strings rather than JWTs; those cannot
+   * be inspected, so they are accepted as given and left to fail at the
+   * request if wrong.
+   */
+  const role = jwtRole(serviceKey);
+  if (role === "anon") {
+    console.error(
+      "[store] SUPABASE_SERVICE_ROLE_KEY holds the anon key, not the service-role key. " +
+        "kv_store denies the anon key by policy, so Supabase storage is being skipped. " +
+        "Copy the service_role key from Project Settings → API.",
+    );
+    return null;
+  }
+
   return { url, serviceKey };
+}
+
+/** The `role` claim of a Supabase JWT, or null if it is not one. */
+function jwtRole(token: string): string | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const json = Buffer.from(payload, "base64url").toString("utf8");
+    const claims = JSON.parse(json) as { role?: unknown };
+    return typeof claims.role === "string" ? claims.role : null;
+  } catch {
+    // Not a JWT — a newer opaque key. Nothing to check.
+    return null;
+  }
 }
 
 export function getStore(): KeyValueStore {
