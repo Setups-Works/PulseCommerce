@@ -14,6 +14,9 @@ export interface SessionPayload {
   via: "woo-auth" | "password";
   /** Store the session is scoped to, when known. */
   storeUrl?: string;
+  /** Account the session belongs to. Absent on a legacy APP_PASSWORD session. */
+  userId?: string;
+  email?: string;
   issuedAt: number;
   expiresAt: number;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, ArrowRight, Loader2, Lock, Store } from "lucide-react";
+import { Activity, Loader2, ShieldCheck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -9,65 +9,62 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      <SignupForm />
     </Suspense>
   );
 }
 
-function LoginForm() {
+/** Mirrors the server rule in /api/auth/register. */
+const MIN_PASSWORD = 10;
+
+function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
+  const next = params.get("next") ?? "/settings";
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [storeUrl, setStoreUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [setupRequired, setSetupRequired] = useState(false);
+  const [closed, setClosed] = useState<boolean | null>(null);
 
-  /*
-   * A deployment with no accounts has nothing to sign in to, so point at
-   * creating the first one instead of leaving someone typing into a form that
-   * cannot succeed. Proxy already redirects here in that state; this covers
-   * arriving at /login directly.
-   */
   useEffect(() => {
     let cancelled = false;
     void fetch("/api/auth/session")
       .then((res) => res.json())
       .then((state: { setupRequired?: boolean }) => {
-        if (!cancelled && state.setupRequired) setSetupRequired(true);
+        if (!cancelled) setClosed(!state.setupRequired);
       })
       .catch(() => {
-        // Nothing to show. The form still works if the account store recovers.
+        if (!cancelled) setClosed(null);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const signIn = async (e: React.FormEvent) => {
+  const register = async (e: React.FormEvent) => {
     e.preventDefault();
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/session", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, name: name || undefined }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Sign in failed.");
+      if (!res.ok) throw new Error(json.hint ? `${json.error} ${json.hint}` : json.error ?? "Could not create the account.");
+      // The first account is signed in by the server, so go straight on.
       router.push(next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign in failed.");
+      setError(err instanceof Error ? err.message : "Could not create the account.");
     } finally {
       setPending(false);
     }
@@ -84,27 +81,40 @@ function LoginForm() {
 
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-base">Sign in</CardTitle>
+          <CardTitle className="text-base">Create your account</CardTitle>
           <CardDescription className="text-xs">
-            Use the email and password for your account.
+            This is the first account on this deployment, so it becomes the owner. You will connect
+            WooCommerce and WhatsApp next.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {setupRequired ? (
+          {closed ? (
             <Alert>
-              <AlertTitle>No account yet</AlertTitle>
+              <ShieldCheck />
+              <AlertTitle>Registration is closed</AlertTitle>
               <AlertDescription>
-                Nobody has set this deployment up.{" "}
-                <Link href="/signup" className="underline underline-offset-2">
-                  Create the first account
+                This deployment already has an owner. Ask them to add an account for you, or{" "}
+                <Link href="/login" className="underline underline-offset-2">
+                  sign in
                 </Link>
                 .
               </AlertDescription>
             </Alert>
           ) : null}
 
-          <form onSubmit={signIn} className="space-y-3">
+          <form onSubmit={register} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                placeholder="Optional"
+              />
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -113,7 +123,6 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
-                autoFocus
                 required
               />
             </div>
@@ -125,15 +134,18 @@ function LoginForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
               />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                At least {MIN_PASSWORD} characters. Length matters more than symbols — a short
+                phrase you will remember beats something you have to write down.
+              </p>
             </div>
 
             {error ? (
               <Alert>
-                <Lock />
-                <AlertTitle>Could not sign in</AlertTitle>
+                <AlertTitle>Could not create the account</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
@@ -141,49 +153,19 @@ function LoginForm() {
             <Button
               type="submit"
               className="w-full gap-1.5"
-              disabled={pending || !password || !email}
+              disabled={pending || closed === true || !email || password.length < MIN_PASSWORD}
             >
-              {pending ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
-              Sign in
-            </Button>
-          </form>
-
-          <div className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-[11px] text-muted-foreground">or</span>
-            <Separator className="flex-1" />
-          </div>
-
-          {/* Completing the WooCommerce authorization proves store access, so it
-              signs you in as well as connecting the store. */}
-          <form action="/api/auth/woo/start" method="get" className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="url">Authorize with your WooCommerce store</Label>
-              <Input
-                id="url"
-                name="url"
-                value={storeUrl}
-                onChange={(e) => setStoreUrl(e.target.value)}
-                placeholder="https://yourstore.com"
-                autoComplete="url"
-              />
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                You will approve access inside your own WordPress admin. Requires this app to be served
-                over HTTPS.
-              </p>
-            </div>
-            <Button type="submit" variant="outline" className="w-full gap-1.5" disabled={storeUrl.length < 4}>
-              <Store className="size-4" />
-              Continue to WooCommerce
-              <ArrowRight className="size-4" />
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
+              Create account
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <p className="mt-6 text-xs text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">
-          Back to the overview
+        Already set up?{" "}
+        <Link href="/login" className="hover:text-foreground">
+          Sign in
         </Link>
       </p>
     </main>

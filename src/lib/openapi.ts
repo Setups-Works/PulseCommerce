@@ -34,9 +34,27 @@ export const openApiDocument = {
       "boolean; numbers are resolved server-side at the moment a message is sent.\n\n" +
       "**Audiences are described, never enumerated.** Sending endpoints accept a " +
       "filter and resolve recipients themselves, so no request can address someone " +
-      "who is not a customer of the connected store or who has opted out.",
+      "who is not a customer of the connected store or who has opted out.\n\n" +
+      "## Authentication\n\n" +
+      "Every endpoint requires an API key except the connect flow, the scheduler " +
+      "hook (which authenticates with `CRON_SECRET`) and this document.\n\n" +
+      "Create a key in **Settings → API keys**, then send it on each request:\n\n" +
+      "```bash\n" +
+      "curl https://your-deployment/api/analytics \\\n" +
+      '  -H "Authorization: Bearer pc_live_…"\n' +
+      "```\n\n" +
+      "A missing or invalid key returns 401; a key without the scope an endpoint " +
+      "needs returns 403 naming it. Both include a `hint` field saying what to do.\n\n" +
+      "Keys can neither create nor revoke keys — that requires a dashboard " +
+      "session, so a leaked key cannot extend or replace itself.",
   },
   servers: [{ url: "/", description: "This deployment" }],
+  /*
+   * Applied to every operation. Endpoints that are genuinely public override it
+   * with `security: []` rather than relying on the default being absent, so
+   * "public" is always a decision someone wrote down.
+   */
+  security: [{ ApiKey: [] }, { Session: [] }],
   tags: [
     { name: "Analytics", description: "Computed metrics from the cached store snapshot" },
     { name: "Store", description: "WooCommerce connection and data window" },
@@ -47,8 +65,104 @@ export const openApiDocument = {
     { name: "Assistant", description: "Reads the store and proposes actions for approval" },
     { name: "Inbox", description: "Conversations and replies" },
     { name: "Auth", description: "Optional password sessions" },
+    { name: "API keys", description: "Credentials for calling this API from your own code" },
   ],
   paths: {
+    "/api/keys": {
+      get: {
+        tags: ["API keys"],
+        summary: "List issued keys",
+        description:
+          "Metadata only — the keys themselves are not recoverable. Requires a " +
+          "dashboard session; an API key cannot read this.",
+        responses: {
+          200: {
+            description: "Every key ever issued, including revoked ones.",
+            content: json({
+              type: "object",
+              properties: {
+                keys: { type: "array", items: { $ref: "#/components/schemas/ApiKeyRecord" } },
+              },
+            }),
+          },
+          403: errorResponse("Authenticated with an API key rather than a session."),
+        },
+      },
+      post: {
+        tags: ["API keys"],
+        summary: "Create a key",
+        description:
+          "The response contains the key in full. This is the only time it is ever " +
+          "returned: only a SHA-256 digest is stored, so it cannot be shown again.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                maxLength: 60,
+                description: "How you will recognise this key later.",
+                examples: ["Reporting cron"],
+              },
+              scopes: {
+                type: "array",
+                minItems: 1,
+                items: { type: "string", enum: ["read", "write"] },
+              },
+            },
+            required: ["name", "scopes"],
+          }),
+        },
+        responses: {
+          201: {
+            description: "Created. Copy the key now.",
+            content: json({
+              type: "object",
+              properties: {
+                key: {
+                  type: "string",
+                  description: "The secret. Shown once.",
+                  examples: ["pc_live_x7Qa2M0pLd8vRt4WnJ6yBc1EgHs5UfZk9Ni3OqTr"],
+                },
+                record: { $ref: "#/components/schemas/ApiKeyRecord" },
+              },
+            }),
+          },
+          400: errorResponse("Missing name, or no scopes given."),
+          403: errorResponse("Authenticated with an API key rather than a session."),
+        },
+      },
+    },
+
+    "/api/keys/{id}": {
+      delete: {
+        tags: ["API keys"],
+        summary: "Revoke a key",
+        description:
+          "Takes effect within about thirty seconds: each running instance caches " +
+          "the key list briefly, so a warm one can honour a revoked key until its " +
+          "cache lapses. If a key is known to be compromised, re-authorize the " +
+          "store as well.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Revoked.",
+            content: json({ type: "object", properties: { revoked: { type: "boolean" } } }),
+          },
+          403: errorResponse("Authenticated with an API key rather than a session."),
+          404: errorResponse("No active key with that id."),
+        },
+      },
+    },
+
     "/api/analytics": {
       get: {
         tags: ["Analytics"],
@@ -595,6 +709,9 @@ export const openApiDocument = {
       post: {
         tags: ["Flows"],
         summary: "Advance every active flow",
+        // Not open: authenticates with CRON_SECRET as a bearer token, checked
+        // in the handler. The scheduler has no session and no API key.
+        security: [],
         description:
           "Called by Vercel Cron with the project's CRON_SECRET as a bearer token, and closed when " +
           "that secret is unset. What is due is computed from stored timestamps, so a tick that is " +
@@ -807,11 +924,15 @@ export const openApiDocument = {
       get: {
         tags: ["Auth"],
         summary: "Whether password protection is on, and whether you are signed in",
+        // Public: gating the endpoint that reports whether you are signed in
+        // would be circular.
+        security: [],
         responses: { 200: { description: "Session state", content: json({ type: "object" }) } },
       },
       post: {
         tags: ["Auth"],
         summary: "Sign in",
+        security: [],
         requestBody: {
           required: true,
           content: json({
@@ -829,6 +950,7 @@ export const openApiDocument = {
       delete: {
         tags: ["Auth"],
         summary: "Sign out",
+        security: [],
         responses: { 200: { description: "Signed out", content: json({ type: "object" }) } },
       },
     },
@@ -837,6 +959,9 @@ export const openApiDocument = {
       get: {
         tags: ["Analytics"],
         summary: "This document",
+        // Public: it describes the API's shape, carries no store data, and is
+        // what a developer reads to learn how to authenticate.
+        security: [],
         description:
           "Public and unauthenticated: it describes the API's shape and contains no " +
           "store data, credentials or customer information.",
@@ -850,6 +975,8 @@ export const openApiDocument = {
       get: {
         tags: ["Store"],
         summary: "Begin WooCommerce app authorization",
+        // Public: this is how a session comes to exist in the first place.
+        security: [],
         description:
           "Redirects to the store's own authorize page. There is deliberately no endpoint " +
           "anywhere that accepts a consumer key directly.",
@@ -862,7 +989,57 @@ export const openApiDocument = {
   },
 
   components: {
+    securitySchemes: {
+      ApiKey: {
+        type: "http",
+        scheme: "bearer",
+        description:
+          "An API key, created in Settings → API keys. Send it as " +
+          "`Authorization: Bearer pc_live_…`; the header `X-API-Key: pc_live_…` " +
+          "is accepted as an alternative for clients that reserve `Authorization` " +
+          "for something else.\n\n" +
+          "The key is shown once, at creation, and only its digest is stored — " +
+          "there is no way to recover it later. Lose it and issue a new one.\n\n" +
+          "Each key carries scopes. `read` covers everything that reads the store " +
+          "or renders from it, including report exports and the assistant. `write` " +
+          "is required for anything that acts in the world: sending messages, " +
+          "creating coupons, editing flows. Calling an endpoint outside a key's " +
+          "scopes returns 403 naming the scope that was missing.",
+      },
+      Session: {
+        type: "apiKey",
+        in: "cookie",
+        name: "pulse_session",
+        description:
+          "The dashboard's own session, established by completing the WooCommerce " +
+          "authorization flow. Browsers get this automatically; it is documented " +
+          "because it is what the UI uses, not because an integration should try " +
+          "to obtain one.",
+      },
+    },
     schemas: {
+      ApiKeyRecord: {
+        type: "object",
+        description: "A key's metadata. Never includes the key or its digest.",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string" },
+          display: {
+            type: "string",
+            description: "Abbreviated key, for recognising it in a list.",
+            examples: ["pc_live_a3Kd…9fQ2"],
+          },
+          scopes: { type: "array", items: { type: "string", enum: ["read", "write"] } },
+          createdAt: { type: "string", format: "date-time" },
+          lastUsedAt: {
+            type: "string",
+            format: "date-time",
+            description: "Recorded at most hourly, so it lags real use.",
+          },
+          revokedAt: { type: "string", format: "date-time" },
+        },
+        required: ["id", "name", "display", "scopes", "createdAt"],
+      },
       DateRange: {
         type: "object",
         properties: {
