@@ -4,137 +4,193 @@ import { WooClient } from "./client";
 import type { WooCustomer, WooOrder, WooProduct } from "./types";
 
 /**
- * Pulls a WooCommerce store into Postgres.
+ * Pulls a WooCommerce store into Postgres, a little at a time.
  *
- * The problem this solves: everything the dashboard shows is derived from the
- * order history, and the only way out of WooCommerce is its REST API, a
- * hundred orders per request. On a real store that is minutes of sequential
- * HTTP — long enough to outlive a serverless invocation, and enough sustained
- * traffic that the shop's own security layer starts refusing us.
+ * ─── Why this is resumable rather than a single pass ───────────────────────
  *
- * That pull used to happen in front of a waiting user on a cache miss. Now it
- * happens here, on a schedule, and every read is a query against local tables.
+ * WooCommerce serves a hundred orders per request and is not fast about it:
+ * measured at roughly eleven seconds a page against a real store of 21,052
+ * orders. That is about forty minutes for a first sync — many times longer
+ * than a serverless function is allowed to run.
  *
- * ─── Full and incremental ──────────────────────────────────────────────────
+ * The first version did it in one pass and only advanced its watermark on
+ * success. Every attempt was therefore killed partway and restarted from
+ * nothing, so a store that size could never finish, and the two runs it
+ * produced sat at "running" forever because nothing was left to record a
+ * failure.
  *
- * The first run is full. Every run after that asks WooCommerce only for
- * records modified since the last successful one, which on a typical day is a
- * few dozen rows rather than tens of thousands.
+ * So a run now works to a time budget, writes what it reads as it reads it,
+ * and records where it got to. Whatever calls it next resumes from there. A
+ * killed invocation costs the page it was mid-way through, not the run.
  *
- * `date_modified` rather than `date_created` is what makes that correct: an
- * order placed last year can be refunded today, and filtering on creation
- * would never see the change.
+ * ─── Why the cursor is a date, not a page number ───────────────────────────
  *
- * ─── Overlap ───────────────────────────────────────────────────────────────
- *
- * The high-water mark is rewound slightly on each run. WooCommerce timestamps
- * have one-second resolution, so a record modified in the same second the
- * previous run finished can be missed entirely. Re-reading a small overlap is
- * free — every write is an upsert — and missing an order is not.
+ * Page numbers shift underneath you. An order placed during the backfill
+ * renumbers every page after it, so resuming at "page 47" silently skips or
+ * repeats records. The backfill therefore reads oldest-first and remembers the
+ * newest `date_created` it has written; resuming asks for everything after
+ * that. Inserts land ahead of the cursor and are picked up in order.
  */
 
-/** Seconds of overlap re-read on each incremental run. See above. */
+/**
+ * How long one invocation may work for.
+ *
+ * Under the route's 300s maxDuration with room to finish the page in hand,
+ * write it, and update the cursor. Exceeding the platform limit would kill the
+ * process before the cursor was saved, losing that page's progress.
+ */
+const DEFAULT_BUDGET_MS = 230_000;
+
+/** Seconds of overlap re-read on each incremental run. */
 const OVERLAP_SECONDS = 120;
 
-/** Rows per insert. Large enough to be few round trips, small enough to not
- *  exceed Postgres's parameter limit once multiplied by the column count. */
+/** Rows per insert: few round trips, without exceeding Postgres's parameter cap. */
 const BATCH = 500;
+
+const PER_PAGE = 100;
 
 export interface SyncResult {
   mode: "full" | "incremental";
+  /** False when the budget ran out with history still to read. */
+  done: boolean;
   orders: number;
   customers: number;
   products: number;
+  /** How far the backfill has reached, for progress display. */
+  backfillThrough: string | null;
   warnings: string[];
   durationMs: number;
+}
+
+interface StoreRow {
+  synced_through: Date | null;
+  backfill_through: Date | null;
+  backfill_done: boolean;
 }
 
 export async function syncStore(
   storeId: string,
   config: StoreConfig,
-  opts: { full?: boolean } = {},
+  opts: { full?: boolean; budgetMs?: number } = {},
 ): Promise<SyncResult> {
   const started = Date.now();
+  const deadline = started + (opts.budgetMs ?? DEFAULT_BUDGET_MS);
   const client = new WooClient(config);
   const warnings: string[] = [];
 
-  const [{ synced_through }] = await db()<{ synced_through: Date | null }[]>`
-    select synced_through from stores where id = ${storeId}
+  const [store] = await db()<StoreRow[]>`
+    select synced_through, backfill_through, backfill_done from stores where id = ${storeId}
   `;
 
-  const full = opts.full || !synced_through;
-  const mode = full ? "full" : "incremental";
+  if (opts.full) {
+    await db()`
+      update stores set backfill_through = null, backfill_done = false, synced_through = null
+      where id = ${storeId}
+    `;
+  }
 
+  const backfilling = opts.full || !store?.backfill_done;
+  const mode = backfilling ? "full" : "incremental";
+
+  /*
+   * One sync per store at a time.
+   *
+   * Two drivers exist — the onboarding page, which calls in a loop while it is
+   * open, and the scheduler — and nothing stopped them overlapping. Two
+   * backfills against the same shop double the request rate and get the app
+   * refused by the store's own security layer, which is exactly what happened:
+   * "Could not reach …(fetch failed)" while a second pull was in flight.
+   *
+   * The claim is a conditional insert, so two callers racing cannot both win:
+   * the row only appears if no live run exists at the moment it is written.
+   */
   const [run] = await db()<{ id: string }[]>`
-    insert into woo_sync_runs (store_id, mode, status) values (${storeId}, ${mode}, 'running')
+    insert into woo_sync_runs (store_id, mode, status)
+    select ${storeId}, ${mode}, 'running'
+    where not exists (
+      select 1 from woo_sync_runs
+      where store_id = ${storeId} and status = 'running'
+        -- A run whose process died leaves its row behind. After this long it
+        -- is stale rather than live, or the caller would have finished it.
+        and started_at > now() - interval '10 minutes'
+    )
     returning id
   `;
 
+  if (!run) {
+    // Not an error: the work is already happening. The caller polls status and
+    // will see it advance.
+    const [current] = await db()<{ backfill_through: Date | null; backfill_done: boolean }[]>`
+      select backfill_through, backfill_done from stores where id = ${storeId}
+    `;
+    return {
+      mode,
+      done: current?.backfill_done ?? false,
+      orders: 0,
+      customers: 0,
+      products: 0,
+      backfillThrough: current?.backfill_through?.toISOString() ?? null,
+      warnings: ["A sync is already running for this store."],
+      durationMs: Date.now() - started,
+    };
+  }
+
+  let orders = 0;
+  let customers = 0;
+  let products = 0;
+  let done = true;
+
   try {
-    // The window WooCommerce is asked for. A full run goes back as far as the
-    // merchant's configured history; an incremental one only to the last mark.
-    const after = new Date();
-    if (full) {
-      after.setMonth(after.getMonth() - (config.historyMonths || 24));
-    } else {
-      after.setTime(synced_through!.getTime() - OVERLAP_SECONDS * 1000);
+    /*
+     * Customers and products first, and only on a backfill's first pass or an
+     * incremental run. They are small — hundreds, not tens of thousands — so
+     * they finish in one go, and repeating them on every resumed page of the
+     * order backfill would waste most of the budget.
+     */
+    const catalogueNeeded = !backfilling || !store?.backfill_through;
+    if (catalogueNeeded) {
+      const since = opts.full || !store?.synced_through
+        ? undefined
+        : isoSeconds(new Date(store.synced_through.getTime() - OVERLAP_SECONDS * 1000));
+
+      const [c, p] = await Promise.all([
+        client
+          .getCustomers(
+            { orderby: "registered_date", order: "asc", role: "all", ...(since ? { modified_after: since } : {}) },
+            config.maxPages,
+          )
+          .catch((error) => {
+            warnings.push(`Customer records unavailable (${describe(error)}).`);
+            return [] as WooCustomer[];
+          }),
+        client
+          .getProducts(
+            { orderby: "date", order: "desc", status: "any", ...(since ? { modified_after: since } : {}) },
+            config.maxPages,
+          )
+          .catch((error) => {
+            warnings.push(`Product catalogue unavailable (${describe(error)}).`);
+            return [] as WooProduct[];
+          }),
+      ]);
+
+      await writeCustomers(storeId, c);
+      await writeProducts(storeId, p);
+      customers = c.length;
+      products = p.length;
     }
-    const modifiedAfter = after.toISOString().slice(0, 19);
 
-    /*
-     * Customers and products first, together: both are small and quick. The
-     * order pull runs several connections wide and saturates a real store
-     * badly enough that running it alongside these timed them out.
-     */
-    const [customers, products] = await Promise.all([
-      client
-        .getCustomers(
-          full
-            ? { orderby: "registered_date", order: "asc", role: "all" }
-            : { orderby: "registered_date", order: "asc", role: "all", modified_after: modifiedAfter },
-          config.maxPages,
-        )
-        .catch((error) => {
-          warnings.push(`Customer records unavailable (${describe(error)}).`);
-          return [] as WooCustomer[];
-        }),
-      client
-        .getProducts(
-          full
-            ? { orderby: "date", order: "desc", status: "any" }
-            : { orderby: "date", order: "desc", status: "any", modified_after: modifiedAfter },
-          config.maxPages,
-        )
-        .catch((error) => {
-          warnings.push(`Product catalogue unavailable (${describe(error)}).`);
-          return [] as WooProduct[];
-        }),
-    ]);
-
-    const orders = await client.getOrders(
-      full
-        ? { orderby: "date", order: "desc", status: "any", after: `${modifiedAfter}` }
-        : { orderby: "modified", order: "desc", status: "any", modified_after: modifiedAfter },
-      config.maxPages,
-    );
-
-    await writeCustomers(storeId, customers);
-    await writeProducts(storeId, products);
-    await writeOrders(storeId, orders);
-
-    /*
-     * The mark is the newest `date_modified` actually seen, not "now".
-     *
-     * Using the clock would silently skip anything modified during the run —
-     * the pull takes minutes, and an order changed while it was in progress
-     * would fall between the mark and the next window. Taking it from the data
-     * means the worst case is re-reading a record, which is harmless.
-     */
-    const newest = newestModified(orders, customers, products);
+    if (backfilling) {
+      const outcome = await backfillOrders(storeId, client, config, store, deadline);
+      orders = outcome.written;
+      done = outcome.caughtUp;
+    } else {
+      orders = await incrementalOrders(storeId, client, config, store);
+      done = true;
+    }
 
     await db()`
       update stores set
-        synced_through = ${newest ?? synced_through ?? new Date()},
         last_sync_at   = now(),
         order_count    = (select count(*) from woo_orders where store_id = ${storeId}),
         customer_count = (select count(*) from woo_customers where store_id = ${storeId}),
@@ -144,27 +200,30 @@ export async function syncStore(
 
     await db()`
       update woo_sync_runs set
-        status = 'succeeded', finished_at = now(),
-        orders_synced = ${orders.length},
-        customers_synced = ${customers.length},
-        products_synced = ${products.length}
+        status = ${done ? "succeeded" : "running"}, finished_at = ${done ? db()`now()` : null},
+        orders_synced = ${orders}, customers_synced = ${customers}, products_synced = ${products}
       where id = ${run.id}
+    `;
+
+    const [after] = await db()<{ backfill_through: Date | null }[]>`
+      select backfill_through from stores where id = ${storeId}
     `;
 
     return {
       mode,
-      orders: orders.length,
-      customers: customers.length,
-      products: products.length,
+      done,
+      orders,
+      customers,
+      products,
+      backfillThrough: after?.backfill_through?.toISOString() ?? null,
       warnings,
       durationMs: Date.now() - started,
     };
   } catch (error) {
     /*
-     * The mark is deliberately not advanced on failure, so the next run
-     * re-reads the same window rather than stepping over whatever was missed.
-     * A partial sync is recorded as failed so the dashboard can say why its
-     * figures are behind, instead of presenting incomplete data as current.
+     * The cursor is not rolled back. Everything written before the failure is
+     * real and already committed, so the next run should carry on from there
+     * rather than re-reading pages it has already stored.
      */
     await db()`
       update woo_sync_runs set status = 'failed', finished_at = now(), error = ${describe(error)}
@@ -174,11 +233,134 @@ export async function syncStore(
   }
 }
 
+/**
+ * Reads history forward from the cursor until it catches up or runs out of time.
+ *
+ * Each page is written and the cursor advanced before the next is requested,
+ * so the process can be killed at any point and lose at most the page in
+ * flight.
+ */
+async function backfillOrders(
+  storeId: string,
+  client: WooClient,
+  config: StoreConfig,
+  store: StoreRow | undefined,
+  deadline: number,
+): Promise<{ written: number; caughtUp: boolean }> {
+  // Where history starts, when nothing has been read yet.
+  const floor = new Date();
+  floor.setMonth(floor.getMonth() - (config.historyMonths || 24));
+
+  let cursor = store?.backfill_through ?? floor;
+  let written = 0;
+  let failures = 0;
+
+  while (Date.now() < deadline) {
+    /*
+     * A refused or dropped request is usually the store rate-limiting, not a
+     * broken connection. Backing off and retrying beats failing a run that has
+     * already written thousands of orders — the cursor is saved, so the worst
+     * case is stopping early and resuming next time.
+     */
+    let data: WooOrder[];
+    try {
+      ({ data } = await client.request<WooOrder[]>("orders", {
+      per_page: PER_PAGE,
+      page: 1,
+      // Oldest first, always page 1: the cursor moves forward, so the next
+      // unread order is always at the front of the result.
+      orderby: "date",
+      order: "asc",
+        status: "any",
+        after: isoSeconds(cursor),
+      }));
+    } catch (error) {
+      failures += 1;
+      if (failures >= 3) {
+        if (written > 0) return { written, caughtUp: false };
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, failures * 4000));
+      continue;
+    }
+
+    if (data.length === 0) {
+      await db()`update stores set backfill_done = true where id = ${storeId}`;
+      return { written, caughtUp: true };
+    }
+    failures = 0;
+
+    await writeOrders(storeId, data);
+    written += data.length;
+
+    const newest = data.reduce((max, o) => {
+      const at = Date.parse(`${o.date_created_gmt ?? o.date_created}Z`.replace("ZZ", "Z"));
+      return Number.isFinite(at) && at > max ? at : max;
+    }, cursor.getTime());
+
+    /*
+     * Guard against a stalled cursor. If every order in a page shares the
+     * timestamp the cursor already holds, `after` returns the same page
+     * forever. Nudging past it costs at most one duplicated second, and every
+     * write is an upsert, so re-reading is free.
+     */
+    cursor = new Date(newest > cursor.getTime() ? newest : cursor.getTime() + 1000);
+
+    await db()`update stores set backfill_through = ${cursor} where id = ${storeId}`;
+
+    // A short page means there is nothing after it.
+    if (data.length < PER_PAGE) {
+      await db()`update stores set backfill_done = true where id = ${storeId}`;
+      return { written, caughtUp: true };
+    }
+  }
+
+  return { written, caughtUp: false };
+}
+
+/** Everything modified since the last run. Small enough for one pass. */
+async function incrementalOrders(
+  storeId: string,
+  client: WooClient,
+  config: StoreConfig,
+  store: StoreRow | undefined,
+): Promise<number> {
+  const since = store?.synced_through
+    ? new Date(store.synced_through.getTime() - OVERLAP_SECONDS * 1000)
+    : new Date(Date.now() - 24 * 3600 * 1000);
+
+  const data = await client.getOrders(
+    { orderby: "modified", order: "desc", status: "any", modified_after: isoSeconds(since) },
+    config.maxPages,
+  );
+
+  await writeOrders(storeId, data);
+
+  /*
+   * The mark comes from the data, not the clock. Using "now" would skip
+   * anything modified while the run was in progress, since that change would
+   * fall between the mark and the next window.
+   */
+  const newest = data.reduce((max, o) => {
+    const raw = (o as { date_modified_gmt?: string }).date_modified_gmt;
+    if (!raw) return max;
+    const at = Date.parse(raw.endsWith("Z") ? raw : `${raw}Z`);
+    return Number.isFinite(at) && at > max ? at : max;
+  }, 0);
+
+  await db()`
+    update stores set synced_through = ${newest ? new Date(newest) : new Date()}
+    where id = ${storeId}
+  `;
+
+  return data.length;
+}
+
 /* ── Writers ──────────────────────────────────────────────────────────────
  *
  * Every write is an upsert keyed on (store_id, id), which is what makes the
- * overlap window and any retry safe: running the same sync twice produces the
- * same table, not duplicates.
+ * overlap window, a resumed cursor and any retry safe: running the same page
+ * twice produces the same table, not duplicates.
  */
 
 async function writeOrders(storeId: string, orders: WooOrder[]): Promise<void> {
@@ -224,9 +406,8 @@ async function writeOrders(storeId: string, orders: WooOrder[]): Promise<void> {
         synced_at = now()
     `;
 
-    // Line items are replaced wholesale for the orders in this chunk: an order
-    // can lose a line to a refund, and an upsert alone would leave the removed
-    // row behind.
+    // Line items are replaced for the orders in this chunk: an order can lose
+    // a line to a refund, and an upsert alone would leave the removed row.
     const ids = chunk.map((o) => o.id);
     await db()`delete from woo_order_items where store_id = ${storeId} and order_id in ${db()(ids)}`;
 
@@ -269,9 +450,8 @@ async function writeCustomers(storeId: string, customers: WooCustomer[]): Promis
           billing_city: c.billing?.city ?? null,
           billing_state: c.billing?.state ?? null,
           billing_country: c.billing?.country ?? null,
-          // Whether a number exists, never the number itself. Phone numbers are
-          // resolved at send time; storing them here would turn the mirror into
-          // a contact list.
+          // Whether a number exists, never the number. Phone numbers are
+          // resolved at send time; storing them would make this a contact list.
           has_phone: Boolean(c.billing?.phone?.trim()),
           orders_count: Number((c as { orders_count?: number }).orders_count ?? 0),
           total_spent: num((c as { total_spent?: string }).total_spent),
@@ -324,25 +504,15 @@ async function writeProducts(storeId: string, products: WooProduct[]): Promise<v
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
+/** WooCommerce wants `YYYY-MM-DDTHH:MM:SS`, and rejects a trailing Z. */
+function isoSeconds(date: Date): string {
+  return date.toISOString().slice(0, 19);
+}
+
 /** WooCommerce sends money as strings, and empty for "not set". */
 function num(value: unknown): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function newestModified(...groups: unknown[][]): Date | null {
-  let newest: number | null = null;
-  for (const group of groups) {
-    for (const record of group) {
-      const raw = (record as { date_modified_gmt?: string }).date_modified_gmt;
-      if (!raw) continue;
-      // WooCommerce's GMT fields carry no zone marker; without the Z these
-      // parse as local time and the mark lands hours off.
-      const at = Date.parse(raw.endsWith("Z") ? raw : `${raw}Z`);
-      if (Number.isFinite(at) && (newest === null || at > newest)) newest = at;
-    }
-  }
-  return newest === null ? null : new Date(newest);
 }
 
 function describe(error: unknown): string {

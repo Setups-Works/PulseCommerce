@@ -16,17 +16,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
  * rather than as a step that has not happened. This is that step, made
  * visible.
  *
- * ─── Why it polls instead of awaiting the POST ─────────────────────────────
+ * ─── Why it calls repeatedly ───────────────────────────────────────────────
  *
- * The first pull walks the WooCommerce REST API a hundred orders at a time and
- * takes minutes on a real store — longer than a serverless invocation is
- * allowed to run, and far longer than a fetch anybody should sit on. So the
- * POST is fired and deliberately not awaited, and progress comes from polling
- * the status endpoint, which reads counters the sync writes as it goes.
+ * The first pull walks the WooCommerce REST API a hundred orders at a time.
+ * Measured against a real store, that is roughly eleven seconds a page and
+ * 21,000 orders — far longer than any single serverless invocation may run. So
+ * each request works to a time budget, writes what it read, records a cursor,
+ * and reports whether history remains. This page keeps calling until it does
+ * not.
  *
- * The consequence is that closing this page does not cancel anything. The sync
- * continues server-side, which is the behaviour you want: it means a dropped
- * connection costs nothing.
+ * Closing the page cancels nothing. The cursor lives in the database and the
+ * scheduled sync advances it too; being here only makes it faster.
  */
 
 /** Slow enough not to hammer the endpoint, fast enough to feel live. */
@@ -43,6 +43,8 @@ interface SyncState {
     error: string | null;
     finishedAt: string | null;
   } | null;
+  backfillDone?: boolean;
+  total?: number | null;
 }
 
 export default function OnboardingSyncPage() {
@@ -72,26 +74,64 @@ export default function OnboardingSyncPage() {
     }
   }, [router]);
 
+  /*
+   * Drives the backfill to completion, one invocation at a time.
+   *
+   * Each request works to a time budget and returns `done: false` while there
+   * is history left, so a single call finishes only a small store. This keeps
+   * calling until it reports done. The alternative — one request — is what
+   * cannot work: the pull takes far longer than any single invocation is
+   * allowed to run.
+   *
+   * Leaving the page does not strand anything. The cursor is in the database
+   * and the scheduled sync advances it too; this only makes it faster while
+   * somebody is watching.
+   */
   useEffect(() => {
-    // Guard against React's development double-effect, which would otherwise
-    // start two full pulls against the merchant's store.
+    // React's development double-effect would otherwise start two pulls
+    // against the merchant's store.
     if (started.current) return;
     started.current = true;
 
+    let cancelled = false;
+
     void (async () => {
       const current = await poll();
-      // Already has data, or a run is in flight: do not start another.
-      if (!current || current.orders > 0 || current.lastRun?.status === "running") return;
+      if (!current) return;
 
-      // Not awaited — see the note at the top.
-      void fetch("/api/sync", { method: "POST" }).catch(() => {
-        /* Failures surface through the status endpoint. */
-      });
+      while (!cancelled) {
+        try {
+          const res = await fetch("/api/sync", { method: "POST" });
+          const body = await res.json();
+
+          if (!res.ok) {
+            setError(body.detail ?? body.error ?? "The sync failed.");
+            return;
+          }
+
+          await poll();
+          if (body.done) return;
+        } catch {
+          // A dropped connection is not a failed sync — the server keeps its
+          // cursor. Stop driving and let the poll and the scheduler continue.
+          return;
+        }
+      }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [poll]);
 
   const run = state?.lastRun;
-  const done = run?.status === "succeeded" || (state?.orders ?? 0) > 0;
+  /*
+   * "Has data" is not the same as "finished". A backfill has orders in the
+   * table from its first page onward, so treating any rows as done would send
+   * people to a dashboard showing a fraction of their history as if it were
+   * all of it.
+   */
+  const done = state?.backfillDone === true || run?.status === "succeeded";
   const failed = run?.status === "failed";
 
   useEffect(() => {
@@ -172,8 +212,11 @@ export default function OnboardingSyncPage() {
 
           {!done && !failed ? (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Counts update as orders arrive. A store with tens of thousands of orders can take
-              several minutes.
+              {state?.total
+                ? `${state.orders.toLocaleString()} of about ${state.total.toLocaleString()} orders copied so far.`
+                : "Counts update as orders arrive."}{" "}
+              WooCommerce serves a hundred orders at a time, so a large history takes a while. You
+              can close this page — it carries on without you.
             </p>
           ) : null}
         </CardContent>

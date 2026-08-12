@@ -202,12 +202,23 @@ export async function syncStatus(storeId: string): Promise<{
   orders: number;
   customers: number;
   products: number;
+  /** False while history is still being read. Distinct from "has some rows". */
+  backfillDone: boolean;
+  backfillThrough: string | null;
   lastRun: { status: string; mode: string; error: string | null; finishedAt: string | null } | null;
 }> {
   const [store] = await db()<
-    { last_sync_at: Date | null; order_count: number; customer_count: number; product_count: number }[]
+    {
+      last_sync_at: Date | null;
+      order_count: number;
+      customer_count: number;
+      product_count: number;
+      backfill_done: boolean;
+      backfill_through: Date | null;
+    }[]
   >`
-    select last_sync_at, order_count, customer_count, product_count
+    select last_sync_at, order_count, customer_count, product_count,
+           backfill_done, backfill_through
     from stores where id = ${storeId}
   `;
 
@@ -223,6 +234,8 @@ export async function syncStatus(storeId: string): Promise<{
     orders: store?.order_count ?? 0,
     customers: store?.customer_count ?? 0,
     products: store?.product_count ?? 0,
+    backfillDone: store?.backfill_done ?? false,
+    backfillThrough: store?.backfill_through?.toISOString() ?? null,
     lastRun: run
       ? {
           status: run.status,
