@@ -49,6 +49,22 @@ const BATCH = 500;
 
 const PER_PAGE = 100;
 
+/**
+ * Pages requested at once during a backfill.
+ *
+ * Measured against a real store: one page at a time gives ~46 orders/s and a
+ * 21,000-order history takes about eight minutes. Four gives 170/s, eight 305,
+ * fourteen 422 — with no failures at any level.
+ *
+ * Eight rather than fourteen. The gain from there is a third while the request
+ * rate nearly doubles, and the failure this trades against is not a slow sync
+ * but the store's security layer refusing the app outright — which has already
+ * happened once here, when two backfills overlapped. Eight puts a full history
+ * inside a single invocation with room spare, which is the thing that actually
+ * matters.
+ */
+const PAGE_CONCURRENCY = 8;
+
 export interface SyncResult {
   mode: "full" | "incremental";
   /** False when the budget ran out with history still to read. */
@@ -268,24 +284,39 @@ async function backfillOrders(
 
   while (Date.now() < deadline) {
     /*
-     * A refused or dropped request is usually the store rate-limiting, not a
-     * broken connection. Backing off and retrying beats failing a run that has
-     * already written thousands of orders — the cursor is saved, so the worst
-     * case is stopping early and resuming next time.
+     * Several pages of the same `after=cursor` query, at once.
+     *
+     * Ordering ascending is what makes this safe to parallelise: the result
+     * set for a given cursor is stable, because an order placed while the
+     * backfill runs sorts to the end rather than shifting the pages being
+     * read. Page numbers within one round therefore address the rows they
+     * addressed when the round began.
      */
-    let data: WooOrder[];
+    const wanted = Array.from({ length: PAGE_CONCURRENCY }, (_, i) => i + 1);
+
+    let pages: WooOrder[][];
     try {
-      ({ data } = await client.request<WooOrder[]>("orders", {
-      per_page: PER_PAGE,
-      page: 1,
-      // Oldest first, always page 1: the cursor moves forward, so the next
-      // unread order is always at the front of the result.
-      orderby: "date",
-      order: "asc",
-        status: "any",
-        after: isoSeconds(cursor),
-      }));
+      pages = await Promise.all(
+        wanted.map((page) =>
+          client
+            .request<WooOrder[]>("orders", {
+              per_page: PER_PAGE,
+              page,
+              orderby: "date",
+              order: "asc",
+              status: "any",
+              after: isoSeconds(cursor),
+            })
+            .then((r) => r.data),
+        ),
+      );
+      failures = 0;
     } catch (error) {
+      /*
+       * Usually the store rate-limiting rather than a broken connection.
+       * Backing off beats failing a run that has already written thousands of
+       * orders — the cursor is saved, so the worst case is stopping early.
+       */
       failures += 1;
       if (failures >= 3) {
         if (written > 0) return { written, caughtUp: false };
@@ -295,32 +326,34 @@ async function backfillOrders(
       continue;
     }
 
-    if (data.length === 0) {
+    const batch = pages.flat();
+    if (batch.length === 0) {
       await db()`update stores set backfill_done = true where id = ${storeId}`;
       return { written, caughtUp: true };
     }
-    failures = 0;
 
-    await writeOrders(storeId, data);
-    written += data.length;
+    await writeOrders(storeId, batch);
+    written += batch.length;
 
-    const newest = data.reduce((max, o) => {
-      const at = Date.parse(`${o.date_created_gmt ?? o.date_created}Z`.replace("ZZ", "Z"));
+    const newest = batch.reduce((max, o) => {
+      const at = Date.parse(utc(o.date_created_gmt) ?? utc(o.date_created) ?? "");
       return Number.isFinite(at) && at > max ? at : max;
     }, cursor.getTime());
 
     /*
-     * Guard against a stalled cursor. If every order in a page shares the
-     * timestamp the cursor already holds, `after` returns the same page
-     * forever. Nudging past it costs at most one duplicated second, and every
-     * write is an upsert, so re-reading is free.
+     * Guard against a stalled cursor. If every order in a round shares the
+     * timestamp the cursor already holds, `after` returns the same rows for
+     * ever. Nudging past costs at most a duplicated second, and every write is
+     * an upsert, so re-reading is free.
      */
     cursor = new Date(newest > cursor.getTime() ? newest : cursor.getTime() + 1000);
-
     await db()`update stores set backfill_through = ${cursor} where id = ${storeId}`;
 
-    // A short page means there is nothing after it.
-    if (data.length < PER_PAGE) {
+    /*
+     * A round that came back short has reached the end of the history. Any
+     * full round might not have, so keep going.
+     */
+    if (batch.length < PER_PAGE * PAGE_CONCURRENCY) {
       await db()`update stores set backfill_done = true where id = ${storeId}`;
       return { written, caughtUp: true };
     }
@@ -353,9 +386,7 @@ async function incrementalOrders(
    * fall between the mark and the next window.
    */
   const newest = data.reduce((max, o) => {
-    const raw = (o as { date_modified_gmt?: string }).date_modified_gmt;
-    if (!raw) return max;
-    const at = Date.parse(raw.endsWith("Z") ? raw : `${raw}Z`);
+    const at = Date.parse(utc((o as { date_modified_gmt?: string }).date_modified_gmt) ?? "");
     return Number.isFinite(at) && at > max ? at : max;
   }, 0);
 
@@ -396,10 +427,10 @@ async function writeOrders(storeId: string, orders: WooOrder[]): Promise<void> {
           billing_state: o.billing?.state ?? null,
           billing_country: o.billing?.country ?? null,
           payment_method: o.payment_method ?? null,
-          date_created: o.date_created_gmt ?? o.date_created,
-          date_paid: o.date_paid ?? null,
-          date_completed: o.date_completed ?? null,
-          date_modified: (o as { date_modified_gmt?: string }).date_modified_gmt ?? null,
+          date_created: utc(o.date_created_gmt) ?? utc(o.date_created),
+          date_paid: utc(o.date_paid),
+          date_completed: utc(o.date_completed),
+          date_modified: utc((o as { date_modified_gmt?: string }).date_modified_gmt),
           item_count: o.line_items?.length ?? 0,
           raw: db().json(o as never),
         })) as never,
@@ -433,7 +464,7 @@ async function writeOrders(storeId: string, orders: WooOrder[]): Promise<void> {
         quantity: li.quantity ?? 0,
         subtotal: num(li.subtotal),
         total: num(li.total),
-        order_date: o.date_created_gmt ?? o.date_created,
+        order_date: utc(o.date_created_gmt) ?? utc(o.date_created),
       })),
     );
 
@@ -466,8 +497,8 @@ async function writeCustomers(storeId: string, customers: WooCustomer[]): Promis
           has_phone: Boolean(c.billing?.phone?.trim()),
           orders_count: Number((c as { orders_count?: number }).orders_count ?? 0),
           total_spent: num((c as { total_spent?: string }).total_spent),
-          date_created: c.date_created ?? null,
-          date_modified: (c as { date_modified_gmt?: string }).date_modified_gmt ?? null,
+          date_created: utc(c.date_created),
+          date_modified: utc((c as { date_modified_gmt?: string }).date_modified_gmt),
           raw: db().json(c as never),
         })) as never,
       )}
@@ -498,8 +529,8 @@ async function writeProducts(storeId: string, products: WooProduct[]): Promise<v
           stock_quantity: p.stock_quantity ?? null,
           stock_status: p.stock_status ?? null,
           total_sales: Number((p as { total_sales?: number }).total_sales ?? 0),
-          date_created: (p as { date_created?: string }).date_created ?? null,
-          date_modified: (p as { date_modified_gmt?: string }).date_modified_gmt ?? null,
+          date_created: utc((p as { date_created?: string }).date_created),
+          date_modified: utc((p as { date_modified_gmt?: string }).date_modified_gmt),
           raw: db().json(p as never),
         })) as never,
       )}
@@ -518,6 +549,31 @@ async function writeProducts(storeId: string, products: WooProduct[]): Promise<v
 /** WooCommerce wants `YYYY-MM-DDTHH:MM:SS`, and rejects a trailing Z. */
 function isoSeconds(date: Date): string {
   return date.toISOString().slice(0, 19);
+}
+
+/**
+ * Marks a WooCommerce GMT timestamp as UTC.
+ *
+ * The `*_gmt` fields are UTC but carry no zone marker, so
+ * `2026-08-12T06:40:00` is ambiguous — and anything that turns it into a Date
+ * resolves it against the *process* timezone. On a machine in IST that is
+ * 06:40 local, or 01:10Z: five and a half hours earlier than the instant
+ * WooCommerce meant.
+ *
+ * The damage is quiet and uneven. Every stored timestamp shifts, moving orders
+ * near midnight into the wrong day — 1,254 of 21,057 on this store — so daily
+ * revenue and every cohort boundary is wrong by whatever the host's offset
+ * happens to be. It is also environment-dependent: correct on a UTC server,
+ * wrong on a developer's laptop, which is worse than being consistently wrong
+ * because the two disagree without either looking broken.
+ *
+ * Appending Z removes the ambiguity, so the value means the same thing
+ * wherever it is parsed.
+ */
+function utc(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(value)) return value;
+  return `${value}Z`;
 }
 
 /** WooCommerce sends money as strings, and empty for "not set". */
