@@ -198,9 +198,20 @@ export async function syncStore(
       where id = ${storeId}
     `;
 
+    /*
+     * A run that stops on its time budget has still finished — it did the work
+     * it was given. Whether history remains is a property of the store
+     * (`backfill_done`), not of the run.
+     *
+     * Conflating the two left every budget-stopped run at 'running' with no
+     * finish time, for ever. That made the lock's ten-minute staleness window
+     * the only thing preventing a permanent deadlock, and made the run history
+     * unreadable: a finished run appeared to have been going for 73 minutes,
+     * because its duration was measured against a clock that never stopped.
+     */
     await db()`
       update woo_sync_runs set
-        status = ${done ? "succeeded" : "running"}, finished_at = ${done ? db()`now()` : null},
+        status = 'succeeded', finished_at = now(),
         orders_synced = ${orders}, customers_synced = ${customers}, products_synced = ${products}
       where id = ${run.id}
     `;

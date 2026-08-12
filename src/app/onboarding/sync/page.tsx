@@ -131,7 +131,13 @@ export default function OnboardingSyncPage() {
    * people to a dashboard showing a fraction of their history as if it were
    * all of it.
    */
-  const done = state?.backfillDone === true || run?.status === "succeeded";
+  /*
+   * Completion comes from the store, never the run. A run reports 'succeeded'
+   * when it used its budget well, which happens many times during a large
+   * backfill — treating that as done would send somebody to a dashboard
+   * showing a third of their history as though it were all of it.
+   */
+  const done = state?.backfillDone === true;
   const failed = run?.status === "failed";
 
   useEffect(() => {
