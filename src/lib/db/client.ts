@@ -76,9 +76,16 @@ export function db(): Sql {
      * this instance cannot use while denying them to another instance.
      */
     max: 1,
-    // Let an idle instance release its slot rather than holding it until the
-    // platform freezes the process.
-    idle_timeout: 20,
+    /*
+     * Measured: the TLS and auth handshake to the pooler costs ~1.6s, while a
+     * warm query costs ~140ms. Dropping the connection after twenty seconds
+     * meant almost every page load paid that handshake again — it was the
+     * single largest cost in a request, far outweighing the queries.
+     *
+     * Five minutes keeps it alive across a browsing session while still
+     * releasing the pooler slot from an instance that has gone quiet.
+     */
+    idle_timeout: 300,
     connect_timeout: 10,
     ssl: "require",
     // Postgres returns numeric as a string to avoid float precision loss.

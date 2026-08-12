@@ -1,6 +1,7 @@
 import { db } from "@/lib/db/client";
 import { currentUser, type CurrentUser } from "@/lib/supabase/server";
 import { verifyApiKey, readPresentedKey, type Scope } from "./api-key";
+import { USER_EMAIL_HEADER, USER_ID_HEADER } from "./headers";
 
 /**
  * Who is making this request, and which store they may touch.
@@ -54,6 +55,32 @@ export interface TenantStore {
  * token rather than a database round trip.
  */
 export async function resolveTenant(request?: Request): Promise<Tenant | null> {
+  /*
+   * Proxy has already validated this request and written the caller into a
+   * header it strips from anything inbound. Trusting that is what avoids a
+   * second round trip to the Auth server on every API call — the single
+   * largest cost in a request that otherwise does one indexed query.
+   *
+   * The header is only safe because Proxy runs on every matched path and
+   * deletes any client-supplied copy. Nothing else may set it.
+   */
+  const forwardedId = request?.headers.get(USER_ID_HEADER);
+  if (forwardedId) {
+    const email = request?.headers.get(USER_EMAIL_HEADER) ?? "";
+    const scopes = readScopes(request);
+    return {
+      userId: forwardedId,
+      email,
+      via: scopes ? "api-key" : "session",
+      scopes: scopes ?? ["read", "write"],
+      user: null,
+    };
+  }
+
+  /*
+   * No header: a server component, or a route Proxy does not match. Falls back
+   * to asking the Auth server directly.
+   */
   const user = await currentUser();
   if (user) {
     return { userId: user.id, email: user.email, via: "session", scopes: ["read", "write"], user };
@@ -74,6 +101,20 @@ export async function resolveTenant(request?: Request): Promise<Tenant | null> {
     scopes: key.scopes,
     user: null,
   };
+}
+
+/**
+ * Scopes, when Proxy authenticated by API key rather than session.
+ *
+ * Absent for a session, which may do anything. Present and possibly narrow for
+ * a key — and the distinction is what `requireWrite` checks, so a read-only
+ * key must not be mistaken for a session.
+ */
+function readScopes(request?: Request): Scope[] | null {
+  const raw = request?.headers.get("x-pulse-scopes");
+  if (!raw) return null;
+  const scopes = raw.split(",").filter((s): s is Scope => s === "read" || s === "write");
+  return scopes.length ? scopes : ["read"];
 }
 
 /** The store a tenant is currently working with, or null if none connected. */

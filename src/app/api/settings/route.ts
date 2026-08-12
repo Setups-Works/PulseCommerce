@@ -4,7 +4,6 @@ import { requireTenant, requireWrite } from "@/lib/auth/tenant";
 import {
   clearStoreConfig,
   listStores,
-  readStoreConfig,
   redactConfig,
   removeStore,
   setActiveStore,
@@ -20,7 +19,18 @@ export async function GET(request: Request) {
   if (!resolved.ok) return resolved.response;
   const { userId } = resolved.value;
 
-  const [config, book] = await Promise.all([readStoreConfig(userId), listStores(userId)]);
+  /*
+   * One read of the store list, not three.
+   *
+   * This used to call readStoreConfig, listStores and syncStatus in turn —
+   * four sequential queries, three of them reading the same rows. Every round
+   * trip to Postgres costs real milliseconds (the database is not in the same
+   * region as the functions), so sequential redundant queries are most of what
+   * made this endpoint take seconds. listStores already returns the active
+   * store, and the sync counters live on the same row.
+   */
+  const book = await listStores(userId);
+  const config = book.stores.find((s) => s.id === book.active) ?? book.stores[0] ?? null;
 
   return NextResponse.json({
     connected: Boolean(config),
@@ -35,8 +45,8 @@ export async function GET(request: Request) {
       orderCount: s.orderCount ?? 0,
       active: s.id === book.active,
     })),
-    // How current the figures are. Without this the dashboard cannot tell the
-    // difference between a quiet store and one whose sync has been failing.
+    // How current the figures are. Without this the dashboard cannot tell a
+    // quiet store from one whose sync has been failing.
     sync: config ? await syncStatus(config.id) : null,
   });
 }

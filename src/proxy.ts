@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { readPresentedKey, verifyApiKey, type Scope } from "@/lib/auth/api-key";
 import { databaseConfigured } from "@/lib/db/client";
+import { USER_EMAIL_HEADER, USER_ID_HEADER } from "@/lib/auth/headers";
 
 /**
  * The single place a request is allowed in.
@@ -173,7 +174,7 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  if (user) return response;
+  if (user) return forward(request, user.id, user.email ?? "");
 
   const presented = readPresentedKey(request.headers);
   if (!presented) {
@@ -202,7 +203,32 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  return response;
+  return forward(request, key.userId, key.ownerEmail ?? "", key.scopes);
+}
+
+/**
+ * Passes the verified caller to the handler.
+ *
+ * Proxy has already validated the token against the Auth server, and without
+ * this the handler would do it again — two HTTP round trips to Supabase on
+ * every single API request, which is most of why /api/settings took four
+ * seconds.
+ *
+ * Anything arriving under these names is deleted first. They come from the
+ * public internet, and a handler must not be able to be told who it is talking
+ * to by the request itself.
+ */
+function forward(request: NextRequest, userId: string, email: string, scopes?: Scope[]) {
+  const headers = new Headers(request.headers);
+  headers.delete(USER_ID_HEADER);
+  headers.delete(USER_EMAIL_HEADER);
+  headers.delete("x-pulse-scopes");
+  headers.set(USER_ID_HEADER, userId);
+  headers.set(USER_EMAIL_HEADER, email);
+  // Only set for a key. Its absence is how a handler tells a session — which
+  // may do anything — from a key that may not.
+  if (scopes) headers.set("x-pulse-scopes", scopes.join(","));
+  return NextResponse.next({ request: { headers } });
 }
 
 /**

@@ -207,27 +207,29 @@ export async function syncStatus(storeId: string): Promise<{
   backfillThrough: string | null;
   lastRun: { status: string; mode: string; error: string | null; finishedAt: string | null } | null;
 }> {
-  const [store] = await db()<
-    {
-      last_sync_at: Date | null;
-      order_count: number;
-      customer_count: number;
-      product_count: number;
-      backfill_done: boolean;
-      backfill_through: Date | null;
-    }[]
-  >`
-    select last_sync_at, order_count, customer_count, product_count,
-           backfill_done, backfill_through
-    from stores where id = ${storeId}
-  `;
+  // Concurrent, not sequential: they touch different tables and neither needs
+  // the other's result, so paying two round trips in series is pure waste.
+  const [[store], [run]] = await Promise.all([
+    db()<
+      {
+        last_sync_at: Date | null;
+        order_count: number;
+        customer_count: number;
+        product_count: number;
+        backfill_done: boolean;
+        backfill_through: Date | null;
+      }[]
+    >`
+      select last_sync_at, order_count, customer_count, product_count,
+             backfill_done, backfill_through
+      from stores where id = ${storeId}
+    `,
+    db()<{ status: string; mode: string; error: string | null; finished_at: Date | null }[]>`
+      select status, mode, error, finished_at from woo_sync_runs
+      where store_id = ${storeId} order by started_at desc limit 1
+    `,
+  ]);
 
-  const [run] = await db()<
-    { status: string; mode: string; error: string | null; finished_at: Date | null }[]
-  >`
-    select status, mode, error, finished_at from woo_sync_runs
-    where store_id = ${storeId} order by started_at desc limit 1
-  `;
 
   return {
     lastSyncAt: store?.last_sync_at?.toISOString() ?? null,
