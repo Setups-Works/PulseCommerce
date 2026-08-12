@@ -65,7 +65,7 @@ export function Cta({
 
             <div className="mt-9 flex flex-col justify-center gap-2.5 sm:flex-row sm:gap-3">
               <Button size="lg" asChild className="h-11 bg-white px-6 text-sm text-neutral-950 hover:bg-white/90">
-                <Link href="/connect">
+                <Link href="/signup">
                   Connect your store
                   <ArrowRight className="size-4" />
                 </Link>

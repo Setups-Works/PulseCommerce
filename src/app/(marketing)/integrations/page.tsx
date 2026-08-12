@@ -103,7 +103,7 @@ export default function IntegrationsPage() {
                   ))}
                 </ul>
                 <Button size="lg" asChild className="mt-auto h-10 w-full pt-0 text-sm">
-                  <Link href="/connect">
+                  <Link href="/signup">
                     Connect a store
                     <ArrowRight className="size-4" />
                   </Link>

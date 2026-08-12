@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAnalyticsCached } from "@/lib/analytics/cache";
 import type { Granularity } from "@/lib/analytics/types";
 import { requireStore } from "@/lib/auth/tenant";
-import { loadSnapshot } from "@/lib/store/snapshot";
+import { NoMirrorDataError, loadSnapshot } from "@/lib/store/snapshot";
 import { isNotConnected } from "@/lib/store/errors";
 import { WooApiError } from "@/lib/woo/client";
 
@@ -42,6 +42,23 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
+    /*
+     * A connected-but-unsynced store is a distinct state from a disconnected
+     * one, and the fix is different: one needs the first pull to run, the
+     * other needs a store. Collapsing them into one message is what made this
+     * look like a broken dashboard rather than an unfinished setup.
+     */
+    if (error instanceof NoMirrorDataError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: "not_synced",
+          hint: "The first sync has not finished yet.",
+          action: "/onboarding/sync",
+        },
+        { status: 409, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (isNotConnected(error)) {
       return NextResponse.json(
         { error: error.message, code: "not_connected" },

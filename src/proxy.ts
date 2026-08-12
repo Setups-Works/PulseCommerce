@@ -129,6 +129,17 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!pathname.startsWith("/api/")) {
+    /*
+     * Signing in is not something you can do while signed in. Leaving the form
+     * reachable means someone lands on it, cannot tell whether they are logged
+     * in, and signs in again to find out.
+     */
+    if (user && (pathname === "/login" || pathname === "/signup")) {
+      const next = request.nextUrl.searchParams.get("next");
+      const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+      return NextResponse.redirect(new URL(safe, request.url));
+    }
+
     const isProtected = PROTECTED_PAGES.some(
       (p) => pathname === p || pathname.startsWith(`${p}/`),
     );

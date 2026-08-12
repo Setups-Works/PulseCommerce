@@ -41,9 +41,8 @@ const COLUMNS: [string, [string, string][]][] = [
   [
     "Start",
     [
-      ["Get started", "/connect"],
+      ["Get started", "/signup"],
       ["Log in", "/login"],
-      ["Open the app", "/dashboard"],
       ["FAQ", "/pricing#faq"],
     ],
   ],

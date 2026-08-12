@@ -97,7 +97,7 @@ export function Hero() {
         <BlurFade delay={0.28} inView>
           <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row sm:gap-3">
             <Button size="lg" asChild className="h-11 px-6 text-sm">
-              <Link href="/connect">
+              <Link href="/signup">
                 Connect your store
                 <ArrowRight className="size-4" />
               </Link>

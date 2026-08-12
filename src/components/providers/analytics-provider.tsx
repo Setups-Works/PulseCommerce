@@ -37,6 +37,7 @@ interface AnalyticsState {
   error: string | null;
   /** True when no WooCommerce store has been authorized yet. */
   notConnected: boolean;
+  notSynced: boolean;
   range: DateRange | null;
   presetId: string;
   granularity: Granularity | "auto";
@@ -77,6 +78,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
   const [initialising, setInitialising] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notConnected, setNotConnected] = useState(false);
+  const [notSynced, setNotSynced] = useState(false);
   const [view, setView] = usePersisted(viewStore);
   const { presetId, range, granularity } = view;
   const [nonce, setNonce] = useState(0);
@@ -113,12 +115,25 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
 
         if (res.status === 409 && json?.code === "not_connected") {
           setNotConnected(true);
+          setNotSynced(false);
+          setData(null);
+          return;
+        }
+        /*
+         * Connected, but the first pull has not finished. A different state
+         * from "not connected" because the fix is different — this one needs
+         * the sync to run, not a store to be attached.
+         */
+        if (res.status === 409 && json?.code === "not_synced") {
+          setNotSynced(true);
+          setNotConnected(false);
           setData(null);
           return;
         }
         if (!res.ok) throw new Error(json?.error ?? `Request failed with ${res.status}`);
 
         setNotConnected(false);
+        setNotSynced(false);
         setData(json as AnalyticsResult);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -185,6 +200,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       initialising,
       error,
       notConnected,
+      notSynced,
       range,
       presetId,
       granularity,

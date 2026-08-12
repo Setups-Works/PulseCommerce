@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSignedIn } from "@/lib/supabase/use-session";
 import { useEffect, useState } from "react";
 import {
   Activity,
@@ -170,6 +171,7 @@ const LINKS: [string, string][] = [
 ];
 
 export function SiteHeader() {
+  const signedIn = useSignedIn();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -318,12 +320,31 @@ export function SiteHeader() {
         </NavigationMenu>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="ghost" size="lg" asChild className="hidden text-sm sm:inline-flex">
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button size="lg" asChild className="text-sm">
-            <Link href="/connect">Get started</Link>
-          </Button>
+          {/*
+            Signed-out is the default, including while the session is still
+            resolving and in the server-rendered HTML. Rendering nothing until
+            it resolves left a hole in the header on every load and gave
+            crawlers no call to action at all; most visitors to a landing page
+            are signed out, so this is right far more often than not, and a
+            signed-in visitor sees it correct itself in one frame.
+          */}
+          {signedIn ? (
+            <Button size="lg" asChild className="text-sm">
+              <Link href="/dashboard">
+                Dashboard
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" size="lg" asChild className="hidden text-sm sm:inline-flex">
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button size="lg" asChild className="text-sm">
+                <Link href="/signup">Get started</Link>
+              </Button>
+            </>
+          )}
 
           {/* ---- Mobile: a drawer, designed as one --------------------------- */}
           <Sheet open={open} onOpenChange={setOpen}>
@@ -390,17 +411,28 @@ export function SiteHeader() {
               {/* Pinned, so the two things a visitor came to do are always in
                   reach without scrolling back up a long menu. */}
               <div className="shrink-0 border-t bg-background px-4 py-3.5">
-                <Button size="lg" asChild className="h-10 w-full text-sm">
-                  <Link href="/connect" onClick={close}>
-                    Get started free
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild className="mt-2 h-10 w-full text-sm">
-                  <Link href="/login" onClick={close}>
-                    Log in
-                  </Link>
-                </Button>
+                {signedIn ? (
+                  <Button size="lg" asChild className="h-10 w-full text-sm">
+                    <Link href="/dashboard" onClick={close}>
+                      Go to dashboard
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="lg" asChild className="h-10 w-full text-sm">
+                      <Link href="/signup" onClick={close}>
+                        Get started free
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="lg" asChild className="mt-2 h-10 w-full text-sm">
+                      <Link href="/login" onClick={close}>
+                        Log in
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>

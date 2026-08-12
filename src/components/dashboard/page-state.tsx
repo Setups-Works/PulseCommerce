@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Loader2, PlugZap, Store } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, PlugZap, Store , Database } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FetchProgressPanel } from "@/components/dashboard/fetch-progress";
@@ -28,12 +28,20 @@ export function PageShell({ children }: { children: ReactNode }) {
  * guaranteed non-null result.
  */
 export function AnalyticsPage({ children }: { children: (data: AnalyticsResult) => ReactNode }) {
-  const { data, initialising, error, refresh, loading, notConnected } = useAnalytics();
+  const { data, initialising, error, refresh, loading, notConnected, notSynced } =
+    useAnalytics();
 
   if (initialising) return <LoadingState />;
 
   // No demo fallback by design: without a store there is nothing honest to show.
   if (notConnected) return <NotConnectedState />;
+
+  /*
+   * Connected, but the first pull has not run. Sending them to the sync screen
+   * is the actual next step; the generic failure card offered "Try again",
+   * which retries a read that cannot succeed until a sync happens.
+   */
+  if (notSynced) return <NotSyncedState />;
 
   if (error && !data) {
     return (
@@ -110,6 +118,33 @@ function NotConnectedState() {
             <Link href="/settings">
               Authorize a store <ArrowRight className="size-4" />
             </Link>
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function NotSyncedState() {
+  return (
+    <div className="p-4 sm:p-6">
+      <Card className="mx-auto max-w-lg gap-4 p-6 text-center">
+        <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-muted">
+          <Database className="size-5" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="font-semibold">Your store is still being copied</h2>
+          <p className="text-sm text-muted-foreground">
+            Orders are mirrored into the database so the dashboard reads them instantly. The first
+            pull takes a few minutes.
+          </p>
+        </div>
+        <div className="flex justify-center gap-2">
+          <Button asChild>
+            <Link href="/onboarding/sync">See progress</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/settings">Settings</Link>
           </Button>
         </div>
       </Card>

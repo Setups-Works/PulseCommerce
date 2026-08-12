@@ -34,7 +34,7 @@ export const PLANS: Plan[] = [
     blurb: "One store, and the full product.",
     highlight: false,
     cta: "Start free",
-    href: "/connect",
+    href: "/signup",
     limits: [
       "1 connected store",
       "Up to 2,000 orders of history",
@@ -49,7 +49,7 @@ export const PLANS: Plan[] = [
     blurb: "The tier most stores settle on.",
     highlight: true,
     cta: "Start free",
-    href: "/connect",
+    href: "/signup",
     limits: [
       "3 connected stores",
       "Up to 50,000 orders of history",

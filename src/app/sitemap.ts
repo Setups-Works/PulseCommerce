@@ -19,7 +19,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ["/integrations", 0.7, "monthly"],
     ["/pricing", 0.9, "monthly"],
     ["/api-docs", 0.5, "monthly"],
-    ["/connect", 0.6, "yearly"],
     ["/login", 0.3, "yearly"],
   ];
 

@@ -47,7 +47,7 @@ export function PageHero({
   accent,
   titleAfter,
   body,
-  primary = { label: "Connect your store", href: "/connect" },
+  primary = { label: "Connect your store", href: "/signup" },
   secondary,
   aside,
   children,
