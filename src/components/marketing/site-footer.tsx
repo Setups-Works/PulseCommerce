@@ -25,6 +25,8 @@ const COLUMNS: [string, [string, string][]][] = [
       ["WhatsApp", "/whatsapp"],
       ["Integrations", "/integrations"],
       ["Pricing", "/pricing"],
+      ["Developers", "/developers"],
+      ["Docs", "/docs"],
       ["API reference", "/api-docs"],
     ],
   ],

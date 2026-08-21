@@ -1,0 +1,85 @@
+export const metadata = {
+  title: "Analytics & sync",
+  description: "The mirror model, sync endpoints, and every read endpoint for analytics, customers and settings.",
+  alternates: { canonical: "/docs/analytics-and-sync" },
+};
+
+# Analytics & sync
+
+## The mirror model
+
+Analytics are computed from a local mirror of your store, not by calling
+WooCommerce on every request — that's what makes them fast. A cold mirror
+triggers a full pull the first time it's needed, which can take minutes on a
+large store; every request after that is served from the cache.
+
+### `GET /api/sync`
+
+How current the mirror is. Every figure this API returns is only as fresh as
+the last sync, so this is what to check before treating a number as current.
+
+```json
+{
+  "lastSyncAt": "2026-08-20T09:00:00Z",
+  "orders": 20444,
+  "customers": 11224,
+  "products": 812,
+  "lastRun": { "status": "succeeded", "mode": "incremental", "error": null, "finishedAt": "2026-08-20T09:00:12Z" }
+}
+```
+
+### `POST /api/sync`
+
+Pulls from WooCommerce now. Normally the two-hour schedule handles this —
+use it right after connecting a store, or when something changed that you
+want reflected immediately.
+
+By default only records modified since the last run are fetched. Pass
+`?full=1` to re-read the entire history. Requires the `write` scope, since it
+causes real traffic against the connected store.
+
+## Analytics
+
+### `GET /api/analytics`
+
+Every metric for a date range: KPIs, customer segments, product performance,
+and the underlying orders. Query parameters: `from`, `to` (dates),
+`granularity` (`day` | `week` | `month`), and `refresh=1` to bypass every
+cache and re-pull.
+
+### `GET /api/customers/{key}`
+
+One customer, with their full order history — the customer list itself ships
+without orders (that would be most of a record's weight repeated on every
+row), so this fills it in for one customer at a time. Accepts `from`/`to` to
+scope the order history returned.
+
+## Store settings
+
+### `GET /api/settings`
+
+Connected stores and which one is active. Credentials are redacted.
+
+### `PATCH /api/settings`
+
+Switch the active store, or change how much history is pulled
+(`historyMonths`, `maxPages`).
+
+### `DELETE /api/settings`
+
+Disconnect one store (`?url=`) or every store. Wipes the stored key and every
+cached order for whatever is removed.
+
+## Reports
+
+### `POST /api/reports/export`
+
+Generates the same Excel, PDF or CSV export the dashboard's export button
+produces, using the date range you pass rather than whatever the dashboard
+last had selected. Body: `{ format: "xlsx" | "pdf" | "csv", reports: string[], from?, to? }`.
+Only needs `read` scope — it renders existing data, it doesn't act.
+
+## Next
+
+- [Campaigns](/docs/campaigns) — the write side: audiences, previews, sends
+- [CLI reference](/docs/cli) — `pulse sync`, `pulse analytics`, `pulse reports export`

@@ -37,7 +37,8 @@ export const openApiDocument = {
       "who is not a customer of the connected store or who has opted out.\n\n" +
       "## Authentication\n\n" +
       "Every endpoint requires an API key except the connect flow, the scheduler " +
-      "hooks (which authenticate with `CRON_SECRET`) and this document.\n\n" +
+      "hooks (which authenticate with `CRON_SECRET`), the first two legs of `pulse " +
+      "login` (see the CLI login tag), and this document.\n\n" +
       "Each key belongs to an account, and an account owns its own WooCommerce " +
       "store and WhatsApp connection. A key therefore sees exactly one tenant's " +
       "data — yours — and there is no parameter that changes which.\n\n" +
@@ -74,6 +75,7 @@ export const openApiDocument = {
     { name: "Inbox", description: "Conversations and replies" },
     { name: "Auth", description: "Optional password sessions" },
     { name: "API keys", description: "Credentials for calling this API from your own code" },
+    { name: "CLI login", description: "Device-authorization login for `pulse login`" },
     { name: "Sync", description: "The local mirror of your WooCommerce store" },
   ],
   paths: {
@@ -244,6 +246,117 @@ export const openApiDocument = {
           },
           403: errorResponse("Authenticated with an API key rather than a session."),
           404: errorResponse("No active key with that id."),
+        },
+      },
+    },
+
+    "/api/cli/auth/start": {
+      post: {
+        tags: ["CLI login"],
+        summary: "Begin a device-authorization login",
+        // Public: there is no key to send yet — a device code stands in for
+        // one until a human approves it in an already-signed-in browser.
+        security: [],
+        description:
+          "Step one of `pulse login`. Returns a device code (the CLI holds this) and a " +
+          "short user code and verification URL (the human visits this, and compares the " +
+          "code shown there against what their terminal printed).",
+        requestBody: {
+          content: json({
+            type: "object",
+            properties: {
+              scopes: {
+                type: "array",
+                items: { type: "string", enum: ["read", "write"] },
+                description: "Defaults to read and write.",
+              },
+            },
+          }),
+        },
+        responses: {
+          200: {
+            description: "A device code, a user code, and where to approve it",
+            content: json({
+              type: "object",
+              properties: {
+                deviceCode: { type: "string" },
+                userCode: { type: "string", examples: ["WXYZ-2345"] },
+                verificationUrl: { type: "string", format: "uri" },
+                expiresIn: { type: "integer", description: "Seconds until the code expires" },
+                interval: { type: "integer", description: "Minimum seconds between polls" },
+              },
+            }),
+          },
+          400: errorResponse("Invalid scopes"),
+        },
+      },
+    },
+
+    "/api/cli/auth/poll": {
+      post: {
+        tags: ["CLI login"],
+        summary: "Check whether a device login has been approved",
+        security: [],
+        description:
+          "Step three of `pulse login`, called on the interval `start` returned. Returns " +
+          "`{ status: \"approved\", key, record }` exactly once — the key is minted at the " +
+          "moment a poll first observes the login approved, and cannot be retrieved again.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: { deviceCode: { type: "string" } },
+            required: ["deviceCode"],
+          }),
+        },
+        responses: {
+          200: {
+            description: "pending, denied, expired, or approved with a key",
+            content: json({
+              oneOf: [
+                { type: "object", properties: { status: { const: "pending" } } },
+                { type: "object", properties: { status: { const: "denied" } } },
+                { type: "object", properties: { status: { const: "expired" } } },
+                {
+                  type: "object",
+                  properties: {
+                    status: { const: "approved" },
+                    key: { type: "string", examples: ["pc_live_…"] },
+                    record: { $ref: "#/components/schemas/ApiKeyRecord" },
+                  },
+                },
+              ],
+            }),
+          },
+        },
+      },
+    },
+
+    "/api/cli/auth/approve": {
+      post: {
+        tags: ["CLI login"],
+        summary: "Approve or deny a device login",
+        description:
+          "Step two of `pulse login` — what the dashboard page at /cli-login calls once a " +
+          "signed-in person clicks Approve or Deny. Requires a dashboard session, the same " +
+          "reasoning as creating a key directly: an API key must not be able to mint a login " +
+          "for itself or anyone else.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              userCode: { type: "string" },
+              action: { type: "string", enum: ["approve", "deny"] },
+            },
+            required: ["userCode", "action"],
+          }),
+        },
+        responses: {
+          200: { description: "Recorded", content: json({ type: "object", properties: { ok: { type: "boolean" } } }) },
+          401: errorResponse("Not signed in"),
+          403: errorResponse("Authenticated with an API key rather than a session"),
+          409: errorResponse("The code was already used, denied, or has expired"),
         },
       },
     },

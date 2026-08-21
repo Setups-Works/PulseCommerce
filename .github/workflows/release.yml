@@ -1,0 +1,56 @@
+name: Release
+
+# Push a tag matching sdk-v* or cli-v* (e.g. `sdk-v0.1.0`, `cli-v0.2.1`) to
+# publish that one package. Each package is versioned and released
+# independently — a CLI release doesn't require a new SDK version, and
+# vice versa.
+#
+# Requires an NPM_TOKEN repository secret (Settings → Secrets and variables
+# → Actions), generated from an npm account with publish rights to
+# pulsecommerce-sdk / pulsecommerce-cli. Nothing here can publish until that
+# secret exists — this workflow is prepared, not self-sufficient.
+on:
+  push:
+    tags:
+      - "sdk-v*"
+      - "cli-v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      - name: Determine package from tag
+        id: package
+        run: |
+          if [[ "${{ github.ref_name }}" == sdk-v* ]]; then
+            echo "workspace=packages/sdk" >> "$GITHUB_OUTPUT"
+          else
+            echo "workspace=packages/cli" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The CLI depends on the SDK's built output even when only the CLI is
+      # being released — same reasoning as the CI build order.
+      - name: Build SDK
+        run: npm run build -w packages/sdk
+
+      - name: Build CLI
+        if: steps.package.outputs.workspace == 'packages/cli'
+        run: npm run build -w packages/cli
+
+      - name: Publish
+        run: npm publish -w ${{ steps.package.outputs.workspace }} --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -58,6 +58,13 @@ const PUBLIC_API = new Set([
   // scheduler has no session and no key.
   "/api/cron/flows",
   "/api/cron/sync",
+  // The first two legs of `pulse login`. There is no key to send yet — a
+  // device code stands in for one until a human approves it in a browser
+  // that already has a session. `/approve`, the third leg, is deliberately
+  // NOT here: it requires a session the normal way, the same reasoning as
+  // `/api/keys` — an API key must not be able to mint a login for itself.
+  "/api/cli/auth/start",
+  "/api/cli/auth/poll",
 ]);
 
 /**
@@ -116,6 +123,7 @@ const PROTECTED_PAGES = [
   "/menu",
   "/connect",
   "/onboarding",
+  "/cli-login",
 ];
 
 export async function proxy(request: NextRequest) {
@@ -148,13 +156,14 @@ export async function proxy(request: NextRequest) {
 
     /*
      * Remember where they were headed so signing in returns them there rather
-     * than dumping everyone on the dashboard. `next` is read back through a
-     * path-only check on the other side — see the auth callback — because a
-     * value from a URL is attacker-controllable and an absolute one would turn
-     * sign-in into an open redirect.
+     * than dumping everyone on the dashboard. Includes the query string —
+     * `/cli-login` needs its `user_code` back, not just the bare path — read
+     * back through a path-only check on the other side (see the auth
+     * callback) because a value from a URL is attacker-controllable and an
+     * absolute one would turn sign-in into an open redirect.
      */
     const login = new URL("/login", request.url);
-    login.searchParams.set("next", pathname);
+    login.searchParams.set("next", pathname + request.nextUrl.search);
     return NextResponse.redirect(login);
   }
 

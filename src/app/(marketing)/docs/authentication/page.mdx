@@ -1,0 +1,106 @@
+export const metadata = {
+  title: "Authentication",
+  description: "API keys, scopes, and exactly how a request is checked before it reaches a route.",
+  alternates: { canonical: "/docs/authentication" },
+};
+
+# Authentication
+
+Every request is checked in one place before it reaches a route handler, so
+the rules below apply identically to all 29 endpoints — there is no route
+that authenticates itself differently.
+
+## Two ways in
+
+**A dashboard session.** A cookie, set when you sign in through the browser.
+It can do anything the dashboard's own UI can do, including creating and
+revoking API keys.
+
+**An API key.** Sent as `Authorization: Bearer pc_live_…`, or as the header
+`X-API-Key: pc_live_…` for clients that reserve `Authorization` for something
+else. A key belongs to one account and sees exactly that account's data —
+there is no parameter that changes which store a key acts against.
+
+## Key lifecycle
+
+A key is 32 random bytes, prefixed `pc_live_`. Only a SHA-256 digest is
+stored — never the key itself — so it is shown in full exactly once, at
+creation, in **Settings → API keys**. Lose it and issue a new one; there is
+no "reveal" later because there is nothing left to reveal.
+
+**A key can neither create nor revoke a key.** `POST /api/keys` and
+`DELETE /api/keys/{id}` both require a dashboard session and reject an API
+key with `403`. This is deliberate: a leaked key can be used to read or act
+on your data within its scopes, but it cannot extend its own life or mint a
+replacement. It's also why the [CLI](/docs/cli) has no `keys` command — it
+only ever holds a key, never a session.
+
+Revoking a key takes effect within about thirty seconds. If a key is known to
+be compromised, re-authorize the store connection as well.
+
+## CLI login
+
+`pulse login` gets a key without typing or pasting one, using the same
+device-authorization shape `gh`, `vercel` and `doctl` use:
+
+1. The CLI asks `POST /api/cli/auth/start` (public — there is nothing to
+   authenticate yet) for a device code and a short, human-typeable user code.
+2. It opens your browser to a page showing that user code, so you can compare
+   it against what your terminal printed before approving anything.
+3. Approving calls `POST /api/cli/auth/approve`, which requires a dashboard
+   session — the same rule as creating a key directly, so an API key can't
+   approve a login for itself.
+4. The CLI polls `POST /api/cli/auth/poll` (public) until it sees the login
+   approved. The key is minted at that exact moment and returned once; a
+   second poll after that finds the code already spent.
+
+The result is identical to creating a key in Settings — same table, same
+`pc_live_…` prefix, same scopes — `pulse login` just skips the copy-paste.
+Full command reference: [CLI reference](/docs/cli).
+
+## Scopes
+
+| Scope | Covers |
+|---|---|
+| `read` | Everything that reads or renders the store's data — analytics, customers, settings, report exports, the assistant |
+| `write` | Anything that acts in the world — sending WhatsApp messages, creating coupons, editing flows, triggering a sync |
+
+The rule for which one an endpoint needs is simple, with three named
+exceptions:
+
+- `GET`, `HEAD`, `OPTIONS` → `read`
+- Everything else (`POST`, `PUT`, `PATCH`, `DELETE`) → `write`, **except**:
+  - `POST /api/reports/export`
+  - `POST /api/whatsapp/preview`
+  - `POST /api/ai/chat`
+
+Those three are `POST` requests that only read and render — a report export,
+a campaign dry run, and a question to the assistant — so they need only
+`read`, not `write`.
+
+Calling an endpoint outside a key's scopes returns `403`, naming the scope
+that was missing:
+
+```json
+{
+  "error": "This key does not have the \"write\" scope.",
+  "hint": "\"Reporting cron\" is limited to: read. Issue a key with the \"write\" scope to call this endpoint."
+}
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | No key presented, or the key is invalid — revoked, or mistyped |
+| `403` | The key is valid but lacks the scope the endpoint needs, or the caller used a key where only a session is accepted |
+| `409` | Usually "no store connected" — nothing to authenticate against yet |
+
+Every rejected request carries `{ error, hint }` and, on `401`/`403`, a
+`WWW-Authenticate` header naming the expected scheme — so a client library
+can tell from the response alone what to retry with.
+
+## Next
+
+- [CLI reference](/docs/cli) — the same key, from a terminal
+- [Campaigns](/docs/campaigns) — where the `write` scope actually gets used

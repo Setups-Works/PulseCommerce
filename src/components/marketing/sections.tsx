@@ -598,6 +598,41 @@ export function CampaignBuilderMock() {
   );
 }
 
+/**
+ * A terminal window, for the half of the product that never opens a browser.
+ *
+ * Built the same way every other mock on this page is — real text in a real
+ * frame, not a screenshot — so the commands shown are commands the CLI
+ * actually has, and cannot drift from it silently.
+ */
+export function TerminalMock() {
+  const lines: { prompt?: boolean; text: string; dim?: boolean }[] = [
+    { prompt: true, text: "pulse analytics --from 2026-01-01 --json | jq .kpis" },
+    { text: '{ "revenue": "₹7.07L", "orders": 20444, "repeatRate": 0.24 }', dim: true },
+    { prompt: true, text: "pulse campaigns preview --file winback.json" },
+    { text: "Matched 214  Deliverable 198  Skipped (opted out) 16", dim: true },
+  ];
+
+  return (
+    <Card className="overflow-hidden bg-neutral-950 p-0 ring-1 ring-foreground/10">
+      <div className="flex items-center gap-1.5 border-b border-white/10 px-4 py-2.5">
+        <span className="size-2.5 rounded-full bg-white/20" />
+        <span className="size-2.5 rounded-full bg-white/20" />
+        <span className="size-2.5 rounded-full bg-white/20" />
+        <span className="ml-2 truncate text-[11px] text-white/40">pulse</span>
+      </div>
+      <div className="space-y-1.5 p-4 font-mono text-[11px] leading-relaxed sm:text-xs">
+        {lines.map((line, i) => (
+          <p key={i} className={line.dim ? "text-white/45" : "text-white/85"}>
+            {line.prompt ? <span className="text-emerald-400">$ </span> : null}
+            {line.text}
+          </p>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 /** The dashboard and the phone, as one row: the audience and the message. */
 export function HeroShowcase() {
   return (

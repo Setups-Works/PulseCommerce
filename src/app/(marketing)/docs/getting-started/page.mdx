@@ -1,0 +1,83 @@
+export const metadata = {
+  title: "Getting started",
+  description: "Connect a store, run the first sync, create an API key, and make your first authenticated request.",
+  alternates: { canonical: "/docs/getting-started" },
+};
+
+# Getting started
+
+PulseCommerce mirrors your WooCommerce store's orders, customers and products
+into its own database, computes analytics from that mirror, and lets you send
+WhatsApp campaigns and automated flows against it. Everything below the
+dashboard is available the same way through the API — this page gets a fresh
+API key from zero to its first successful request.
+
+## 1. Connect a store
+
+Connecting is a dashboard-only step: you approve read access inside your own
+WordPress admin, the same app-authorization flow WooCommerce itself provides.
+There is no endpoint that accepts a consumer key directly — the API only ever
+sees a store that has already gone through this flow.
+
+Once connected, check the state with:
+
+```bash
+curl https://your-deployment/api/settings \
+  -H "Authorization: Bearer pc_live_…"
+```
+
+## 2. Run the first sync
+
+Analytics are computed from the local mirror, not from a live call to
+WooCommerce on every request — that mirror has to exist first.
+
+```bash
+curl -X POST https://your-deployment/api/sync \
+  -H "Authorization: Bearer pc_live_…"
+```
+
+By default only records modified since the last run are pulled. Add
+`?full=1` to re-read the entire order history — on a large store this can
+take minutes. After the first sync, the mirror refreshes on its own every two
+hours; `GET /api/sync` reports when it last ran.
+
+## 3. Create an API key
+
+In the dashboard, go to **Settings → API keys** and create one. The key is
+shown once, in full — only its digest is stored, so there is no way to
+recover it later if you lose it. Give it the scopes it needs: `read` for
+anything that reads your data, `write` for anything that sends a message,
+creates a coupon, or triggers a sync.
+
+There is no way to create or read back a key through the API itself — key
+management requires a signed-in dashboard session. See
+[Authentication](/docs/authentication) for why.
+
+## 4. Make your first request
+
+```bash
+curl https://your-deployment/api/analytics \
+  -H "Authorization: Bearer pc_live_…"
+```
+
+A missing or invalid key returns `401`; a key without the scope an endpoint
+needs returns `403` naming it. Both come with a `hint` field saying what to
+do next.
+
+## 5. Or use the CLI
+
+If you'd rather not hand-write requests, [install `pulse`](/docs/cli) and
+sign in through your browser — no key to copy or paste:
+
+```bash
+npm install -g pulsecommerce-cli
+pulse login
+pulse sync status
+```
+
+## Next
+
+- [Authentication](/docs/authentication) — scopes, and what a key can and can't do
+- [SDK](/docs/sdk) — writing your own script instead of using the CLI
+- [Analytics & sync](/docs/analytics-and-sync) — the read endpoints, in full
+- [Campaigns](/docs/campaigns) — resolving an audience and sending to it

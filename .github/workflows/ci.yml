@@ -37,6 +37,21 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # The SDK builds first — the CLI's own typecheck resolves its types
+      # from packages/sdk/dist, the same way a real consumer installing both
+      # from npm would.
+      - name: Build SDK
+        run: npm run build -w packages/sdk
+
+      - name: Typecheck CLI
+        run: npm run typecheck -w packages/cli
+
+      - name: Build CLI
+        run: npm run build -w packages/cli
+
+      - name: CLI smoke
+        run: node packages/cli/dist/index.js --help
+
   test:
     name: End-to-end
     runs-on: ubuntu-latest

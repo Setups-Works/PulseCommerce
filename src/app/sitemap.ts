@@ -18,7 +18,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ["/whatsapp", 0.8, "monthly"],
     ["/integrations", 0.7, "monthly"],
     ["/pricing", 0.9, "monthly"],
+    ["/developers", 0.7, "monthly"],
     ["/api-docs", 0.5, "monthly"],
+    ["/docs", 0.6, "monthly"],
+    ["/docs/getting-started", 0.6, "monthly"],
+    ["/docs/authentication", 0.6, "monthly"],
+    ["/docs/cli", 0.6, "monthly"],
+    ["/docs/sdk", 0.6, "monthly"],
+    ["/docs/analytics-and-sync", 0.6, "monthly"],
+    ["/docs/campaigns", 0.6, "monthly"],
     ["/login", 0.3, "yearly"],
   ];
 

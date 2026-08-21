@@ -17,6 +17,7 @@ import {
   Menu,
   MessageCircle,
   Sparkles,
+  Terminal,
   Users,
   Workflow,
 } from "lucide-react";
@@ -160,6 +161,12 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
         description: "OpenAPI schema, browsable",
         icon: Code2,
       },
+      {
+        label: "Developer platform",
+        href: "/developers",
+        description: "API, CLI and how they fit together",
+        icon: Terminal,
+      },
     ],
   },
 ];
@@ -167,6 +174,7 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
 const LINKS: [string, string][] = [
   ["Features", "/features"],
   ["Integrations", "/integrations"],
+  ["Docs", "/docs"],
   ["Pricing", "/pricing"],
 ];
 

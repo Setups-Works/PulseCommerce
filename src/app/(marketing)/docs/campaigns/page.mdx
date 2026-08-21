@@ -1,0 +1,107 @@
+export const metadata = {
+  title: "Campaigns",
+  description: "How an audience becomes a filter, a filter becomes a preview, and a preview becomes a send.",
+  alternates: { canonical: "/docs/campaigns" },
+};
+
+# Campaigns
+
+Every sending endpoint follows the same shape: describe who to reach, see
+exactly who that resolves to, then send — with the send refusing to go out if
+the audience changed between the two steps.
+
+## Audiences are described, never enumerated
+
+There is no request shape anywhere in this API that accepts a list of phone
+numbers. You send a filter; the server resolves recipients itself, which
+means no request can address someone who isn't a customer of the connected
+store or who has opted out.
+
+**`AudienceFilter`** — `segments`, `tiers`, `recencyMin`/`recencyMax` (days
+since last order), `minSpend`, `minOrders`, `churnRiskMin`, `countries`,
+`accountType`, `boughtProduct`, `requireEmail`, `requirePhone`.
+
+**`CustomerKeys`** — narrows to specific customers by their opaque key, never
+a phone number. The server still resolves the number and still applies
+opt-outs.
+
+## 1. Preview
+
+### `POST /api/whatsapp/preview`
+
+A dry run: resolves exactly the list a broadcast would send to, and sends
+nothing. Body: `{ filter, range?, customerKeys?, message? }`.
+
+```json
+{
+  "matched": 214,
+  "deliverable": 198,
+  "skipped": { "noPhone": 4, "unparseable": 2, "optedOut": 10, "duplicate": 0 },
+  "sample": ["9***3210", "9***9982"],
+  "estimatedMs": 42000
+}
+```
+
+`sample` is masked. Only needs `read` scope — nothing is sent yet.
+
+## 2. Send
+
+### `POST /api/whatsapp/broadcast`
+
+Starts a broadcast. Body is the same as preview, plus `confirm`: an integer
+that **must equal the `deliverable` count the preview just showed**. The
+audience is re-resolved at send time and the request is refused if it has
+changed — so a send can't go out against a list that's drifted since you last
+looked at it.
+
+This creates the job and returns immediately; it doesn't send anything
+itself. Sending happens in batches, handed off by:
+
+### `GET` / `POST` / `DELETE` `/api/whatsapp/broadcast/{id}`
+
+`GET` returns progress. `POST` hands the next batch to the gateway — one
+batch per call, so a single request never has to outlive the whole send.
+`DELETE` stops the broadcast; batches the gateway already accepted still go
+out.
+
+## Testing without an audience
+
+### `POST /api/whatsapp/test`
+
+Sends one message to a number you type by hand — `{ phone, message }`.
+Deliberately isolated from the audience machinery: there's no path from this
+endpoint to your customer list. The opt-out list still applies.
+
+## Flows: the same pattern, spread over time
+
+### `GET` / `POST` `/api/whatsapp/flows`
+
+A flow is a multi-step sequence — `entry` (an `AudienceFilter`) plus an
+ordered list of `steps`, each waiting a number of days after the previous
+one. Always created as a **draft**: designing a sequence and starting to send
+it are two different decisions, and conflating them turns a typo in a filter
+into messages nobody can recall.
+
+`testPhone` routes every step of a new flow to one number instead of the real
+entry audience, so a sequence can be checked before anyone real is in it.
+
+### `GET` / `PATCH` / `DELETE` `/api/whatsapp/flows/{id}`
+
+`PATCH` can rename a flow or change its status
+(`draft` → `active` → `paused`), but **not** its steps or entry filter —
+people are already partway through a running flow, and changing a later step
+under someone who already had the earlier ones would give them a sequence
+nobody designed. Pausing is the reversible option; deleting discards
+everyone's progress.
+
+## Opt-outs
+
+### `GET` / `POST` / `DELETE` `/api/whatsapp/opt-out`
+
+The list every send, test, and flow step checks before delivering anything.
+Returned masked, since it's read in a browser.
+
+## Next
+
+- [CLI reference](/docs/cli) — `pulse campaigns preview|broadcast|test`
+- [Authentication](/docs/authentication) — which of the above need `write`

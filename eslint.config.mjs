@@ -62,6 +62,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The CLI workspace's bundled output — generated, not authored.
+    "packages/*/dist/**",
   ]),
 ]);
 

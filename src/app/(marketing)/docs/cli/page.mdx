@@ -1,0 +1,122 @@
+export const metadata = {
+  title: "CLI reference",
+  description: "Install pulse, configure it, and its full command set — one command per API route.",
+  alternates: { canonical: "/docs/cli" },
+};
+
+# CLI reference
+
+`pulse` is a thin client over [`pulsecommerce-sdk`](/docs/sdk), which is a
+thin client over the same REST API the dashboard uses. It adds no capability
+the API doesn't already have — every command below is one route.
+
+## Install
+
+```bash
+npm install -g pulsecommerce-cli
+```
+
+## Sign in
+
+```bash
+pulse login
+```
+
+Opens a browser to a code your terminal also printed — approve it in a
+session that's already signed in, and the key comes back without ever being
+typed or pasted. This is the same session-gated key creation Settings → API
+keys does; `pulse login` just skips the copy-paste. `pulse logout` clears it.
+
+For CI, containers, or anywhere a browser can't open:
+
+```bash
+pulse config set --api-key pc_live_… --base-url https://your-deployment
+pulse config show
+```
+
+Credentials resolve in this order: the `--api-key`/`--base-url` flags on a
+given call, then the `PULSE_API_KEY`/`PULSE_BASE_URL` environment variables,
+then the saved config file (`~/.config/pulsecommerce/config.json`, or under
+`$XDG_CONFIG_HOME` if set — written with `0600` permissions).
+
+There is still no `pulse keys` command. See
+[Authentication](/docs/authentication) for why — a key cannot create or
+revoke another key, and neither can `pulse login`; it goes through the same
+session-gated path Settings does.
+
+## Commands
+
+| Command | Route | Scope |
+|---|---|---|
+| `pulse login` / `logout` | `POST /api/cli/auth/start`, `/poll` | — (public; mints a key via a browser session) |
+| `pulse config set` / `config show` | — (local) | — |
+| `pulse sync status` | `GET /api/sync` | `read` |
+| `pulse sync run [--full] [--yes]` | `POST /api/sync` | `write` |
+| `pulse analytics [--from] [--to] [--granularity] [--refresh]` | `GET /api/analytics` | `read` |
+| `pulse customers get <key> [--from] [--to]` | `GET /api/customers/{key}` | `read` |
+| `pulse settings show` | `GET /api/settings` | `read` |
+| `pulse reports export --format <xlsx\|pdf\|csv> --reports <a,b> --out <path>` | `POST /api/reports/export` | `read` |
+| `pulse campaigns preview --file <campaign.json>` | `POST /api/whatsapp/preview` | `read` |
+| `pulse campaigns broadcast --file <campaign.json> [--yes]` | `POST /api/whatsapp/broadcast` | `write` |
+| `pulse campaigns test --phone <p> --file <message.json> [--yes]` | `POST /api/whatsapp/test` | `write` |
+| `pulse campaigns status <id>` | `GET /api/whatsapp/broadcast/{id}` | `read` |
+| `pulse campaigns cancel <id> [--yes]` | `DELETE /api/whatsapp/broadcast/{id}` | `write` |
+| `pulse flows list` | `GET /api/whatsapp/flows` | `read` |
+| `pulse flows get <id>` | `GET /api/whatsapp/flows/{id}` | `read` |
+
+Anything that sends a real message or triggers a real resync prompts for
+confirmation, or accepts `--yes` to skip the prompt in a script.
+
+## Worked examples
+
+Sign in, then check how current the mirror is, then pull everything:
+
+```bash
+pulse login
+pulse sync status
+pulse sync run --full --yes
+```
+
+Pull KPIs as JSON, for piping into something else:
+
+```bash
+pulse analytics --from 2026-01-01 --to 2026-01-31 --json
+```
+
+Preview an audience before committing to anything:
+
+```bash
+cat > winback.json <<'JSON'
+{
+  "filter": { "segments": ["at-risk"], "recencyMin": 90 },
+  "message": { "type": "text", "text": "Hi {{name}}, your usual refill is running low." }
+}
+JSON
+
+pulse campaigns preview --file winback.json
+```
+
+That prints `matched`, `deliverable`, and why anyone was skipped. Once it
+looks right:
+
+```bash
+pulse campaigns broadcast --file winback.json
+```
+
+`broadcast` runs the same preview internally, shows you the same numbers,
+asks for confirmation (or accepts `--yes`), and sends with the exact
+`deliverable` count the preview showed — matching what
+[the campaigns guide](/docs/campaigns) describes the API itself requiring.
+
+Export a report:
+
+```bash
+pulse reports export --format csv --reports revenue,customers \
+  --from 2026-01-01 --to 2026-01-31 --out report.csv
+```
+
+## Next
+
+- [Campaigns](/docs/campaigns) — what `preview` and `broadcast` are actually doing
+- [Analytics & sync](/docs/analytics-and-sync) — every read command's underlying route
+- [SDK](/docs/sdk) — what `pulse` is built on, for writing your own scripts

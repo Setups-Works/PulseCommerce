@@ -1,0 +1,82 @@
+export const metadata = {
+  title: "SDK",
+  description: "Install pulsecommerce-sdk and call the API from your own TypeScript or JavaScript code.",
+  alternates: { canonical: "/docs/sdk" },
+};
+
+# SDK
+
+`pulsecommerce-sdk` is a typed TypeScript client for the same REST API
+described throughout these guides. It's what [the CLI](/docs/cli) is built
+on — install it directly when you're writing your own script or service
+instead of shelling out to `pulse`.
+
+## Install
+
+```bash
+npm install pulsecommerce-sdk
+```
+
+## Use it
+
+```ts
+import { PulseCommerceClient } from "pulsecommerce-sdk";
+
+const client = new PulseCommerceClient({
+  apiKey: process.env.PULSE_API_KEY!, // pc_live_...
+  baseUrl: "https://your-deployment",
+});
+
+const { kpis } = await client.analytics.get({ from: "2026-01-01" });
+```
+
+Every rejected request throws `PulseApiError`, with `.status` and `.hint` —
+the same fields the API's own `{ error, hint }` response carries:
+
+```ts
+import { PulseApiError } from "pulsecommerce-sdk";
+
+try {
+  await client.sync.run({ full: true });
+} catch (err) {
+  if (err instanceof PulseApiError) {
+    console.error(err.message, err.hint);
+  }
+}
+```
+
+## Method groups
+
+| Group | Methods |
+|---|---|
+| `sync` | `status()` → `GET /api/sync`; `run({ full? })` → `POST /api/sync` |
+| `analytics` | `get({ from?, to?, granularity?, refresh? })` → `GET /api/analytics` |
+| `customers` | `get(key, { from?, to? })` → `GET /api/customers/{key}` |
+| `settings` | `get()` → `GET /api/settings` |
+| `reports` | `export({ format, reports, from?, to? })` → `POST /api/reports/export`, returns an `ArrayBuffer` |
+| `campaigns` | `preview(body)` → `POST /api/whatsapp/preview`; `broadcast(body)` → `POST /api/whatsapp/broadcast`; `test({ phone, message })` → `POST /api/whatsapp/test`; `status(id)` / `cancel(id)` → `GET`/`DELETE /api/whatsapp/broadcast/{id}` |
+| `flows` | `list()` / `get(id)` → `GET /api/whatsapp/flows[/{id}]` |
+| `auth` | `startDeviceLogin(scopes?)` / `pollDeviceLogin(deviceCode)` → `POST /api/cli/auth/start`, `/poll` |
+
+## The preview-then-broadcast pattern
+
+`broadcast()` doesn't call `preview()` for you — that's a CLI-level
+convenience, not an SDK one. Call both yourself, and pass the preview's
+`deliverable` count as `confirm`, matching what
+[the campaigns guide](/docs/campaigns) describes the route requiring:
+
+```ts
+const filter = { segments: ["at-risk"] };
+const message = { type: "text" as const, text: "Hi {{name}}, your usual refill is running low." };
+
+const preview = await client.campaigns.preview({ filter, message });
+
+if (preview.deliverable > 0) {
+  await client.campaigns.broadcast({ filter, message, confirm: preview.deliverable });
+}
+```
+
+## Next
+
+- [CLI reference](/docs/cli) — the same SDK, wrapped in commands
+- [Authentication](/docs/authentication) — scopes, and where a key comes from

@@ -1,3 +1,4 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 /**
@@ -57,6 +58,10 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // The docs guides under /docs are .mdx files — everything else in the app
+  // is unaffected, since this only adds two extensions to the existing set.
+  pageExtensions: ["ts", "tsx", "mdx"],
+
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
@@ -77,4 +82,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// The docs guides use GFM tables for scope/error/command reference — plain
+// CommonMark (what @next/mdx uses by default) doesn't parse `| a | b |` rows
+// at all, so without this plugin those tables render as literal pipe text.
+// remark-gfm is already a project dependency, used elsewhere for rendering
+// the AI assistant's markdown output. Passed by name rather than imported:
+// Turbopack can't hand a JS function to its Rust MDX compiler, only a
+// serializable plugin reference.
+const withMDX = createMDX({
+  options: { remarkPlugins: ["remark-gfm"] },
+});
+
+export default withMDX(nextConfig);
