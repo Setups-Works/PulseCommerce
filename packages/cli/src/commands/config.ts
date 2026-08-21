@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { configPath, maskKey, readConfig, writeConfig } from "../config.js";
+import { configPath, maskKey, readConfig, resolveBaseUrl, writeConfig } from "../config.js";
 
 /**
  * Local credentials only. There is deliberately no `pulse keys` command — the
@@ -37,8 +37,9 @@ export function registerConfigCommand(program: Command): void {
     .description("Print the saved base URL and a masked key")
     .action(() => {
       const saved = readConfig();
+      const source = saved.baseUrl ? "saved" : process.env.PULSE_BASE_URL ? "env" : "default";
       console.log(`Config file   ${configPath()}`);
-      console.log(`Base URL      ${saved.baseUrl ?? "(not set)"}`);
+      console.log(`Base URL      ${resolveBaseUrl({})} (${source})`);
       console.log(`API key       ${saved.apiKey ? maskKey(saved.apiKey) : "(not set)"}`);
     });
 }

@@ -34,9 +34,12 @@ pulse config set --api-key pc_live_… --base-url https://your-deployment
 pulse config show
 ```
 
-Credentials resolve in this order: the `--api-key`/`--base-url` flags on a
-given call, then the `PULSE_API_KEY`/`PULSE_BASE_URL` environment variables,
-then the saved config file (`~/.config/pulsecommerce/config.json`, or under
+The base URL resolves in this order: the `--base-url` flag on a given call,
+then `PULSE_BASE_URL`, then the saved config file, then a built-in default
+pointing at this deployment — so `pulse login` needs nothing set up first.
+Pointing at a different deployment is one flag away. The API key follows the
+same order minus the built-in default, since there's no key to default to.
+Config lives at `~/.config/pulsecommerce/config.json` (or under
 `$XDG_CONFIG_HOME` if set — written with `0600` permissions).
 
 There is still no `pulse keys` command. See

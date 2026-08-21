@@ -38,10 +38,12 @@ pulse config set --api-key pc_live_... --base-url https://your-deployment
 pulse config show
 ```
 
-Flags (`--api-key`, `--base-url`), then the `PULSE_API_KEY` / `PULSE_BASE_URL`
-environment variables, then the saved config file, in that order of
-precedence. The config file lives at `~/.config/pulsecommerce/config.json`
-(or under `$XDG_CONFIG_HOME` if set) and is written with `0600` permissions.
+The base URL resolves as `--base-url` flag → `PULSE_BASE_URL` → saved config
+→ a built-in default pointing at pulsecommerce-sw.vercel.app, so `pulse login`
+needs nothing set up first; point at a different deployment with one flag.
+The API key follows the same order minus the built-in default. Config lives
+at `~/.config/pulsecommerce/config.json` (or under `$XDG_CONFIG_HOME` if set)
+and is written with `0600` permissions.
 
 There is still no `pulse keys` command — the API only allows a key to be
 created or revoked by a dashboard session, never by another key, and

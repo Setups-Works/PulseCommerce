@@ -1,11 +1,11 @@
 {
   "name": "pulsecommerce-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Command-line client for the PulseCommerce API.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pulsecommerce/pulsecommerce.git",
+    "url": "git+https://github.com/nitheeshdr/PulseCommerce.git",
     "directory": "packages/cli"
   },
   "keywords": ["pulsecommerce", "woocommerce", "whatsapp", "cli"],

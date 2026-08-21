@@ -3,7 +3,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 /**
- * Local credentials, resolved with flags > env vars > the config file.
+ * Local credentials, resolved with flags > env vars > the config file > (for
+ * baseUrl only) a built-in default.
  *
  * Mirrors the precedence a well-behaved CLI is expected to have, and matters
  * here specifically because a key in a shell history or a CI secret should
@@ -14,6 +15,16 @@ export interface Config {
   apiKey?: string;
   baseUrl?: string;
 }
+
+/**
+ * This CLI ships for one product, not as a generic client for an arbitrary
+ * self-hosted instance — so unlike the SDK (which takes `baseUrl` as a
+ * required constructor argument, on purpose, for exactly that generality),
+ * it's fine for the CLI to know where its own deployment lives. Still fully
+ * overridable via `--base-url`, `PULSE_BASE_URL`, or `config set` for anyone
+ * running their own deployment instead.
+ */
+const DEFAULT_BASE_URL = "https://pulsecommerce-sw.vercel.app";
 
 function configDir(): string {
   const xdg = process.env.XDG_CONFIG_HOME;
@@ -48,12 +59,7 @@ export interface ResolvedCredentials {
 /** Same precedence as `resolveCredentials`, for the one command that runs before an API key exists: `pulse login`. */
 export function resolveBaseUrl(opts: { baseUrl?: string }): string {
   const file = readConfig();
-  const baseUrl = opts.baseUrl ?? process.env.PULSE_BASE_URL ?? file.baseUrl;
-  if (!baseUrl) {
-    console.error("No base URL configured.");
-    console.error("Pass --base-url, or set PULSE_BASE_URL, e.g. https://your-deployment.");
-    process.exit(1);
-  }
+  const baseUrl = opts.baseUrl ?? process.env.PULSE_BASE_URL ?? file.baseUrl ?? DEFAULT_BASE_URL;
   return baseUrl.replace(/\/+$/, "");
 }
 
@@ -66,16 +72,11 @@ export function maskKey(key: string): string {
 export function resolveCredentials(opts: { apiKey?: string; baseUrl?: string }): ResolvedCredentials {
   const file = readConfig();
   const apiKey = opts.apiKey ?? process.env.PULSE_API_KEY ?? file.apiKey;
-  const baseUrl = opts.baseUrl ?? process.env.PULSE_BASE_URL ?? file.baseUrl;
+  const baseUrl = opts.baseUrl ?? process.env.PULSE_BASE_URL ?? file.baseUrl ?? DEFAULT_BASE_URL;
 
   if (!apiKey) {
     console.error("No API key configured.");
     console.error("Run `pulse login` to sign in through your browser, or `pulse config set --api-key pc_live_...`.");
-    process.exit(1);
-  }
-  if (!baseUrl) {
-    console.error("No base URL configured.");
-    console.error("Set one with `pulse config set --base-url https://your-deployment`, or pass --base-url.");
     process.exit(1);
   }
 

@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pulsecommerce/pulsecommerce.git",
+    "url": "git+https://github.com/nitheeshdr/PulseCommerce.git",
     "directory": "packages/sdk"
   },
   "keywords": ["pulsecommerce", "woocommerce", "whatsapp", "sdk", "api-client"],
