@@ -30,13 +30,15 @@ export interface WhatsAppConfig {
 }
 
 /*
- * One row, in `whatsapp_config`. The table has a boolean primary key with a
- * `check (id)` constraint, so a second row is impossible at the database level
- * rather than by every write path remembering to say "where id = 1".
+ * One row per user, in `whatsapp_connections` — the multi-tenant replacement
+ * for the old single-row `whatsapp_config` table, which the multi-tenant
+ * migration dropped (see supabase/migrations/20260811140000_multi_tenant.sql).
+ * `user_id` is the primary key, so every read and write here is scoped to one
+ * account the same way `stores`/`activeStore` already is.
  *
  * `session_id` doubles as the slot for a session adopted from the gateway when
  * the environment names none, which is why an env-configured gateway still
- * reads and writes here.
+ * reads and writes here, one row per user.
  */
 
 export const DEFAULT_SEND_DELAY_MS = 4000;
@@ -54,6 +56,10 @@ export const MAX_BATCH_SIZE = 100;
  * key has no such flow: it is issued in your own OpenWA dashboard and pasted
  * somewhere either way. Putting it in the environment makes the connection
  * survive a redeploy, a cleared store, and a mis-click on Disconnect.
+ *
+ * Applies the same way to every tenant on this deployment — appropriate for a
+ * self-hosted instance run by one operator, which is the case this option
+ * exists for.
  */
 function environmentConfig(): Omit<WhatsAppConfig, "sessionId"> | null {
   const baseUrl = process.env.WHATSAPP_API_URL?.trim();
@@ -76,29 +82,33 @@ export function configuredByEnvironment(): boolean {
   return environmentConfig() !== null;
 }
 
-export async function readWhatsAppConfig(): Promise<WhatsAppConfig | null> {
+export async function readWhatsAppConfig(userId: string): Promise<WhatsAppConfig | null> {
   const fromEnv = environmentConfig();
 
   if (fromEnv) {
     // The session id is the one part that may not be known up front, so it can
-    // be omitted and adopted from the gateway once, then remembered.
+    // be omitted and adopted from the gateway once, then remembered — against
+    // this user's own row, so one tenant's adopted session is never read back
+    // for another.
     const sessionId =
       process.env.WHATSAPP_SESSION_ID?.trim() ||
-      (await readAdoptedSession()) ||
+      (await readAdoptedSession(userId)) ||
       "";
     return { ...fromEnv, sessionId };
   }
 
   try {
-    const [row] = await db()<ConfigRow[]>`
-      select base_url, api_key, session_id, dial_code, send_delay_ms, updated_at
-      from whatsapp_config where id
+    const [row] = await db()<ConnectionRow[]>`
+      select base_url, api_key, session_id, session_name, phone, dial_code, send_delay_ms, updated_at
+      from whatsapp_connections where user_id = ${userId}
     `;
     if (!row?.base_url || !row.api_key || !row.session_id) return null;
     return {
       baseUrl: row.base_url,
       apiKey: row.api_key,
       sessionId: row.session_id,
+      sessionName: row.session_name ?? undefined,
+      phone: row.phone ?? undefined,
       defaultDialCode: (row.dial_code ?? "").replace(/\D/g, ""),
       delayBetweenMessagesMs: Math.max(
         MIN_SEND_DELAY_MS,
@@ -111,20 +121,22 @@ export async function readWhatsAppConfig(): Promise<WhatsAppConfig | null> {
   }
 }
 
-interface ConfigRow {
+interface ConnectionRow {
   base_url: string | null;
   api_key: string | null;
   session_id: string | null;
+  session_name: string | null;
+  phone: string | null;
   dial_code: string | null;
   send_delay_ms: number | null;
   updated_at: Date | null;
 }
 
 /** The session adopted from the gateway, when the environment named none. */
-async function readAdoptedSession(): Promise<string | null> {
+async function readAdoptedSession(userId: string): Promise<string | null> {
   try {
     const [row] = await db()<{ session_id: string | null }[]>`
-      select session_id from whatsapp_config where id
+      select session_id from whatsapp_connections where user_id = ${userId}
     `;
     return row?.session_id ?? null;
   } catch {
@@ -139,31 +151,36 @@ async function readAdoptedSession(): Promise<string | null> {
  * key from the environment, and writing nulls over them here would break the
  * next read.
  */
-export async function rememberAdoptedSession(sessionId: string): Promise<void> {
+export async function rememberAdoptedSession(userId: string, sessionId: string): Promise<void> {
   await db()`
-    insert into whatsapp_config (id, session_id) values (true, ${sessionId})
-    on conflict (id) do update set session_id = excluded.session_id
+    insert into whatsapp_connections (user_id, session_id) values (${userId}, ${sessionId})
+    on conflict (user_id) do update set session_id = excluded.session_id
   `;
 }
 
-export async function writeWhatsAppConfig(config: WhatsAppConfig): Promise<void> {
+export async function writeWhatsAppConfig(userId: string, config: WhatsAppConfig): Promise<void> {
   await db()`
-    insert into whatsapp_config (id, base_url, api_key, session_id, dial_code, send_delay_ms)
+    insert into whatsapp_connections (
+      user_id, base_url, api_key, session_id, session_name, phone, dial_code, send_delay_ms
+    )
     values (
-      true, ${config.baseUrl}, ${config.apiKey}, ${config.sessionId},
+      ${userId}, ${config.baseUrl}, ${config.apiKey}, ${config.sessionId},
+      ${config.sessionName ?? null}, ${config.phone ?? null},
       ${config.defaultDialCode}, ${config.delayBetweenMessagesMs}
     )
-    on conflict (id) do update set
+    on conflict (user_id) do update set
       base_url      = excluded.base_url,
       api_key       = excluded.api_key,
       session_id    = excluded.session_id,
+      session_name  = excluded.session_name,
+      phone         = excluded.phone,
       dial_code     = excluded.dial_code,
       send_delay_ms = excluded.send_delay_ms
   `;
 }
 
-export async function clearWhatsAppConfig(): Promise<void> {
-  await db()`delete from whatsapp_config`;
+export async function clearWhatsAppConfig(userId: string): Promise<void> {
+  await db()`delete from whatsapp_connections where user_id = ${userId}`;
 }
 
 /** Normalises a user-entered gateway URL, or throws with a usable message. */

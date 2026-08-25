@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(userId);
   const normalised = normalisePhone(parsed.data.phone, {
     defaultDialCode: config?.defaultDialCode ?? "",
   });
@@ -70,7 +70,7 @@ export async function DELETE(request: Request) {
   const phone = new URL(request.url).searchParams.get("phone");
   if (!phone) return NextResponse.json({ error: "A phone number is required." }, { status: 400 });
 
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(userId);
   const normalised = normalisePhone(phone, { defaultDialCode: config?.defaultDialCode ?? "" });
   const entries = await removeOptOut(userId, normalised?.e164 ?? phone);
   return NextResponse.json({

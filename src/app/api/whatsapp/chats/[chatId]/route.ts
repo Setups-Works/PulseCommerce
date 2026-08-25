@@ -15,8 +15,11 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ chatId: string }> },
 ) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+
   const { chatId } = await params;
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(resolved.value.userId);
   if (!config) {
     return NextResponse.json({ error: "No WhatsApp gateway is connected." }, { status: 409 });
   }
@@ -87,7 +90,7 @@ export async function POST(
     );
   }
 
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(userId);
   if (!config) {
     return NextResponse.json({ error: "No WhatsApp gateway is connected." }, { status: 409 });
   }

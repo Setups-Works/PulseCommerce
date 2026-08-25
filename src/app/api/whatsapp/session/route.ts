@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireTenant } from "@/lib/auth/tenant";
 import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 
@@ -12,8 +13,12 @@ export const dynamic = "force-dynamic";
  * browser would mean putting the gateway's API key in a page, and that key can
  * send messages to real customers. Only the rendered image crosses.
  */
-export async function GET() {
-  const config = await readWhatsAppConfig();
+export async function GET(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
+  const config = await readWhatsAppConfig(userId);
   if (!config) {
     return NextResponse.json({ error: "No WhatsApp gateway is connected." }, { status: 409 });
   }
@@ -51,8 +56,12 @@ export async function GET() {
  * Idempotent on purpose: a session that is already started is the outcome this
  * wants, not a failure, so calling it repeatedly is safe.
  */
-export async function POST() {
-  const config = await readWhatsAppConfig();
+export async function POST(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
+  const config = await readWhatsAppConfig(userId);
   if (!config) {
     return NextResponse.json({ error: "No WhatsApp gateway is connected." }, { status: 409 });
   }

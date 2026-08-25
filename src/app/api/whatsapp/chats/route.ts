@@ -37,9 +37,9 @@ export interface InboxChat extends WhatsAppChat {
 export async function GET(request: Request) {
   const resolved = await requireStore(request);
   if (!resolved.ok) return resolved.response;
-  const { store } = resolved.value;
+  const { store, tenant } = resolved.value;
 
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(tenant.userId);
   if (!config) {
     return NextResponse.json({ error: "No WhatsApp gateway is connected." }, { status: 409 });
   }

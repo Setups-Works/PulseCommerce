@@ -58,7 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(progressOf(job));
   }
 
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(userId);
   if (!config) {
     return await fail(userId, job, "The WhatsApp gateway was disconnected while this broadcast was running.");
   }
@@ -159,7 +159,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     // Best effort: ask the gateway to drop the batch it is still working
     // through. Messages it has already delivered cannot be recalled.
-    const config = await readWhatsAppConfig();
+    const config = await readWhatsAppConfig(userId);
     const last = job.batches.at(-1);
     if (config && last) {
       await new WhatsAppClient(config).cancelBatch(last.batchId).catch(() => {});

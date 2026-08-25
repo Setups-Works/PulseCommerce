@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireTenant } from "@/lib/auth/tenant";
 import { WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import {
@@ -49,14 +50,17 @@ const menuSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-async function client(): Promise<WhatsAppClient | null> {
-  const config = await readWhatsAppConfig();
+async function client(userId: string): Promise<WhatsAppClient | null> {
+  const config = await readWhatsAppConfig(userId);
   return config ? new WhatsAppClient(config) : null;
 }
 
 /** The current menu, and whether it is answering anyone. */
-export async function GET() {
-  const gateway = await client();
+export async function GET(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+
+  const gateway = await client(resolved.value.userId);
   if (!gateway) {
     return NextResponse.json(
       { error: "No WhatsApp gateway is connected.", code: "gateway_not_connected" },
@@ -99,7 +103,10 @@ export async function GET() {
 
 /** Saves the menu, and turns it on or off. */
 export async function PUT(request: Request) {
-  const gateway = await client();
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+
+  const gateway = await client(resolved.value.userId);
   if (!gateway) {
     return NextResponse.json(
       { error: "No WhatsApp gateway is connected.", code: "gateway_not_connected" },

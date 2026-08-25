@@ -67,9 +67,9 @@ export async function runReadTool(userId: string, name: string, input: Json): Pr
       case "get_flows":
         return await flows(userId);
       case "get_menu":
-        return await menu();
+        return await menu(userId);
       case "get_whatsapp_status":
-        return await whatsappStatus();
+        return await whatsappStatus(userId);
       default:
         return { error: `Unknown tool "${name}".` };
     }
@@ -294,8 +294,8 @@ async function flows(userId: string): Promise<Json> {
   return { flows: rows };
 }
 
-async function menu(): Promise<Json> {
-  const config = await readWhatsAppConfig();
+async function menu(userId: string): Promise<Json> {
+  const config = await readWhatsAppConfig(userId);
   if (!config) return { error: "No WhatsApp gateway is connected.", connected: false };
 
   const plugin = await new WhatsAppClient(config).getPlugin(PLUGIN_ID);
@@ -310,8 +310,8 @@ async function menu(): Promise<Json> {
   };
 }
 
-async function whatsappStatus(): Promise<Json> {
-  const config = await readWhatsAppConfig();
+async function whatsappStatus(userId: string): Promise<Json> {
+  const config = await readWhatsAppConfig(userId);
   if (!config) return { connected: false, ready: false, reason: "No gateway is configured." };
 
   const session = await new WhatsAppClient(config).ensureSendable().catch(() => null);

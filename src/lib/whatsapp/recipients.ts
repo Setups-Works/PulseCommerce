@@ -64,7 +64,7 @@ export async function resolveAudience(
   userId: string,
   request: AudienceRequest,
 ): Promise<ResolvedAudience> {
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(userId);
   if (!config) {
     throw new GatewayNotConnectedError();
   }

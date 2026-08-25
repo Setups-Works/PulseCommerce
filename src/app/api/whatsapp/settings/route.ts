@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireTenant } from "@/lib/auth/tenant";
 import {
   clearWhatsAppConfig,
   configuredByEnvironment,
@@ -18,9 +19,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Connection state, plus the gateway's live view of the session. */
-export async function GET() {
+export async function GET(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   const fromEnv = configuredByEnvironment();
-  const config = await readWhatsAppConfig();
+  const config = await readWhatsAppConfig(userId);
   if (!config) {
     return NextResponse.json({ connected: false, config: null, session: null, fromEnv });
   }
@@ -52,7 +57,7 @@ export async function GET() {
         });
       }
       sessionId = chosen.id;
-      await rememberAdoptedSession(sessionId).catch(() => {});
+      await rememberAdoptedSession(userId, sessionId).catch(() => {});
     }
 
     session = await new WhatsAppClient({ ...config, sessionId }).ensureSendable();
@@ -84,6 +89,10 @@ const schema = z.object({
  * than none: it would surface as a failed broadcast halfway through a campaign.
  */
 export async function PUT(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   if (configuredByEnvironment()) {
     return NextResponse.json(
       {
@@ -174,7 +183,7 @@ export async function PUT(request: Request) {
       defaultDialCode,
       delayBetweenMessagesMs: parsed.data.delayBetweenMessagesMs ?? DEFAULT_SEND_DELAY_MS,
     };
-    await writeWhatsAppConfig(config);
+    await writeWhatsAppConfig(userId, config);
 
     return NextResponse.json({
       connected: true,
@@ -197,7 +206,11 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const resolved = await requireTenant(request);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved.value;
+
   if (configuredByEnvironment()) {
     return NextResponse.json(
       {
@@ -208,6 +221,6 @@ export async function DELETE() {
     );
   }
 
-  await clearWhatsAppConfig();
+  await clearWhatsAppConfig(userId);
   return NextResponse.json({ connected: false, config: null, session: null });
 }
