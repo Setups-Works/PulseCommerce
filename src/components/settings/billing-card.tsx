@@ -1,9 +1,11 @@
 "use client";
 
-import { CreditCard, Download, Loader2 } from "lucide-react";
+import { CreditCard, Download, Loader2, MessageCircle, MessagesSquare } from "lucide-react";
 import Script from "next/script";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
+import { useBilling, type BillingStatus } from "@/components/providers/billing-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,14 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-interface BillingStatus {
-  plan: "go" | "plus" | null;
-  subscriptionStatus: "none" | "created" | "active" | "past_due" | "halted" | "cancelled";
-  currentPeriodEnd: string | null;
-  legacyUnlimited: boolean;
-  usage: { sent: number; limit: number | null };
-}
 
 interface Invoice {
   id: string;
@@ -64,29 +58,25 @@ declare global {
  * app builds. See src/lib/billing/razorpay.ts for why.
  */
 export function BillingCard() {
-  const [status, setStatus] = useState<BillingStatus | null>(null);
+  const { status, refresh: refreshStatus } = useBilling();
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [subscribing, setSubscribing] = useState<"go" | "plus" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkoutReady, setCheckoutReady] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadInvoices = useCallback(async () => {
     try {
-      const [statusRes, invoicesRes] = await Promise.all([
-        fetch("/api/billing/status", { cache: "no-store" }),
-        fetch("/api/billing/invoices", { cache: "no-store" }),
-      ]);
-      if (statusRes.ok) setStatus(await statusRes.json());
-      if (invoicesRes.ok) setInvoices((await invoicesRes.json()).invoices);
+      const res = await fetch("/api/billing/invoices", { cache: "no-store" });
+      if (res.ok) setInvoices((await res.json()).invoices);
     } catch {
-      setError("Could not load billing status.");
+      setError("Could not load invoice history.");
     }
   }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-  }, [load]);
+    void loadInvoices();
+  }, [loadInvoices]);
 
   const subscribe = async (plan: "go" | "plus") => {
     setSubscribing(plan);
@@ -112,7 +102,8 @@ export function BillingCard() {
         config: { display: { blocks: { upi: { instruments: [{ method: "upi" }] } }, sequence: ["block.upi"], preferences: { show_default_blocks: false } } },
         handler: () => {
           toast.success("Mandate set up — this can take a minute to activate.");
-          void load();
+          refreshStatus();
+          void loadInvoices();
         },
       }).open();
     } catch (err) {
@@ -182,14 +173,33 @@ export function BillingCard() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Messages sent this month</span>
-                <span className="font-medium">
-                  {status.usage.sent.toLocaleString()}
-                  {status.usage.limit ? ` / ${status.usage.limit.toLocaleString()}` : " · Unlimited"}
-                </span>
-              </div>
+            <div className="space-y-3">
+              {/*
+               * The balance, not just a sent count: "how many can I still
+               * send" is the number that actually decides whether the next
+               * campaign goes out, and burying it inside a sent/limit ratio
+               * made someone do the subtraction themselves.
+               */}
+              <StatStrip className="border-0 py-0 sm:divide-x-0">
+                <StatTile
+                  label="Messages remaining"
+                  value={
+                    status.usage.limit === null
+                      ? "Unlimited"
+                      : Math.max(0, status.usage.limit - status.usage.sent).toLocaleString()
+                  }
+                  icon={MessagesSquare}
+                  footer={status.usage.limit !== null ? "This calendar month" : undefined}
+                />
+                <StatTile
+                  label="Sent this month"
+                  value={status.usage.sent.toLocaleString()}
+                  icon={MessageCircle}
+                  footer={
+                    status.usage.limit !== null ? `of ${status.usage.limit.toLocaleString()} on this plan` : undefined
+                  }
+                />
+              </StatStrip>
               {status.usage.limit ? <Progress value={usagePct} /> : null}
             </div>
 
