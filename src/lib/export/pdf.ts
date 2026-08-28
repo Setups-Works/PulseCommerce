@@ -5,16 +5,16 @@ import { buildNarrative, toPrintable, type Column, type Sheet } from "./datasets
 import { GEIST_REGULAR_BASE64 } from "./fonts/geist-regular";
 import { GEIST_SEMIBOLD_BASE64 } from "./fonts/geist-semibold";
 
-const BRAND: [number, number, number] = [17, 17, 17];
-const INK: [number, number, number] = [30, 30, 30];
-const MUTED: [number, number, number] = [115, 115, 115];
-const RULE: [number, number, number] = [224, 224, 224];
+export const BRAND: [number, number, number] = [17, 17, 17];
+export const INK: [number, number, number] = [30, 30, 30];
+export const MUTED: [number, number, number] = [115, 115, 115];
+export const RULE: [number, number, number] = [224, 224, 224];
 const BAND: [number, number, number] = [248, 248, 248];
 
 /** Landscape A4 in points. */
-const MARGIN = 34;
+export const MARGIN = 34;
 
-const FONT = "Geist";
+export const FONT = "Geist";
 
 /**
  * Registers Geist with the document.
@@ -23,7 +23,7 @@ const FONT = "Geist";
  * every INR figure previously printed as a stray superscript one. An embedded
  * Unicode font fixes that, and matches the dashboard's own typeface.
  */
-function registerFonts(doc: jsPDF): void {
+export function registerFonts(doc: jsPDF): void {
   doc.addFileToVFS("Geist-Regular.ttf", GEIST_REGULAR_BASE64);
   doc.addFont("Geist-Regular.ttf", FONT, "normal");
   doc.addFileToVFS("Geist-SemiBold.ttf", GEIST_SEMIBOLD_BASE64);
@@ -259,13 +259,13 @@ function buildColumnStyles(columns: Column[]) {
   return styles;
 }
 
-interface Formatter {
+export interface Formatter {
   currency: (n: number) => string;
   integer: (n: number) => string;
   decimal: (n: number) => string;
 }
 
-function makeFormatter(currency: string): Formatter {
+export function makeFormatter(currency: string): Formatter {
   const money = new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 2 });
   const int = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
   const dec = new Intl.NumberFormat("en", { minimumFractionDigits: 1, maximumFractionDigits: 2 });

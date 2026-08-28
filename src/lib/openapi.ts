@@ -78,6 +78,7 @@ export const openApiDocument = {
     { name: "API keys", description: "Credentials for calling this API from your own code" },
     { name: "CLI login", description: "Device-authorization login for `pulse login`" },
     { name: "Sync", description: "The local mirror of your WooCommerce store" },
+    { name: "Billing", description: "Plans, usage, invoices and Razorpay subscriptions" },
   ],
   paths: {
     "/api/sync": {
@@ -152,6 +153,131 @@ export const openApiDocument = {
           403: errorResponse("The key lacks the write scope."),
           409: errorResponse("No store is connected."),
           502: errorResponse("WooCommerce could not be reached, or refused the key."),
+        },
+      },
+    },
+
+    "/api/billing/status": {
+      get: {
+        tags: ["Billing"],
+        summary: "Current plan, subscription status and this month's usage",
+        responses: {
+          200: {
+            description: "Plan state.",
+            content: json({
+              type: "object",
+              properties: {
+                plan: { type: "string", enum: ["go", "plus"], nullable: true },
+                subscriptionStatus: {
+                  type: "string",
+                  enum: ["none", "created", "active", "past_due", "halted", "cancelled"],
+                },
+                currentPeriodEnd: { type: "string", format: "date-time", nullable: true },
+                graceUntil: { type: "string", format: "date-time", nullable: true },
+                legacyUnlimited: { type: "boolean" },
+                usage: {
+                  type: "object",
+                  properties: {
+                    sent: { type: "integer" },
+                    limit: { type: "integer", nullable: true, description: "null means unlimited." },
+                  },
+                },
+              },
+            }),
+          },
+        },
+      },
+    },
+    "/api/billing/checkout": {
+      post: {
+        tags: ["Billing"],
+        summary: "Start (or change) a subscription",
+        description:
+          "Session only — like managing API keys, a leaked API key must not be able " +
+          "to change what the account is billed. Creates a Razorpay customer and a " +
+          "UPI Autopay subscription for the requested plan, cancelling any existing " +
+          "subscription first. Returns a subscription id for Razorpay's Checkout.js " +
+          "to open; the mandate itself is collected there, not by this app.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            required: ["plan"],
+            properties: { plan: { type: "string", enum: ["go", "plus"] } },
+          }),
+        },
+        responses: {
+          200: { description: "Subscription created.", content: json({ type: "object", properties: { subscriptionId: { type: "string" } } }) },
+          401: errorResponse("Not signed in, or authenticated with an API key."),
+          503: errorResponse("The plan's Razorpay plan id is not configured."),
+        },
+      },
+    },
+    "/api/billing/invoices": {
+      get: {
+        tags: ["Billing"],
+        summary: "Past invoices, newest first",
+        responses: {
+          200: {
+            description: "Invoice history.",
+            content: json({
+              type: "object",
+              properties: {
+                invoices: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      plan: { type: "string", enum: ["go", "plus"] },
+                      amountPaise: { type: "integer" },
+                      currency: { type: "string" },
+                      status: { type: "string", enum: ["paid", "failed", "refunded"] },
+                      periodStart: { type: "string", format: "date-time" },
+                      periodEnd: { type: "string", format: "date-time" },
+                      paidAt: { type: "string", format: "date-time" },
+                      downloadUrl: { type: "string" },
+                    },
+                  },
+                },
+              },
+            }),
+          },
+        },
+      },
+    },
+    "/api/billing/invoices/{id}/pdf": {
+      get: {
+        tags: ["Billing"],
+        summary: "One invoice as a PDF",
+        description: "Scoped to the signed-in tenant in the query itself — an id for another account simply matches nothing.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: { description: "The invoice PDF.", content: { "application/pdf": { schema: { type: "string", format: "binary" } } } },
+          404: errorResponse("No such invoice."),
+        },
+      },
+    },
+    "/api/billing/webhook": {
+      post: {
+        tags: ["Billing"],
+        summary: "Razorpay subscription and payment events",
+        // Not open in the sense of unauthenticated — it verifies an HMAC
+        // signature instead of a session or key, the same class of exception
+        // as /api/auth/woo/callback.
+        security: [],
+        description:
+          "Server-to-server from Razorpay, verified via the x-razorpay-signature " +
+          "header (RAZORPAY_WEBHOOK_SECRET) rather than a session or API key. " +
+          "Deliveries are deduplicated by a hash of the raw body, since Razorpay " +
+          "sends at-least-once. Handles subscription.activated, " +
+          "subscription.charged (records an invoice), payment.failed (a 3-day " +
+          "grace period before sends are blocked), subscription.halted and " +
+          "subscription.cancelled.",
+        responses: {
+          200: { description: "Processed (or already seen).", content: json({ type: "object" }) },
+          401: errorResponse("Missing or invalid signature."),
+          503: errorResponse("RAZORPAY_WEBHOOK_SECRET is not set."),
         },
       },
     },

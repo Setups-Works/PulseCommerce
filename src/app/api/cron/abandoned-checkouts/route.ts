@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
+import { checkSendAllowance, recordSend } from "@/lib/billing/usage";
 import { isSessionSendable, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import { readOptOutSet } from "@/lib/whatsapp/opt-out";
@@ -174,6 +175,17 @@ async function checkStore(store: StoreRow) {
       continue;
     }
 
+    /*
+     * A limit reached here stops the whole tick rather than skipping this one
+     * order: whatsapp_abandoned_checkouts suppresses retry on a recorded row
+     * for ~25h, which outlives an order's own 24h eligibility window — a
+     * limit-driven skip here would become a permanent miss, not a deferred
+     * one. Leaving the order unrecorded means the next tick (once the month
+     * rolls over or the plan is upgraded) can still try it.
+     */
+    const allowance = await checkSendAllowance(store.user_id);
+    if (!allowance.allowed) break;
+
     try {
       const session = await client.ensureSendable();
       if (!isSessionSendable(session)) {
@@ -188,6 +200,7 @@ async function checkStore(store: StoreRow) {
 
       await client.sendText(normalised.chatId, renderMessage(order, store.url));
       await recordMessaged(store.user_id, order.id);
+      await recordSend(store.user_id);
       messaged += 1;
     } catch (error) {
       await recordSkip(

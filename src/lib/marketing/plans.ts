@@ -4,18 +4,20 @@
  * The landing page and /pricing both show tiers. Holding the figures here
  * means a price cannot be right on one page and stale on the other — which is
  * the specific failure that makes a visitor stop trusting the rest of the
- * numbers on the site.
+ * numbers on the site. These are the real, billed prices — see
+ * src/lib/billing/usage.ts for how the message cap is enforced and
+ * supabase/migrations/20260828140000_billing.sql for the plan values these
+ * must stay in sync with (RAZORPAY_PLAN_ID_GO / RAZORPAY_PLAN_ID_PLUS).
  *
- * PLACEHOLDER FIGURES. The amounts below are structure, not a commercial
- * decision — set them before this page is public.
- *
- * Tier names describe store size rather than feature sets, because every tier
- * includes every module. Gating analytics behind a higher tier would mean the
- * product tells a small store less about its customers than it knows, which is
- * the opposite of what it is for.
+ * Every tier includes every module — analytics, flows, the assistant, all of
+ * it. The only thing that differs between them is how many WhatsApp messages
+ * a month can go out, because that is the one thing that costs real money to
+ * carry (a gateway your customers' replies flow through) rather than compute
+ * this app already has to do regardless of who's asking.
  */
 
 export interface Plan {
+  id: "go" | "plus";
   name: string;
   price: string;
   cadence: string;
@@ -28,44 +30,34 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
-    name: "Starter",
-    price: "₹1,499",
+    id: "go",
+    name: "Go",
+    price: "₹3,999",
     cadence: "per month",
-    blurb: "One store, and the full product.",
+    blurb: "For a store sending campaigns and flows at a steady pace.",
     highlight: false,
     cta: "Start free",
     href: "/signup",
     limits: [
-      "1 connected store",
-      "Up to 2,000 orders of history",
-      "12 months of history",
-      "Email support",
+      "10,000 WhatsApp messages per month",
+      "Every feature included — analytics, campaigns, flows, the assistant",
+      "UPI Autopay billing, cancel anytime",
     ],
   },
   {
-    name: "Growth",
-    price: "₹3,999",
+    id: "plus",
+    name: "Plus",
+    price: "₹5,999",
     cadence: "per month",
-    blurb: "The tier most stores settle on.",
+    blurb: "For a store that doesn't want to think about a message count.",
     highlight: true,
     cta: "Start free",
     href: "/signup",
     limits: [
-      "3 connected stores",
-      "Up to 50,000 orders of history",
-      "36 months of history",
-      "Priority support",
+      "Unlimited WhatsApp messages",
+      "Every feature included — analytics, campaigns, flows, the assistant",
+      "UPI Autopay billing, cancel anytime",
     ],
-  },
-  {
-    name: "Self-hosted",
-    price: "Free",
-    cadence: "forever",
-    blurb: "Run it on your own infrastructure.",
-    highlight: false,
-    cta: "Read the docs",
-    href: "/api-docs",
-    limits: ["Unlimited stores", "Unlimited history", "Your own database", "Community support"],
   },
 ];
 

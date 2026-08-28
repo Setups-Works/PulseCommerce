@@ -5,6 +5,7 @@ import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whats
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import { normalisePhone } from "@/lib/whatsapp/phone";
 import { readOptOutSet } from "@/lib/whatsapp/opt-out";
+import { checkSendAllowance, recordSend } from "@/lib/billing/usage";
 import { messageSchema } from "@/lib/whatsapp/schema";
 import { renderTemplate } from "@/lib/whatsapp/templates";
 
@@ -72,6 +73,11 @@ export async function POST(request: Request) {
     );
   }
 
+  const allowance = await checkSendAllowance(userId);
+  if (!allowance.allowed) {
+    return NextResponse.json({ error: allowance.reason, code: "limit_reached" }, { status: 402 });
+  }
+
   const client = new WhatsAppClient(config);
 
   try {
@@ -133,6 +139,7 @@ export async function POST(request: Request) {
         : await client.sendImage(chatId, media!, body)
       : await client.sendText(chatId, body);
 
+    await recordSend(userId);
     return NextResponse.json({ sent: true, ...sent });
   } catch (error) {
     if (error instanceof WhatsAppApiError) {

@@ -17,8 +17,7 @@ import { cn } from "@/lib/utils";
  * a reader's trust in every other number on the site.
  *
  * Exactly one card carries a beam. The recommended tier is the only thing on
- * this section that should be moving; putting a beam on all three would say
- * nothing and cost three animations.
+ * this section that should be moving; a beam on both would say nothing.
  */
 
 export interface PricingProps {
@@ -38,12 +37,12 @@ export function Pricing({ heading = true, footer = heading }: PricingProps = {})
         <SectionHeading
           align="center"
           eyebrow="Pricing"
-          title="One price. No feature gates."
-          body="Tiers are sized by how much history you have, not by what the product will tell you about it. A small store gets the same thirteen modules as a large one."
+          title="Every feature, on both plans."
+          body="Tiers are sized by how many WhatsApp messages you send a month, not by what the product will tell you about your store. A store on Go gets the same analytics, flows and assistant as one on Plus."
         />
       ) : null}
 
-      <div className={cn("grid items-stretch gap-6 lg:grid-cols-3", heading && "mt-12")}>
+      <div className={cn("mx-auto grid max-w-3xl items-stretch gap-6 sm:grid-cols-2", heading && "mt-12")}>
         {PLANS.map((plan, i) => (
           <BlurFade key={plan.name} delay={i * 0.08} inView className="h-full">
             <div
@@ -105,7 +104,7 @@ export function Pricing({ heading = true, footer = heading }: PricingProps = {})
       </div>
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        Fourteen days free on every paid tier. No card until you have seen your own data.{" "}
+        Billed monthly by UPI Autopay. Cancel anytime — nothing else is charged after.{" "}
         {footer ? (
           <Link
             href="/pricing"

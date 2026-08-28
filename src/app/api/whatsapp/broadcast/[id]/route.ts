@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireTenant } from "@/lib/auth/tenant";
+import { checkSendAllowance, recordSend } from "@/lib/billing/usage";
 import { isSessionSendable, WhatsAppApiError, WhatsAppClient } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
 import {
@@ -96,7 +97,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  const chunk = nextChunk(job);
+  const fullChunk = nextChunk(job);
+
+  /*
+   * Checked once for the whole batch, not per recipient — the size is known
+   * upfront, so there is no reason to find out mid-`sendBulk` that the limit
+   * was already gone. Zero remaining fails the job without spending a
+   * gateway call that could only overshoot the limit anyway; a partial
+   * allowance sends only what fits and fails the rest of this batch, rather
+   * than silently dropping recipients or sending past the cap.
+   */
+  const allowance = await checkSendAllowance(userId, fullChunk.length);
+  if (allowance.remaining === 0) {
+    return await fail(userId, job, "This month's message limit has been reached. Upgrade in Settings → Billing.");
+  }
+  const truncated = allowance.remaining !== null && allowance.remaining < fullChunk.length;
+  const chunk = truncated ? fullChunk.slice(0, allowance.remaining!) : fullChunk;
+
   const messages: BulkMessageItem[] = chunk.map((recipient) => {
     const body = renderMessage(job.message, recipient);
     const media = mediaFor(job.message, recipient);
@@ -128,7 +145,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       submittedAt: new Date().toISOString(),
     });
     job.cursor += chunk.length;
-    if (job.cursor >= job.recipients.length) job.status = "completed";
+    await recordSend(userId, chunk.length);
+
+    if (truncated) {
+      job.status = "failed";
+      job.error = "This month's message limit was reached partway through this batch. Upgrade in Settings → Billing to send the rest.";
+    } else if (job.cursor >= job.recipients.length) {
+      job.status = "completed";
+    }
 
     await writeBroadcast(userId, job);
     return NextResponse.json(progressOf(job));
