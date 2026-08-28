@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { CustomerRecord } from "@/lib/analytics/types";
+import { checkSendAllowance, recordSend } from "@/lib/billing/usage";
 import { isNotConnected } from "@/lib/store/errors";
 import { mediaFor, renderMessage, type BroadcastRecipient } from "@/lib/whatsapp/broadcast";
 import { isSessionSendable, WhatsAppClient } from "@/lib/whatsapp/client";
@@ -186,8 +187,16 @@ async function tickFlow(userId: string, flow: Flow, now: Date) {
         continue;
       }
 
+      /*
+       * A limit reached here stops the tick rather than skipping this one
+       * enrolment: nothing is marked sent, advanced or exited, so it stays
+       * due and the next tick (once the month rolls over) picks it up again.
+       */
+      if (!(await checkSendAllowance(userId)).allowed) break;
+
       try {
         await send(client, step.message, recipient);
+        await recordSend(userId);
         sent += 1;
 
         const next = advance(enrolment, flow, now);

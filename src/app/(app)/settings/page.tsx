@@ -21,6 +21,7 @@ import { AUTH_MESSAGES } from "@/components/auth-outcome";
 import { hostOf, useConnectedStores } from "@/components/layout/store-switcher";
 import { PageShell } from "@/components/dashboard/page-state";
 import { ApiKeysCard } from "@/components/settings/api-keys-card";
+import { BillingCard } from "@/components/settings/billing-card";
 import { SyncCard } from "@/components/settings/sync-card";
 import { WhatsAppSettingsCard } from "@/components/whatsapp/whatsapp-settings-card";
 import { useAnalytics } from "@/components/providers/analytics-provider";
@@ -389,6 +390,8 @@ export default function SettingsPage() {
 
       {/* --- WhatsApp gateway ---------------------------------------------- */}
       <WhatsAppSettingsCard />
+
+      <BillingCard />
 
       <SyncCard />
 

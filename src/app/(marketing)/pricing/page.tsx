@@ -33,8 +33,6 @@ export const metadata: Metadata = {
  * lib/marketing/, shared with the landing page and with the FAQPage
  * structured data. A price that is right here and stale on the home page is
  * the fastest way to lose a reader's trust in every other number on the site.
- *
- * The amounts are still placeholders — see the note in lib/marketing/plans.ts.
  */
 
 /**
@@ -113,8 +111,8 @@ export default function PricingPage() {
           </BlurFade>
           <BlurFade delay={0.16} inView>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
-              Tiers are sized by how much history you have, not by what the product will tell you
-              about it. A small store gets the same thirteen modules as a large one.
+              Tiers are sized by how many WhatsApp messages you send a month, not by what the
+              product will tell you about your store. Go and Plus get the same thirteen modules.
             </p>
           </BlurFade>
         </div>
@@ -214,8 +212,8 @@ export default function PricingPage() {
 
       <Cta
         id="pricing-cta"
-        title="Fourteen days. Your own data."
-        body="Connect a store, see what it says about your customers, and decide after that."
+        title="Connect a store. See your own data first."
+        body="Sign up and connect WooCommerce before choosing a plan — subscribing is a switch in Settings once you've seen what it says about your customers."
       />
     </main>
   );
