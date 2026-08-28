@@ -91,7 +91,10 @@ export function ChangePasswordCard() {
     setSendingReset(true);
     try {
       const { error: resetError } = await supabaseBrowser().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        // See forgot-password-form.tsx: a recovery link's tokens arrive in
+        // the URL hash, which a server route can never see — this has to
+        // be the page that loads, not /auth/callback.
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (resetError) throw resetError;
       toast.success("Reset link sent", { description: `Check ${email}.` });

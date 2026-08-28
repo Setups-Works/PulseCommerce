@@ -14,12 +14,26 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 const MIN_PASSWORD = 6;
 
 /**
- * Sets a new password for whoever /auth/callback just gave a session to.
+ * Sets a new password for whoever clicked a recovery link to get here.
  *
  * There is no "enter your current password" step: getting here at all
  * required clicking a one-time link sent to the account's own inbox, which
  * is already the proof of ownership a password-change form would otherwise
  * exist to collect.
+ *
+ * ─── Why this listens rather than just checking once ───────────────────────
+ *
+ * A recovery link's tokens arrive in the URL *hash*
+ * (#access_token=...&type=recovery), not a query string — the one piece of a
+ * URL a server can never see, since browsers never send it in the request.
+ * There is no server-side exchange for this the way Google sign-in has one;
+ * the Supabase client itself parses the hash after it loads on whatever page
+ * `redirectTo` pointed at (see forgot-password-form.tsx) and only then fires
+ * `PASSWORD_RECOVERY`. That parsing happens asynchronously, after this
+ * component has already mounted, so a single `getSession()` call on mount
+ * can easily run before it and see nothing yet. Listening for the event
+ * (with an initial check alongside it, in case it already fired) is what
+ * makes this correct instead of racy.
  */
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -30,14 +44,37 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    supabaseBrowser()
-      .auth.getSession()
-      .then(({ data }) => {
-        if (!cancelled) setReady(Boolean(data.session));
-      });
+    const supabase = supabaseBrowser();
+    let settled = false;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        settled = true;
+        setReady(true);
+      }
+    });
+
+    // Covers the case where the hash was already processed (and the event
+    // already fired) before this listener was attached.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        settled = true;
+        setReady(true);
+      }
+    });
+
+    // Nothing arrived: either there was no recovery hash at all (a direct
+    // visit) or Supabase rejected an expired/already-used one. Either way,
+    // it isn't going to become ready by waiting longer.
+    const timeout = setTimeout(() => {
+      if (!settled) setReady(false);
+    }, 3000);
+
     return () => {
-      cancelled = true;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 
