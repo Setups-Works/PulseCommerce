@@ -1,12 +1,18 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * The API's promises, checked without a store connected.
+ * The API's promises, checked for a real tenant with no store connected.
  *
  * Every assertion here is about a rule the code is supposed to enforce rather
  * than about a page rendering. An endpoint that half-works with nothing
  * configured is worse than one that refuses, because the failure surfaces later
  * and further away.
+ *
+ * Requests in this file carry an API key (see playwright.config.ts) for a
+ * seeded CI-only identity that has never connected a store — not the "no
+ * database configured at all" state, which src/proxy.ts deliberately answers
+ * with 503 before checking who's asking. Both states are real; this file
+ * tests the one where someone is actually signed in.
  */
 
 test.describe("OpenAPI document", () => {

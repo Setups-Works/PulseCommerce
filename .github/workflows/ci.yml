@@ -56,6 +56,21 @@ jobs:
     name: End-to-end
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # A dedicated, empty Supabase project used only by this job — never a
+    # developer's own project, and never the one this app is deployed against.
+    # It exists so the suite can authenticate as a real tenant with no store
+    # connected (see playwright.config.ts's file header for why that's
+    # different from "nothing configured at all"). Set these under Settings →
+    # Secrets → Actions; CI_TEST_API_KEY is any string starting with
+    # "pc_live_" that you generate yourself (e.g. `pc_live_` + 32 random hex
+    # chars) — it's never sent anywhere but this test project.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_POOL_URL: ${{ secrets.TEST_SUPABASE_DB_POOL_URL }}
+      AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+      CI_TEST_API_KEY: ${{ secrets.CI_TEST_API_KEY }}
     steps:
       - uses: actions/checkout@v5
 
@@ -70,8 +85,15 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Apply migrations to the test database
+        run: node scripts/apply-ci-migrations.mjs
+
+      - name: Seed a CI test identity
+        run: node scripts/seed-ci-test-identity.mjs
+
       # The suite builds and starts the app itself, deliberately with no store
-      # and no gateway configured — the state a fresh clone is in.
+      # and no gateway configured — the state a fresh clone is in, beyond the
+      # one seeded identity above.
       - name: Run tests
         run: npm test
 
