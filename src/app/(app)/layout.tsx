@@ -6,23 +6,26 @@ import { KeyboardShortcuts } from "@/components/layout/keyboard-shortcuts";
 import { SubscriptionBanner } from "@/components/layout/subscription-banner";
 import { Topbar } from "@/components/layout/topbar";
 import { AnalyticsProvider } from "@/components/providers/analytics-provider";
+import { BillingProvider } from "@/components/providers/billing-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AnalyticsProvider>
-      <CommandPaletteProvider>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset className="min-w-0">
-            <Topbar />
-            <SubscriptionBanner />
-            <main className="min-w-0 flex-1">{children}</main>
-          </SidebarInset>
-          <FetchProgressBar />
-          <KeyboardShortcuts />
-        </SidebarProvider>
-      </CommandPaletteProvider>
+      <BillingProvider>
+        <CommandPaletteProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset className="min-w-0">
+              <Topbar />
+              <SubscriptionBanner />
+              <main className="min-w-0 flex-1">{children}</main>
+            </SidebarInset>
+            <FetchProgressBar />
+            <KeyboardShortcuts />
+          </SidebarProvider>
+        </CommandPaletteProvider>
+      </BillingProvider>
     </AnalyticsProvider>
   );
 }

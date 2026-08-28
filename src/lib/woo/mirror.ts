@@ -18,13 +18,31 @@ import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "./types";
  *
  * ─── The remaining in-process cache ────────────────────────────────────────
  *
- * One short-lived memo per instance, because a single dashboard load makes
- * several requests that each want the same snapshot, and reading it three
- * times in two seconds is waste. It is not a correctness mechanism: the mirror
- * is the source of truth and the memo is measured in seconds.
+ * One memo per instance, so a single dashboard session's several requests —
+ * page navigation, an assistant's multi-round tool calls, a report export
+ * moments after the page that prompted it — read the mirror once rather than
+ * once each. It is not a correctness mechanism: the mirror is the source of
+ * truth, and `forgetSnapshot` below is what actually keeps it fresh, called
+ * right after every sync.
+ *
+ * The TTL used to be a hardcoded 15 seconds, on the theory that a local
+ * Postgres read is cheap enough not to matter. It is not free:
+ * `pg_stat_statements` showed this store's ~21,700-order table (raw column:
+ * ~90MB) being read close to whole on nearly every cache miss, and on Vercel
+ * a fresh serverless instance is the common case, not the exception — so a
+ * 15-second window bought almost nothing while still generating tens of
+ * gigabytes of Supabase egress. Sync already bounds real staleness to one
+ * cycle (10 minutes, see supabase/migrations/20260812070000_faster_backfill_
+ * cron.sql) and calls `forgetSnapshot` the moment new data lands, so a memo
+ * living that long costs nothing in freshness and saves the re-reads that
+ * happen for reasons other than new data existing.
+ *
+ * SNAPSHOT_CACHE_MINUTES makes this tunable rather than another hardcoded
+ * number — an operator who wants to trade more staleness for less egress
+ * (or vice versa) sets it without a code change.
  */
 
-const MEMO_TTL_MS = 15_000;
+const MEMO_TTL_MS = Math.max(1, Number(process.env.SNAPSHOT_CACHE_MINUTES) || 10) * 60_000;
 const memo = new Map<string, { snapshot: StoreSnapshot; expiresAt: number }>();
 
 export class NoMirrorDataError extends Error {

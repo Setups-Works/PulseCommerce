@@ -1,15 +1,9 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-
-interface BillingStatus {
-  plan: "go" | "plus" | null;
-  subscriptionStatus: "none" | "created" | "active" | "past_due" | "halted" | "cancelled";
-  legacyUnlimited: boolean;
-}
+import { useBilling } from "@/components/providers/billing-provider";
+import { Button } from "@/components/ui/button";
 
 /**
  * Shown on every app page for an account with no usable plan — not just
@@ -18,34 +12,20 @@ interface BillingStatus {
  * near where billing lives. Someone should not have to go looking for
  * Settings → Billing to learn why a send didn't go out.
  *
+ * Reads BillingProvider's shared status rather than fetching its own — the
+ * Billing card reads the same context, so the banner and the settings page
+ * can never disagree about whether an account is blocked.
+ *
  * `checkSendAllowance` in src/lib/billing/usage.ts is the real gate; this is
- * only the advance warning for the same rule, read from the same
- * /api/billing/status this session's own Billing card uses. Absent for
- * unlimited (Plus, or a grandfathered pre-billing account) and for an
- * account still mid-mandate ("created") or gracing a bounced charge
- * ("past_due") — those can still send.
+ * only the advance warning for the same rule. Absent for unlimited (Plus, or
+ * a grandfathered pre-billing account) and for an account still mid-mandate
+ * ("created") or gracing a bounced charge ("past_due") — those can still
+ * send.
  */
 export function SubscriptionBanner() {
-  const pathname = usePathname();
-  const [status, setStatus] = useState<BillingStatus | null>(null);
+  const { status, initialising } = useBilling();
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/billing/status", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled) setStatus(data);
-      })
-      .catch(() => {
-        // No banner is the right failure mode here — a status check that
-        // itself failed is not evidence of an unpaid account.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
-
-  if (!status || status.legacyUnlimited) return null;
+  if (initialising || !status || status.legacyUnlimited) return null;
 
   const blocked =
     status.plan === null ||
@@ -55,19 +35,24 @@ export function SubscriptionBanner() {
   if (!blocked) return null;
 
   return (
-    <div className="flex items-center gap-2.5 border-b bg-amber-500/10 px-4 py-2 text-xs text-amber-900 dark:text-amber-200">
-      <TriangleAlert className="size-3.5 shrink-0" />
-      <p className="min-w-0 flex-1">
+    <div
+      role="alert"
+      className="flex items-center gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-amber-900 dark:text-amber-200"
+    >
+      <CircleAlert className="size-4 shrink-0" />
+      <p className="min-w-0 flex-1 text-xs leading-relaxed sm:text-sm">
         {status.plan
           ? "Your subscription isn't active, so WhatsApp sends are disabled."
           : "No plan is active yet, so WhatsApp sends are disabled."}
       </p>
-      <Link
-        href="/settings?section=billing"
-        className="shrink-0 font-medium underline underline-offset-2 hover:no-underline"
+      <Button
+        asChild
+        size="sm"
+        variant="outline"
+        className="h-7 shrink-0 border-amber-500/40 bg-transparent text-xs text-amber-900 hover:bg-amber-500/15 dark:text-amber-200"
       >
-        Add a subscription
-      </Link>
+        <Link href="/settings?section=billing">Add a subscription</Link>
+      </Button>
     </div>
   );
 }
