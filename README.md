@@ -59,6 +59,7 @@ never reach a third-party messaging service.
 - [Connecting a store](#connecting-a-store)
 - [WhatsApp campaigns](#whatsapp-campaigns)
 - [Automated flows](#automated-flows)
+- [Abandoned checkout recovery](#abandoned-checkout-recovery)
 - [Gateway plugins and the menu bot](#gateway-plugins-and-the-menu-bot)
 - [The assistant](#the-assistant)
 - [Multiple stores](#multiple-stores)
@@ -559,7 +560,7 @@ graph TB
 
     KV[("Redis or disk<br/>snapshot chunks · store config<br/>gateway config · broadcast jobs<br/>flow state · opt-outs")]
 
-    CRON["Vercel Cron<br/>daily"]
+    CRON["Supabase pg_cron<br/>10min sync · daily flows · 5min recovery"]
     GROQ(["Groq<br/>counts and names only"])
     BROWSER["Browser"]
     WA(["WhatsApp"])
@@ -843,7 +844,7 @@ scheduled job advances it.
 
 ```mermaid
 sequenceDiagram
-    participant V as Vercel Cron
+    participant V as Supabase pg_cron
     participant P as PulseCommerce
     participant K as Storage
     participant W as Gateway
@@ -1292,20 +1293,51 @@ unintended.
 
 ### Scheduling
 
-The tick runs on Vercel Cron. `vercel.json` sets the schedule; **Vercel's Hobby
-plan permits one run a day** and rejects anything more often — not by downgrading
-it, but by failing the whole deployment:
+The tick does **not** run on Vercel Cron — this project has none configured.
+It runs on **Supabase pg_cron + pg_net**: a `trigger_app_job(path)` SQL
+function (`supabase/migrations/20260811170000_cron.sql`) reads the app's base
+URL and `CRON_SECRET` from Supabase Vault and POSTs to this app directly from
+the database, on a schedule that lives in `cron.job` rather than in
+`vercel.json`. Advancing flows is scheduled once daily, at 04:30 UTC — the
+same reasoning as before still holds: `waitDays` is the real granularity a
+flow gets, since a step still only goes out on the first run after it comes
+due.
 
-```
-Hobby accounts are limited to daily cron jobs.
-This cron expression (0 * * * *) would run more than once per day.
-```
+The same mechanism runs two other schedules: syncing every connected store
+every 10 minutes (`/api/cron/sync`), and abandoned-checkout recovery every 5
+minutes (`/api/cron/abandoned-checkouts`, see
+[Abandoned checkout recovery](#abandoned-checkout-recovery)) for stores that
+turned it on. All three share the same `trigger_app_job` helper and the same
+`CRON_SECRET` bearer check on the app side — inspect or change any of them
+with `select * from cron.job;` against the Supabase database, not by editing
+`vercel.json`.
 
-So a step is sent on the first run after it comes due, which makes `waitDays` the
-real granularity available. Pro restores finer schedules.
+`CRON_SECRET` must be set in both the app's environment and Supabase Vault
+(as the `cron_secret` secret) for these to authenticate. Unset on either side,
+the route returns 503 and nothing advances.
 
-`CRON_SECRET` must be set, and Vercel sends it as a bearer token automatically.
-Unset, the route returns 503 and nothing advances.
+---
+
+## Abandoned checkout recovery
+
+WooCommerce creates a real order — status `pending`, `on-hold` or `failed` —
+the instant someone starts checkout, before payment finishes. There is no
+"cart" resource in WooCommerce's REST API, so that order is the earliest
+signal reachable from outside WordPress, and it already carries everything a
+reminder needs. Turn it on at `/abandoned-checkouts`.
+
+Checked every 5 minutes, live against WooCommerce rather than the cached
+snapshot — the regular sync runs every 10 minutes and is close, but this
+reads directly so a 30-minute window is never at the mercy of sync timing.
+Only stores that turned the toggle on are ever polled.
+
+An order becomes eligible once it has sat pending for 30 minutes, and stops
+being reconsidered after 24 hours. Turning the toggle on starts a boundary at
+that exact moment (`abandoned_checkout_enabled_at`): only orders placed after
+are ever considered, so an existing backlog of old pending orders is never
+messaged as a batch the instant the switch flips. Every order is reminded at
+most once — the opt-out list and an unreadable phone number both produce a
+skip, not a send, recorded in the same ledger.
 
 ---
 

@@ -60,7 +60,7 @@ const COLUMNS: [string, [string, string][]][] = [
 const SOCIALS: { label: string; href: string; render: () => React.ReactNode }[] = [
   {
     label: "GitHub",
-    href: "https://github.com",
+    href: "https://github.com/nitheeshdr/PulseCommerce",
     render: () => <BrandMark icon={siGithub} className="size-4" />,
   },
   {
