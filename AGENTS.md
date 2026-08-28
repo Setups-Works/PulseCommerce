@@ -104,3 +104,16 @@ lying around; it typically embeds a connection string.
   `pulsecommerce-cli`. The CLI is built on the SDK, not its own fetch calls.
   Publishing is the user's own `npm publish`, from their own machine — not
   something to attempt from an agent session.
+
+## The WhatsApp gateway is a specific fork, not upstream OpenWA
+
+Every WhatsApp send in this app goes through a self-hosted gateway at
+**https://github.com/rmyndharis/OpenWA** — that repo is the source of truth
+for its endpoints, plugins, and response shapes, not the upstream OpenWA
+project or its general documentation. This fork's actual behavior has
+already been found to disagree with documented behavior in at least one
+place that matters (session state lives on `GET /api/sessions/{id}`, not
+`/status`). Adding a new WhatsApp-facing feature — a new gateway call, a new
+plugin integration, anything in `src/lib/whatsapp/client.ts` — means reading
+that repo's source first, not inferring from OpenWA docs in general. See
+`src/lib/whatsapp/CLAUDE.md` for more.
