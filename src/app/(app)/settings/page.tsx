@@ -3,13 +3,18 @@
 import {
   ArrowRight,
   CheckCircle2,
+  CreditCard,
   ExternalLink,
+  Info,
+  KeyRound,
   Loader2,
   LogOut,
+  MessageCircle,
   ShieldCheck,
   Check,
   Loader2 as Spinner,
   Store,
+  Terminal,
   Trash2,
   TriangleAlert,
   Unplug,
@@ -22,6 +27,7 @@ import { hostOf, useConnectedStores } from "@/components/layout/store-switcher";
 import { PageShell } from "@/components/dashboard/page-state";
 import { ApiKeysCard } from "@/components/settings/api-keys-card";
 import { BillingCard } from "@/components/settings/billing-card";
+import { ChangePasswordCard } from "@/components/settings/change-password-card";
 import { SyncCard } from "@/components/settings/sync-card";
 import { WhatsAppSettingsCard } from "@/components/whatsapp/whatsapp-settings-card";
 import { useAnalytics } from "@/components/providers/analytics-provider";
@@ -32,7 +38,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/format";
+
+type SectionId = "store" | "whatsapp" | "billing" | "security" | "developer" | "about";
+
+const SECTIONS: { id: SectionId; label: string; icon: typeof Store }[] = [
+  { id: "store", label: "Store", icon: Store },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { id: "billing", label: "Billing", icon: CreditCard },
+  { id: "security", label: "Security", icon: KeyRound },
+  { id: "developer", label: "Developer", icon: Terminal },
+  { id: "about", label: "About", icon: Info },
+];
 
 interface RedactedConfig {
   url: string;
@@ -56,6 +74,7 @@ export default function SettingsPage() {
   const [authOutcome, setAuthOutcome] = useState<string | null>(null);
   const { stores, reload: reloadStores } = useConnectedStores();
   const [busyStore, setBusyStore] = useState<string | null>(null);
+  const [section, setSection] = useState<SectionId>("store");
 
   const loadConfig = useCallback(async () => {
     try {
@@ -80,8 +99,13 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAuthOutcome(new URLSearchParams(window.location.search).get("auth"));
+    setAuthOutcome(params.get("auth"));
+    const requested = params.get("section");
+    if (SECTIONS.some((s) => s.id === requested)) {
+      setSection(requested as SectionId);
+    }
   }, []);
 
   useEffect(() => {
@@ -164,8 +188,31 @@ export default function SettingsPage() {
         </Alert>
       ) : null}
 
-      {/* --- Current connection ------------------------------------------ */}
-      <Card>
+      <div className="grid gap-6 lg:grid-cols-[200px_1fr] lg:items-start">
+        <nav className="flex gap-1 overflow-x-auto lg:sticky lg:top-6 lg:flex-col lg:overflow-visible">
+          {SECTIONS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSection(id)}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors lg:shrink",
+                section === id
+                  ? "bg-muted font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="min-w-0 space-y-5">
+          {section === "store" ? (
+            <>
+              {/* --- Current connection ------------------------------------------ */}
+              <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
@@ -387,18 +434,26 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
       ) : null}
+            </>
+          ) : null}
 
-      {/* --- WhatsApp gateway ---------------------------------------------- */}
-      <WhatsAppSettingsCard />
+          {section === "whatsapp" ? <WhatsAppSettingsCard /> : null}
 
-      <BillingCard />
+          {section === "billing" ? <BillingCard /> : null}
 
-      <SyncCard />
+          {section === "security" ? <ChangePasswordCard /> : null}
 
-      <ApiKeysCard />
+          {section === "developer" ? (
+            <>
+              <SyncCard />
+              <ApiKeysCard />
+            </>
+          ) : null}
 
-      {/* --- How data is handled ------------------------------------------ */}
-      <Card>
+          {section === "about" ? (
+            <>
+              {/* --- How data is handled ------------------------------------------ */}
+              <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <ShieldCheck className="size-4 text-muted-foreground" />
@@ -463,6 +518,10 @@ export default function SettingsPage() {
           </a>
         </CardContent>
       </Card>
+            </>
+          ) : null}
+        </div>
+      </div>
     </PageShell>
   );
 }
