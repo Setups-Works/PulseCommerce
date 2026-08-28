@@ -10,7 +10,7 @@
  *
  * Usage: node scripts/build-developer-guide-pdf.mjs [output-path]
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
@@ -387,7 +387,6 @@ async function main() {
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load" });
   await page.evaluate(async () => {
-    // eslint-disable-next-line no-undef
     mermaid.initialize({
       startOnLoad: false,
       theme: "neutral",
@@ -401,9 +400,7 @@ async function main() {
       securityLevel: "loose",
       flowchart: { htmlLabels: true },
     });
-    // eslint-disable-next-line no-undef
     await mermaid.run({ querySelector: ".mermaid" });
-    // eslint-disable-next-line no-undef
     await document.fonts.ready;
   });
   // A beat for layout to settle against the CSS above before print measures

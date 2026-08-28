@@ -913,6 +913,28 @@ export const openApiDocument = {
         },
       },
     },
+    "/api/cron/sync": {
+      post: {
+        tags: ["Sync"],
+        summary: "Sync every connected store",
+        // Not open: authenticates with CRON_SECRET as a bearer token, checked
+        // in the handler. The scheduler has no session and no API key.
+        security: [],
+        description:
+          "Called by Supabase's scheduler (pg_cron, via the trigger_app_job helper in " +
+          "supabase/migrations/20260811170000_cron.sql) every 10 minutes, with the project's " +
+          "CRON_SECRET as a bearer token, and closed when that secret is unset. Up to 25 stores " +
+          "are synced per run, ordered by staleness — never-synced stores first — so a run that " +
+          "cannot finish everyone still makes progress on whoever is furthest behind rather than " +
+          "repeatedly syncing the same few. One store's WooCommerce being unreachable does not " +
+          "stop the rest. GET does the same work.",
+        responses: {
+          200: { description: "What each store's sync did", content: json({ type: "object" }) },
+          401: { description: "Missing or wrong bearer token" },
+          503: { description: "CRON_SECRET is not set, so scheduled sync is off" },
+        },
+      },
+    },
     "/api/cron/flows": {
       post: {
         tags: ["Flows"],
