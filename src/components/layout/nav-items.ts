@@ -10,6 +10,7 @@ import {
   Package,
   ReceiptText,
   Settings,
+  ShoppingCart,
   Sparkles,
   Users,
   Warehouse,
@@ -107,6 +108,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: "Flows",
         icon: Workflow,
         description: "Multi-step campaigns that send themselves over days",
+      },
+      {
+        href: "/abandoned-checkouts",
+        label: "Abandoned checkouts",
+        icon: ShoppingCart,
+        description: "WhatsApp reminders for checkouts left pending",
       },
       {
         href: "/menu",

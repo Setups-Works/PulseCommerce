@@ -101,6 +101,31 @@ everyone's progress.
 The list every send, test, and flow step checks before delivering anything.
 Returned masked, since it's read in a browser.
 
+## Abandoned checkout recovery
+
+WooCommerce creates a real order — status `pending`, `on-hold` or `failed` —
+the instant someone starts checkout, before payment finishes. That's the
+signal this reads; there's no live "cart" resource in WooCommerce's API to
+read instead.
+
+### `GET` / `PATCH` `/api/whatsapp/abandoned-checkouts`
+
+`GET` returns whether recovery is on and the recent history — what happened
+to each order, never a phone number. `PATCH` flips the switch. Turning it on
+starts a boundary at that moment: only orders placed after are ever
+considered, so an existing backlog of old pending orders is never messaged
+as a batch the moment it's switched on.
+
+### `POST /api/cron/abandoned-checkouts`
+
+Ticked every five minutes by the same scheduler that runs `advance-flows` —
+see [Authentication](/docs/authentication) for how the scheduler authenticates.
+Reads WooCommerce live rather than the cached snapshot (the regular sync runs
+every two hours, far too slow for a 30-minute window), and only for stores
+that turned recovery on. An eligible order — 30 minutes to 24 hours old, past
+the enabled-at boundary — gets exactly one reminder; the opt-out list and an
+unreadable phone number both produce a skip, not a send.
+
 ## Next
 
 - [CLI reference](/docs/cli) — `pulse campaigns preview|broadcast|test`

@@ -71,6 +71,7 @@ export const openApiDocument = {
     { name: "WhatsApp", description: "Gateway connection and session" },
     { name: "Campaigns", description: "Audience resolution and broadcasts" },
     { name: "Flows", description: "Multi-step campaigns advanced on a schedule" },
+    { name: "Recovery", description: "Abandoned-checkout reminders over WhatsApp" },
     { name: "Assistant", description: "Reads the store and proposes actions for approval" },
     { name: "Inbox", description: "Conversations and replies" },
     { name: "Auth", description: "Optional password sessions" },
@@ -920,13 +921,91 @@ export const openApiDocument = {
         // in the handler. The scheduler has no session and no API key.
         security: [],
         description:
-          "Called by Vercel Cron with the project's CRON_SECRET as a bearer token, and closed when " +
-          "that secret is unset. What is due is computed from stored timestamps, so a tick that is " +
-          "skipped, retried or runs late sends the same messages, once. GET does the same work.",
+          "Called by Supabase's scheduler (pg_cron, via the trigger_app_job helper in " +
+          "supabase/migrations/20260811170000_cron.sql) with the project's CRON_SECRET as a bearer " +
+          "token, and closed when that secret is unset. What is due is computed from stored " +
+          "timestamps, so a tick that is skipped, retried or runs late sends the same messages, " +
+          "once. GET does the same work.",
         responses: {
           200: { description: "What each flow did", content: json({ type: "object" }) },
           401: { description: "Missing or wrong bearer token" },
           503: { description: "CRON_SECRET is not set, so scheduled sending is off" },
+        },
+      },
+    },
+    "/api/cron/abandoned-checkouts": {
+      post: {
+        tags: ["Recovery"],
+        summary: "Recover checkouts left pending, over WhatsApp",
+        security: [],
+        description:
+          "Called by Supabase's scheduler every five minutes, the same trigger_app_job mechanism " +
+          "as advance-flows and sync-stores, just far more often — a 30-minute recovery window " +
+          "needs it. Reads WooCommerce live rather than the mirror, since the regular sync (every " +
+          "two hours) is too infrequent for this, and only for stores with abandonedCheckoutEnabled " +
+          "set — this makes no WooCommerce call at all for a store that hasn't turned it on. Only " +
+          "orders placed after recovery was switched on are ever considered, so turning it on " +
+          "never messages an existing backlog as a batch. An eligible order left pending, on-hold " +
+          "or failed for 30 minutes to 24 hours gets one reminder, ever; the opt-out list and an " +
+          "unreadable phone number both produce a skip, not a send.",
+        responses: {
+          200: { description: "What each opted-in store's check did", content: json({ type: "object" }) },
+          401: { description: "Missing or wrong bearer token" },
+          503: { description: "CRON_SECRET is not set, so recovery is off" },
+        },
+      },
+    },
+    "/api/whatsapp/abandoned-checkouts": {
+      get: {
+        tags: ["Recovery"],
+        summary: "The on/off switch, and recent activity",
+        description:
+          "No phone number is ever in the response — only what happened to each order. See " +
+          "POST /api/cron/abandoned-checkouts for the mechanism.",
+        responses: {
+          200: {
+            description: "Current setting and recent history",
+            content: json({
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+                storeUrl: { type: "string" },
+                items: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      orderId: { type: "integer" },
+                      status: { type: "string", enum: ["messaged", "skipped"] },
+                      skipReason: { type: "string", nullable: true },
+                      messagedAt: { type: "string", format: "date-time", nullable: true },
+                      createdAt: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            }),
+          },
+          409: errorResponse("No WooCommerce store is connected"),
+        },
+      },
+      patch: {
+        tags: ["Recovery"],
+        summary: "Turn recovery on or off",
+        description: "Requires the write scope: turning this on makes live WooCommerce calls every five minutes.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: { enabled: { type: "boolean" } },
+            required: ["enabled"],
+          }),
+        },
+        responses: {
+          200: { description: "Saved", content: json({ type: "object", properties: { enabled: { type: "boolean" } } }) },
+          403: errorResponse("The key lacks the write scope"),
+          409: errorResponse("No WooCommerce store is connected"),
+          422: errorResponse("A boolean enabled is required"),
         },
       },
     },

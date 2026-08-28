@@ -90,6 +90,8 @@ export interface WooOrder {
   meta_data?: { key: string; value: unknown }[];
   /** Populated at ingest from meta_data; absent on stores without attribution. */
   attribution?: OrderAttribution;
+  /** Only requested by getAbandonedOrders — builds the pay-now link. Absent from the mirrored snapshot. */
+  order_key?: string;
 }
 
 export interface WooCustomer {

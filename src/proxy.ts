@@ -120,6 +120,7 @@ const PROTECTED_PAGES = [
   "/assistant",
   "/inbox",
   "/flows",
+  "/abandoned-checkouts",
   "/menu",
   "/connect",
   "/onboarding",

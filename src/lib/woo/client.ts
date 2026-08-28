@@ -284,6 +284,24 @@ export class WooClient {
     });
   }
 
+  /**
+   * A live, unmirrored read of recent orders, for abandoned-checkout recovery.
+   *
+   * Deliberately not `getOrders`: that call's `_fields` list is trimmed for the
+   * analytics snapshot, and this needs `order_key` (for the pay-now link) that
+   * list doesn't carry — widening a constant tuned for a different, much
+   * larger payload for one caller's sake would be the wrong trade for both.
+   * The cron tick that calls this asks every five minutes, live, only for
+   * stores that opted in — the regular mirror sync is far too infrequent
+   * (every two hours) for a 30-minute recovery window.
+   */
+  getAbandonedOrders(params: Record<string, string | number | undefined>, maxPages?: number) {
+    return this.fetchAll<WooOrder>("orders", { ...params, _fields: ABANDONED_ORDER_FIELDS }, {
+      maxPages,
+      concurrency: 2,
+    });
+  }
+
   getCustomers(params: Record<string, string | number | undefined>, maxPages?: number) {
     return this.fetchAll<WooCustomer>("customers", { ...params, _fields: CUSTOMER_FIELDS }, { maxPages });
   }
@@ -332,6 +350,12 @@ const ORDER_FIELDS = [
   "billing", "payment_method", "payment_method_title", "line_items", "coupon_lines", "refunds",
   // Carries WooCommerce Order Attribution; trimmed to the attribution keys at ingest.
   "meta_data",
+].join(",");
+
+/** For getAbandonedOrders — order_key builds the pay-now link; nothing else the mirror needs. */
+const ABANDONED_ORDER_FIELDS = [
+  "id", "status", "date_created", "date_created_gmt", "currency", "total",
+  "billing", "line_items", "order_key",
 ].join(",");
 
 const CUSTOMER_FIELDS = [
