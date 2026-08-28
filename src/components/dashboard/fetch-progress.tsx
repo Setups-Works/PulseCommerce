@@ -91,7 +91,15 @@ export function FetchProgressBar() {
       role="progressbar"
       aria-label="Loading analytics"
       aria-busy="true"
-      className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-transparent"
+      /*
+       * z-40, not z-50: the mobile sidebar's drawer (components/ui/sidebar.tsx)
+       * is a Sheet at z-50, and this bar rendering while a background refresh
+       * happens to overlap an open drawer previously tied with it at the same
+       * z-index — which one painted on top then depended on DOM/portal order
+       * rather than anything intentional. Above the topbar (z-30), below any
+       * sheet or dialog, is the layer this bar actually belongs on.
+       */
+      className="pointer-events-none fixed inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-transparent"
     >
       <div className="h-full w-2/5 animate-[pulse-sweep_1.15s_ease-in-out_infinite] bg-primary" />
     </div>

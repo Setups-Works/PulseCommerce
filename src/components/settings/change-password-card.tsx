@@ -30,6 +30,7 @@ export function ChangePasswordCard() {
   const [confirm, setConfirm] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabaseBrowser().auth.getUser();
@@ -78,6 +79,29 @@ export function ChangePasswordCard() {
     }
   };
 
+  /*
+   * For "I don't remember my current password" — distinct from the form
+   * above, which requires knowing it. Sends the same reset email the public
+   * /forgot-password page does, to the address already on this account
+   * rather than one typed in, since there is nothing to ask that a signed-in
+   * session doesn't already answer.
+   */
+  const sendResetLink = async () => {
+    if (!email) return;
+    setSendingReset(true);
+    try {
+      const { error: resetError } = await supabaseBrowser().auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
+      if (resetError) throw resetError;
+      toast.success("Reset link sent", { description: `Check ${email}.` });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send the reset link.");
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -98,7 +122,17 @@ export function ChangePasswordCard() {
           <form onSubmit={submit} className="space-y-3">
             {hasPassword ? (
               <div className="space-y-1.5">
-                <Label htmlFor="current-password">Current password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="current-password">Current password</Label>
+                  <button
+                    type="button"
+                    onClick={sendResetLink}
+                    disabled={sendingReset}
+                    className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-60"
+                  >
+                    {sendingReset ? "Sending…" : "Forgot it?"}
+                  </button>
+                </div>
                 <Input
                   id="current-password"
                   type="password"
