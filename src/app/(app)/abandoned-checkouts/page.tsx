@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckCircle2, Loader2, ShoppingCart, XCircle } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { CheckCircle2, Loader2, Percent, Send, ShoppingCart, XCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { StatStrip, StatTile } from "@/components/dashboard/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -39,6 +40,10 @@ interface State {
  * input is the switch. What happened to each order is either a WhatsApp
  * reminder sent, or a reason it wasn't — no phone number is ever shown,
  * matching the rest of this app.
+ *
+ * The header (title, description) comes from Topbar reading nav-items.ts —
+ * every other app page works the same way, so this one starts straight into
+ * its own content rather than repeating a heading Topbar already renders.
  */
 export default function AbandonedCheckoutsPage() {
   const [state, setState] = useState<State | null>(null);
@@ -80,24 +85,76 @@ export default function AbandonedCheckoutsPage() {
     }
   };
 
+  const stats = useMemo(() => {
+    const items = state?.items ?? [];
+    const messaged = items.filter((i) => i.status === "messaged");
+    const skipped = items.filter((i) => i.status === "skipped");
+    const rate = items.length > 0 ? messaged.length / items.length : null;
+
+    // Last 14 days of messaged reminders, oldest first — a shape, not a report;
+    // the tile's own number carries the value, same convention as the
+    // dashboard's own StatTiles.
+    const days: string[] = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (13 - i));
+      return d.toISOString().slice(0, 10);
+    });
+    const byDay = new Map(days.map((d) => [d, 0]));
+    for (const item of messaged) {
+      const key = (item.messagedAt ?? item.createdAt).slice(0, 10);
+      if (byDay.has(key)) byDay.set(key, (byDay.get(key) ?? 0) + 1);
+    }
+    const trend = [...byDay.values()];
+
+    return { messaged: messaged.length, skipped: skipped.length, rate, trend };
+  }, [state]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <ShoppingCart className="size-5" />
-          Abandoned checkouts
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          A WhatsApp reminder for a checkout left pending, on-hold or failed for 30 minutes.
-        </p>
-      </div>
+      <StatStrip>
+        <StatTile
+          label="Reminders sent"
+          value={String(stats.messaged)}
+          icon={Send}
+          trend={stats.trend}
+          hint="A WhatsApp reminder sent for an order left pending, on-hold or failed for 30 minutes."
+        />
+        <StatTile
+          label="Skipped"
+          value={String(stats.skipped)}
+          icon={XCircle}
+          hint="No phone number could be read, the number had opted out, or the WhatsApp session wasn't ready."
+        />
+        <StatTile
+          label="Recovery rate"
+          value={stats.rate === null ? "—" : `${Math.round(stats.rate * 100)}%`}
+          icon={Percent}
+          hint="Reminders sent as a share of every eligible order seen so far."
+        />
+        <StatTile
+          label="Tracked orders"
+          value={String(stats.messaged + stats.skipped)}
+          icon={ShoppingCart}
+          footer="Since recovery was last turned on"
+        />
+      </StatStrip>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-base">Recover abandoned checkouts</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="flex items-center gap-2 text-base">
+                Recover abandoned checkouts
+                {state ? (
+                  <Badge
+                    variant={state.enabled ? "default" : "outline"}
+                    className="text-[10px] font-medium uppercase tracking-wide"
+                  >
+                    {state.enabled ? "Live" : "Off"}
+                  </Badge>
+                ) : null}
+              </CardTitle>
+              <CardDescription className="mt-1 text-xs">
                 Checked every five minutes. Turning this on only ever looks at orders placed from
                 this moment forward — nothing already pending gets messaged as a batch. Someone who
                 completes payment, or who has already opted out, is never messaged either.
@@ -128,9 +185,14 @@ export default function AbandonedCheckoutsPage() {
           {state === null ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : state.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing yet. Once a checkout is left pending for 30 minutes, it appears here.
-            </p>
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
+              <ShoppingCart className="size-6 text-muted-foreground" />
+              <p className="text-sm font-medium">Nothing yet</p>
+              <p className="max-w-xs text-xs text-muted-foreground">
+                Once a checkout is left pending for 30 minutes after recovery is turned on, it
+                appears here.
+              </p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
