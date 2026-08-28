@@ -28,11 +28,16 @@ export function ForgotPasswordForm() {
 
     try {
       const { error: resetError } = await supabaseBrowser().auth.resetPasswordForEmail(email, {
-        // Reuses the same code-exchange route Google sign-in and email
-        // confirmation already land on — it exchanges the code for a session
-        // and forwards to `next`, which is exactly what setting a new
-        // password needs: a valid session, nothing else.
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        // Straight to /reset-password, not through /auth/callback: a
+        // recovery link delivers its tokens in the URL *hash*
+        // (#access_token=...&type=recovery), which never reaches a server
+        // route at all — only the browser ever sees a fragment. The
+        // Supabase client on /reset-password picks it up itself once
+        // it's the page that's actually loaded. Must also be added to
+        // Supabase Dashboard -> Authentication -> URL Configuration ->
+        // Redirect URLs, or Supabase silently falls back to the bare
+        // Site URL instead of honouring this.
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (resetError) throw resetError;
       setSent(true);
