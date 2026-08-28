@@ -138,7 +138,17 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            {!signingUp ? (
+              <Link
+                href="/forgot-password"
+                className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              >
+                Forgot password?
+              </Link>
+            ) : null}
+          </div>
           <Input
             id="password"
             type="password"
