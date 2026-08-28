@@ -78,13 +78,13 @@ const MENU: { label: string; blurb: string; items: MenuItem[] }[] = [
     blurb: "Understand who is buying, and who has stopped.",
     items: [
       {
-        label: "Customer intelligence",
+        label: "Customer profiles",
         href: "/features#customers",
         description: "RFM segments, lifetime value, churn risk",
         icon: Users,
       },
       {
-        label: "Revenue & acquisition",
+        label: "Revenue & growth",
         href: "/features#revenue",
         description: "Every KPI against the prior period",
         icon: BarChart3,
