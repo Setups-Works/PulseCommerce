@@ -46,7 +46,7 @@ interface AnalyticsState {
   setGranularity: (g: Granularity | "auto") => void;
   refresh: () => void;
   /** Current query params, so exports match exactly what's on screen. */
-  queryParams: { from?: string; to?: string; granularity?: Granularity };
+  queryParams: { from?: string; to?: string; granularity?: Granularity; all?: boolean };
 }
 
 const AnalyticsContext = createContext<AnalyticsState | null>(null);
@@ -85,14 +85,18 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
   const abortRef = useRef<AbortController | null>(null);
 
   const queryParams = useMemo(() => {
-    const params: { from?: string; to?: string; granularity?: Granularity } = {};
-    if (range) {
+    const params: { from?: string; to?: string; granularity?: Granularity; all?: boolean } = {};
+    if (presetId === "all") {
+      // Resolved fresh by the server on every request — see setPreset below
+      // for why this must not be a from/to pinned here on the client.
+      params.all = true;
+    } else if (range) {
       params.from = range.from;
       params.to = range.to;
     }
     if (granularity !== "auto") params.granularity = granularity;
     return params;
-  }, [range, granularity]);
+  }, [presetId, range, granularity]);
 
   const fetchData = useCallback(
     async (opts: { refresh?: boolean } = {}) => {
@@ -104,8 +108,12 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       const search = new URLSearchParams();
-      if (queryParams.from) search.set("from", queryParams.from);
-      if (queryParams.to) search.set("to", queryParams.to);
+      if (queryParams.all) {
+        search.set("all", "1");
+      } else {
+        if (queryParams.from) search.set("from", queryParams.from);
+        if (queryParams.to) search.set("to", queryParams.to);
+      }
       if (queryParams.granularity) search.set("granularity", queryParams.granularity);
       if (opts.refresh) search.set("refresh", "1");
 
@@ -159,20 +167,35 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       const preset = RANGE_PRESETS.find((p) => p.id === id);
       if (!preset) return;
 
-      // Anchor presets to the newest data we hold, not to wall-clock today:
-      // a store that stopped syncing yesterday should still show its last 30 days.
-      const bounds = data?.meta.dataBounds;
-      let nextRange: DateRange | null;
-
       if (preset.days === null) {
-        nextRange = bounds ? { from: bounds.from, to: bounds.to } : null;
-      } else {
-        const end = bounds ? new Date(bounds.to) : new Date();
-        const start = new Date(end);
-        start.setDate(start.getDate() - (preset.days - 1));
-        nextRange = { from: toIso(start), to: toIso(end) };
-        if (bounds && nextRange.from < bounds.from) nextRange.from = bounds.from;
+        /*
+         * "All time" is resolved fresh by the server on every request (see
+         * queryParams/fetchData above), not pinned to a from/to computed here.
+         *
+         * It used to compute {from: bounds.from, to: bounds.to} from whatever
+         * dataBounds the last response happened to carry. Two ways that broke:
+         * bounds is undefined before the first successful fetch, which
+         * persisted `range: null` — and with no `from`/`to` on the wire, the
+         * server's own default silently took over ("the last 30 days of data
+         * we have"), while the picker kept showing "All time" as selected.
+         * And even with bounds available, the computed pair was a snapshot:
+         * a store that syncs another year of history after "All time" was
+         * clicked keeps showing the old, narrower window forever, since nothing
+         * re-derives it. Sending an explicit signal instead of a date pair
+         * fixes both — there is nothing here to go stale or fall back from.
+         */
+        setView({ presetId: id, range: null, granularity });
+        return;
       }
+
+      // Anchor to the newest data we hold, not to wall-clock today: a store
+      // that stopped syncing yesterday should still show its last 30 days.
+      const bounds = data?.meta.dataBounds;
+      const end = bounds ? new Date(bounds.to) : new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - (preset.days - 1));
+      const nextRange = { from: toIso(start), to: toIso(end) };
+      if (bounds && nextRange.from < bounds.from) nextRange.from = bounds.from;
 
       setView({ presetId: id, range: nextRange, granularity });
     },

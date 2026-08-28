@@ -43,14 +43,16 @@ export function sharedKey(parts: {
   from?: string;
   to?: string;
   granularity?: string;
+  /** See the same flag on AnalyticsOptions — keeps this in step with keyFor in cache.ts. */
+  allTime?: boolean;
 }): string {
   const digest = createHash("sha256")
     .update(
       [
         parts.storeUrl,
         parts.fetchedAt,
-        parts.from ?? "*",
-        parts.to ?? "*",
+        parts.allTime ? "all" : (parts.from ?? "*"),
+        parts.allTime ? "all" : (parts.to ?? "*"),
         parts.granularity ?? "auto",
       ].join("::"),
     )

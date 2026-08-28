@@ -47,6 +47,12 @@ import type {
 
 export interface AnalyticsOptions {
   range?: DateRange;
+  /**
+   * The whole history, resolved fresh against the current snapshot rather
+   * than a `range` pinned to whatever bounds were known when the caller last
+   * looked. Takes precedence over `range` when set.
+   */
+  allTime?: boolean;
   granularity?: Granularity;
   /** Caps the raw order list returned to the client; exports bypass this. */
   maxOrderRows?: number;
@@ -68,7 +74,7 @@ const DEFAULT_CUSTOMER_ROWS = 50_000;
 
 export function computeAnalytics(snapshot: StoreSnapshot, opts: AnalyticsOptions = {}): AnalyticsResult {
   const bounds = dataBounds(snapshot.orders);
-  const range = normaliseRange(opts.range, bounds);
+  const range = opts.allTime && bounds ? bounds : normaliseRange(opts.range, bounds);
   const prevRange = previousRange(range);
   const granularity = opts.granularity ?? inferGranularity(range);
 

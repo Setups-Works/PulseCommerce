@@ -24,6 +24,7 @@ export async function GET(request: Request) {
 
   const from = params.get("from") ?? undefined;
   const to = params.get("to") ?? undefined;
+  const allTime = params.get("all") === "1";
   const granularityParam = params.get("granularity");
   const granularity: Granularity | undefined =
     granularityParam === "day" || granularityParam === "week" || granularityParam === "month"
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
 
     const result = await getAnalyticsCached(snapshot, {
       range: from && to ? { from, to } : undefined,
+      allTime,
       granularity,
     });
 

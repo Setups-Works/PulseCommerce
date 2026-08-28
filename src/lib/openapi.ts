@@ -373,6 +373,15 @@ export const openApiDocument = {
           { name: "from", in: "query", schema: { type: "string", format: "date" } },
           { name: "to", in: "query", schema: { type: "string", format: "date" } },
           {
+            name: "all",
+            in: "query",
+            description:
+              "Set to 1 for the whole history, resolved fresh against the current " +
+              "snapshot rather than a from/to pinned to whatever bounds were known " +
+              "at some earlier point. Overrides from/to when set.",
+            schema: { type: "string", enum: ["1"] },
+          },
+          {
             name: "granularity",
             in: "query",
             schema: { type: "string", enum: ["day", "week", "month"] },

@@ -42,12 +42,15 @@ const MAX_ENTRIES = 8;
 const cache = new Map<string, AnalyticsResult>();
 
 function keyFor(snapshot: StoreSnapshot, opts: AnalyticsOptions): string {
-  const { range, granularity } = opts;
+  const { range, granularity, allTime } = opts;
   return [
     snapshot.storeUrl,
     snapshot.fetchedAt,
-    range?.from ?? "*",
-    range?.to ?? "*",
+    // "all time" and "no range given" both have from/to unset but resolve to
+    // different windows (the full history vs. the last 30 days of data), so
+    // they need their own slot rather than colliding on "*"/"*".
+    allTime ? "all" : (range?.from ?? "*"),
+    allTime ? "all" : (range?.to ?? "*"),
     granularity ?? "auto",
   ].join("::");
 }
@@ -127,6 +130,7 @@ export async function getAnalyticsCached(
       from: opts.range?.from,
       to: opts.range?.to,
       granularity: opts.granularity,
+      allTime: opts.allTime,
     }),
   );
 
@@ -147,6 +151,7 @@ export async function getAnalyticsCached(
       from: opts.range?.from,
       to: opts.range?.to,
       granularity: opts.granularity,
+      allTime: opts.allTime,
     }),
     result,
   );
