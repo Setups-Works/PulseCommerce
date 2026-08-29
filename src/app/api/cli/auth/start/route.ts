@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { publicAppUrl } from "@/app/api/auth/woo/start/route";
+import { publicAppUrl } from "@/lib/woo/app-url";
 import { SCOPES } from "@/lib/auth/api-key";
 import { startDeviceLogin } from "@/lib/auth/cli-login";
 

@@ -1,5 +1,5 @@
 import { decodeEntities } from "./entities";
-import type { WooCustomer, WooOrder, WooProduct, WooCoupon } from "./types";
+import type { WooCustomer, WooOrder, WooProduct, WooCoupon, WooWebhook } from "./types";
 
 export interface WooCredentials {
   url: string;
@@ -144,6 +144,52 @@ export class WooClient {
       }
 
       return JSON.parse(text) as T;
+    } catch (err) {
+      if (err instanceof WooApiError) throw err;
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new WooApiError(`Request to ${endpoint} timed out after 30s.`, 408, endpoint);
+      }
+      throw new WooApiError(
+        err instanceof Error ? err.message : `Request to ${endpoint} failed.`,
+        0,
+        endpoint,
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * The second write path, alongside `post`: a DELETE with no body. Same
+   * no-retry reasoning — a timed-out delete must not be retried, since
+   * retrying a delete that actually succeeded just returns a 404 for no
+   * benefit, and retrying one that is still in flight risks nothing but
+   * wasted requests. Kept separate from `post` so every mutating call stays
+   * visible in this one file.
+   */
+  private async del<T>(endpoint: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
+    const url = this.buildUrl(endpoint, params);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: this.headers(),
+        signal: controller.signal,
+        cache: "no-store",
+      });
+
+      const text = await res.text().catch(() => "");
+      if (!res.ok) {
+        const message =
+          res.status === 401 || res.status === 403
+            ? "WooCommerce refused the request. The store key is read-only — reconnect the store in Settings to re-approve it with write access."
+            : describeStatus(res.status, endpoint);
+        throw new WooApiError(message, res.status, endpoint, text.slice(0, 500));
+      }
+
+      return text ? (JSON.parse(text) as T) : (undefined as T);
     } catch (err) {
       if (err instanceof WooApiError) throw err;
       if (err instanceof Error && err.name === "AbortError") {
@@ -336,6 +382,54 @@ export class WooClient {
 
   getProducts(params: Record<string, string | number | undefined>, maxPages?: number) {
     return this.fetchAll<WooProduct>("products", { ...params, _fields: PRODUCT_FIELDS }, { maxPages });
+  }
+
+  /**
+   * A single, live product read.
+   *
+   * Only called when the local `woo_products` mirror hasn't caught up yet —
+   * a product created and ordered inside one incremental-sync window. Not a
+   * write, so it goes through `request`/`attempt` like every other read and
+   * inherits the same transient-error retry for free.
+   */
+  async getProduct(id: number): Promise<WooProduct | null> {
+    try {
+      const { data } = await this.request<WooProduct>(`products/${id}`, { _fields: PRODUCT_FIELDS });
+      return data;
+    } catch (error) {
+      if (error instanceof WooApiError && error.status === 404) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Registers the order.created webhook order confirmations listen on.
+   *
+   * This is the second mutating method on this client, after `createCoupon`
+   * — see this file's own CLAUDE.md on why that line only had one entry
+   * until now. `topic` is hardcoded rather than caller-supplied, kept as
+   * narrow as the coupon method: this client creates exactly one kind of
+   * webhook, nothing more general.
+   */
+  async createWebhook(input: { name: string; deliveryUrl: string; secret: string }): Promise<WooWebhook> {
+    return this.post<WooWebhook>("webhooks", {
+      name: input.name,
+      topic: "order.created",
+      delivery_url: input.deliveryUrl,
+      secret: input.secret,
+      status: "active",
+    });
+  }
+
+  /**
+   * Removes a webhook registered by `createWebhook`.
+   *
+   * `force=true`: a soft-deleted, merely-deactivated entry left cluttering
+   * the merchant's own WooCommerce → Webhooks list would be confusing after
+   * they turned this feature off.
+   */
+  async deleteWebhook(id: number): Promise<void> {
+    await this.del(`webhooks/${id}`, { force: "true" });
   }
 }
 

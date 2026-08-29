@@ -47,6 +47,7 @@ export interface TenantStore {
   lastSyncAt: string | null;
   orderCount: number;
   abandonedCheckoutEnabled: boolean;
+  orderConfirmationEnabled: boolean;
 }
 
 /**
@@ -133,10 +134,12 @@ export async function activeStore(userId: string): Promise<TenantStore | null> {
       last_sync_at: Date | null;
       order_count: number;
       abandoned_checkout_enabled: boolean;
+      order_confirmation_enabled: boolean;
     }[]
   >`
     select id, url, name, consumer_key, consumer_secret, history_months,
-           max_pages, synced_through, last_sync_at, order_count, abandoned_checkout_enabled
+           max_pages, synced_through, last_sync_at, order_count,
+           abandoned_checkout_enabled, order_confirmation_enabled
     from stores
     where user_id = ${userId}
     order by is_active desc, updated_at desc
@@ -157,6 +160,7 @@ export async function activeStore(userId: string): Promise<TenantStore | null> {
     lastSyncAt: row.last_sync_at?.toISOString() ?? null,
     orderCount: row.order_count,
     abandonedCheckoutEnabled: row.abandoned_checkout_enabled,
+    orderConfirmationEnabled: row.order_confirmation_enabled,
   };
 }
 

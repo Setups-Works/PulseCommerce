@@ -121,6 +121,7 @@ const PROTECTED_PAGES = [
   "/inbox",
   "/flows",
   "/abandoned-checkouts",
+  "/order-confirmations",
   "/menu",
   "/connect",
   "/onboarding",
@@ -169,6 +170,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (PUBLIC_API.has(pathname)) return response;
+
+  /*
+   * A dynamic `[storeId]` segment can't live in PUBLIC_API's exact-match set.
+   * This is genuinely public the same way /api/billing/webhook is: verified
+   * per-store by an HMAC signature inside the handler itself, not by session
+   * or key — see src/app/api/webhooks/woo/[storeId]/order-created/route.ts.
+   */
+  if (pathname.startsWith("/api/webhooks/woo/")) return response;
 
   /*
    * Without a database nothing can be verified, and serving the order history

@@ -130,6 +130,14 @@ export interface WooProduct {
   rating_count: number;
 }
 
+/** A registered webhook subscription, as WooCommerce returns it. */
+export interface WooWebhook {
+  id: number;
+  status: string;
+  topic: string;
+  delivery_url: string;
+}
+
 /** A discount coupon, as WooCommerce returns it. */
 export interface WooCoupon {
   id: number;

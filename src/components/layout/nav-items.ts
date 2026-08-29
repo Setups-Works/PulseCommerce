@@ -8,6 +8,7 @@ import {
   MessageCircle,
   MessageSquare,
   Package,
+  PackageCheck,
   ReceiptText,
   Settings,
   ShoppingCart,
@@ -114,6 +115,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: "Abandoned checkouts",
         icon: ShoppingCart,
         description: "WhatsApp reminders for checkouts left pending",
+      },
+      {
+        href: "/order-confirmations",
+        label: "Order confirmations",
+        icon: PackageCheck,
+        description: "A WhatsApp thank-you, with a product photo, the moment an order comes in",
       },
       {
         href: "/menu",
