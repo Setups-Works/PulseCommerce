@@ -3,19 +3,22 @@
 The WooCommerce REST API client and everything that turns its responses into
 what the rest of the app actually uses.
 
-## client.ts — one mutating method, on purpose
+## client.ts — a deliberately narrow set of mutating methods
 
-`WooClient` has exactly one write path: `createCoupon`, called from campaign
-coupon generation. Nothing else writes to orders, products, customers, or
-settings. This isn't an oversight to "complete" — it's the enforcement
-mechanism for the store key's scope. WooCommerce only offers `read` or
-`read_write`, with nothing finer-grained, so `read_write` is requested
-purely to create coupons, and the narrowing to "coupons only" is enforced
-here in code, not by the key itself (see
-`src/app/api/auth/woo/start/route.ts` for the request-side reasoning). If
-you add a second mutating method, you've widened what a compromised or
-buggy code path can do to a merchant's live store — treat that as a real
-design decision, not routine feature work.
+`WooClient` writes in exactly three places: `createCoupon` (campaign coupon
+generation), and `createWebhook`/`deleteWebhook` (registering and removing
+the `order.created` webhook behind WhatsApp order confirmations — see
+`src/app/api/whatsapp/order-confirmations/route.ts`). Nothing else writes to
+orders, products, customers, or settings. This isn't an oversight to
+"complete" — it's the enforcement mechanism for the store key's scope.
+WooCommerce only offers `read` or `read_write`, with nothing finer-grained,
+so `read_write` is requested purely for these writes, and the narrowing to
+"exactly these, nothing else" is enforced here in code, not by the key
+itself (see `src/app/api/auth/woo/start/route.ts` for the request-side
+reasoning). If you add a fourth mutating method, you've further widened what
+a compromised or buggy code path can do to a merchant's live store — treat
+that as a real design decision, not routine feature work, the same way
+adding the webhook pair was.
 
 Retries are transient-conditions-only (`0, 408, 429, 5xx`) with backoff — a
 `401` or `404` is retried by nothing, because it will fail identically every

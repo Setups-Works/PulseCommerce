@@ -79,6 +79,7 @@ export const openApiDocument = {
     { name: "CLI login", description: "Device-authorization login for `pulse login`" },
     { name: "Sync", description: "The local mirror of your WooCommerce store" },
     { name: "Billing", description: "Plans, usage, invoices and Razorpay subscriptions" },
+    { name: "Order confirmations", description: "WhatsApp thank-you messages sent on new orders" },
   ],
   paths: {
     "/api/sync": {
@@ -1154,6 +1155,97 @@ export const openApiDocument = {
           403: errorResponse("The key lacks the write scope"),
           409: errorResponse("No WooCommerce store is connected"),
           422: errorResponse("A boolean enabled is required"),
+        },
+      },
+    },
+    "/api/whatsapp/order-confirmations": {
+      get: {
+        tags: ["Order confirmations"],
+        summary: "The on/off switch, and recent activity",
+        description:
+          "No phone number is ever in the response — only what happened to each order. See " +
+          "POST /api/webhooks/woo/{storeId}/order-created for the mechanism.",
+        responses: {
+          200: {
+            description: "Current setting and recent history",
+            content: json({
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+                storeUrl: { type: "string" },
+                items: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      orderId: { type: "integer" },
+                      status: { type: "string", enum: ["sent", "skipped"] },
+                      skipReason: { type: "string", nullable: true },
+                      sentAt: { type: "string", format: "date-time", nullable: true },
+                      createdAt: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            }),
+          },
+          409: errorResponse("No WooCommerce store is connected"),
+        },
+      },
+      patch: {
+        tags: ["Order confirmations"],
+        summary: "Turn order confirmations on or off",
+        description:
+          "Requires the write scope. Turning this on registers a real order.created webhook on " +
+          "the merchant's own WooCommerce store (via the store's existing API credentials) " +
+          "pointed back at this app, and generates a per-store secret used to verify each " +
+          "delivery. Turning it off removes that webhook. Enabling fails with 422 if this app " +
+          "is not reachable from the public internet over HTTPS yet (APP_URL unset or pointing " +
+          "at a local address), and with 502 if WooCommerce itself refuses the registration — " +
+          "in either case the setting is not saved, so it can never read \"on\" with no live " +
+          "webhook behind it.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: { enabled: { type: "boolean" } },
+            required: ["enabled"],
+          }),
+        },
+        responses: {
+          200: { description: "Saved", content: json({ type: "object", properties: { enabled: { type: "boolean" }, warning: { type: "string" } } }) },
+          403: errorResponse("The key lacks the write scope"),
+          409: errorResponse("No WooCommerce store is connected"),
+          422: errorResponse("A boolean enabled is required, or this app is not publicly reachable yet"),
+          502: errorResponse("WooCommerce refused the webhook registration"),
+        },
+      },
+    },
+    "/api/webhooks/woo/{storeId}/order-created": {
+      post: {
+        tags: ["Order confirmations"],
+        summary: "WooCommerce order.created event",
+        // Not open in the sense of unauthenticated — it verifies an HMAC
+        // signature against a per-store secret instead of a session or key,
+        // the same class of exception as /api/billing/webhook.
+        security: [],
+        description:
+          "Server-to-server from the merchant's own WooCommerce store, verified via the " +
+          "X-WC-Webhook-Signature header against a per-store secret generated when order " +
+          "confirmations were enabled (Settings → Order confirmations, or " +
+          "PATCH /api/whatsapp/order-confirmations). Deliveries are deduplicated by " +
+          "(store, WooCommerce order id), since WooCommerce delivers at-least-once and may " +
+          "redeliver after downtime. Sends the customer a WhatsApp thank-you message with a " +
+          "product photo from the order's first line item, subject to the same allowance, " +
+          "opt-out and session checks every other WhatsApp send path applies.",
+        parameters: [
+          { name: "storeId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          200: { description: "Processed, already seen, or intentionally skipped.", content: json({ type: "object" }) },
+          400: errorResponse("Invalid JSON body"),
+          401: errorResponse("Missing or invalid signature"),
+          404: errorResponse("No such store, or order confirmations were never enabled for it"),
         },
       },
     },
