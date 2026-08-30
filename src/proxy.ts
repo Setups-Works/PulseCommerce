@@ -58,6 +58,10 @@ const PUBLIC_API = new Set([
   // scheduler has no session and no key.
   "/api/cron/flows",
   "/api/cron/sync",
+  "/api/cron/abandoned-checkouts",
+  // Server-to-server from Razorpay, verified via an HMAC signature
+  // (RAZORPAY_WEBHOOK_SECRET) inside the handler, not a session or key.
+  "/api/billing/webhook",
   // The first two legs of `pulse login`. There is no key to send yet — a
   // device code stands in for one until a human approves it in a browser
   // that already has a session. `/approve`, the third leg, is deliberately
