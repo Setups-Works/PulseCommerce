@@ -19,7 +19,7 @@ export interface SendAllowance {
   reason?: string;
 }
 
-interface ProfileRow {
+export interface BillingProfile {
   plan: "go" | "plus" | null;
   subscription_status: string;
   grace_until: Date | null;
@@ -28,6 +28,26 @@ interface ProfileRow {
 
 function currentPeriod(): string {
   return new Date().toISOString().slice(0, 7); // "YYYY-MM", UTC
+}
+
+/**
+ * The monthly message cap a profile is actually entitled to right now, with
+ * no regard for how many it's already sent — null means unlimited, 0 means
+ * "no active plan, nothing goes out."
+ *
+ * The one place this policy is written down. `checkSendAllowance` (the send
+ * gate) and `/api/billing/status` (what Settings → Billing displays) both
+ * call this rather than each hand-rolling their own version of "is this
+ * account entitled to send" — status/route.ts used to default anyone who
+ * wasn't unlimited to the Go 10,000 figure, which quietly showed "9,998
+ * remaining" to an account with no plan at all.
+ */
+export function planMessageLimit(profile: BillingProfile): number | null {
+  if (profile.legacy_unlimited || profile.plan === "plus") return null;
+
+  const inGrace = profile.grace_until !== null && profile.grace_until.getTime() > Date.now();
+  const usable = profile.plan === "go" && (profile.subscription_status === "active" || inGrace);
+  return usable ? GO_MONTHLY_LIMIT : 0;
 }
 
 /**
@@ -42,7 +62,7 @@ function currentPeriod(): string {
  *    is a real "subscribe to send" state, not a bug to route around.
  */
 export async function checkSendAllowance(userId: string, count = 1): Promise<SendAllowance> {
-  const rows = await db()<ProfileRow[]>`
+  const rows = await db()<BillingProfile[]>`
     select plan, subscription_status, grace_until, legacy_unlimited
     from profiles
     where id = ${userId}
@@ -50,14 +70,11 @@ export async function checkSendAllowance(userId: string, count = 1): Promise<Sen
   const profile = rows[0];
 
   if (!profile) return { allowed: false, remaining: 0, reason: "No account found." };
-  if (profile.legacy_unlimited || profile.plan === "plus") {
-    return { allowed: true, remaining: null };
-  }
 
-  const inGrace = profile.grace_until !== null && profile.grace_until.getTime() > Date.now();
-  const usable = profile.plan === "go" && (profile.subscription_status === "active" || inGrace);
+  const limit = planMessageLimit(profile);
+  if (limit === null) return { allowed: true, remaining: null };
 
-  if (!usable) {
+  if (limit === 0) {
     return {
       allowed: false,
       remaining: 0,
@@ -72,7 +89,7 @@ export async function checkSendAllowance(userId: string, count = 1): Promise<Sen
     select sent_count from whatsapp_usage where user_id = ${userId} and period = ${currentPeriod()}
   `;
   const sent = usage?.sent_count ?? 0;
-  const remaining = Math.max(0, GO_MONTHLY_LIMIT - sent);
+  const remaining = Math.max(0, limit - sent);
 
   if (remaining <= 0) {
     return { allowed: false, remaining: 0, reason: "This month's 10,000-message limit has been reached." };
