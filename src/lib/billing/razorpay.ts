@@ -60,7 +60,10 @@ export async function createSubscription(opts: {
     plan_id: opts.planId,
     customer_id: opts.customerId,
     total_count: 12, // A ceiling on the mandate's validity; Razorpay renews it automatically.
-    customer_notify: 1,
+    // The mandate is completed right here, inline, via Checkout.js (see
+    // BillingCard) -- Razorpay's own notify-by-email flow is a parallel,
+    // confusing path to the same short_url a customer never needs to see.
+    customer_notify: 0,
   } as unknown as Parameters<Razorpay["subscriptions"]["create"]>[0];
 
   const subscription = await razorpay().subscriptions.create(body);

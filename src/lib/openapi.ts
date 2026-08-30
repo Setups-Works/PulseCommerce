@@ -214,6 +214,25 @@ export const openApiDocument = {
         },
       },
     },
+    "/api/billing/cancel": {
+      post: {
+        tags: ["Billing"],
+        summary: "Revert an abandoned checkout attempt",
+        description:
+          "Session only. Cancels the account's Razorpay subscription and clears its " +
+          "plan, but only when that subscription isn't already active — a checkout " +
+          "started and then abandoned (the Checkout.js popup closed without " +
+          "completing the mandate) leaves a \"created\" subscription behind with no " +
+          "webhook ever coming to clean it up. Called automatically when that popup " +
+          "is dismissed. A no-op if the account has no pending subscription, or if " +
+          "it's already active (this route only reverts a pending attempt, not a " +
+          "real subscription).",
+        responses: {
+          200: { description: "Reverted, or nothing to revert.", content: json({ type: "object", properties: { ok: { type: "boolean" } } }) },
+          401: errorResponse("Not signed in, or authenticated with an API key."),
+        },
+      },
+    },
     "/api/billing/invoices": {
       get: {
         tags: ["Billing"],

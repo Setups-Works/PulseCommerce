@@ -20,6 +20,7 @@ import {
   Unplug,
 } from "lucide-react";
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AUTH_MESSAGES } from "@/components/auth-outcome";
@@ -61,6 +62,8 @@ interface RedactedConfig {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { data, refresh } = useAnalytics();
   const [config, setConfig] = useState<RedactedConfig | null>(null);
   const [connected, setConnected] = useState(false);
@@ -75,6 +78,17 @@ export default function SettingsPage() {
   const { stores, reload: reloadStores } = useConnectedStores();
   const [busyStore, setBusyStore] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>("store");
+
+  // Keeps the URL in sync with the visible section, so a section is
+  // shareable, bookmarkable, and survives a refresh — not just a tab
+  // remembered in React state.
+  const selectSection = useCallback(
+    (id: SectionId) => {
+      setSection(id);
+      router.replace(`${pathname}?section=${id}`, { scroll: false });
+    },
+    [pathname, router],
+  );
 
   const loadConfig = useCallback(async () => {
     try {
@@ -194,7 +208,7 @@ export default function SettingsPage() {
             <button
               key={id}
               type="button"
-              onClick={() => setSection(id)}
+              onClick={() => selectSection(id)}
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors lg:shrink",
                 section === id

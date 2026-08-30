@@ -105,6 +105,19 @@ export function BillingCard() {
           refreshStatus();
           void loadInvoices();
         },
+        modal: {
+          // Checkout creates the subscription server-side before this popup
+          // ever opens, so closing it without paying still leaves a "created"
+          // record behind — nothing else ever runs to clean it up, since
+          // Razorpay only sends a webhook once a mandate is actually
+          // authorized. Revert it immediately rather than leave Settings
+          // claiming a plan nothing was paid for.
+          ondismiss: () => {
+            void fetch("/api/billing/cancel", { method: "POST" }).finally(() => {
+              refreshStatus();
+            });
+          },
+        },
       }).open();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
