@@ -33,7 +33,15 @@ test("settings answers without erroring", async ({ request }) => {
 });
 
 test("analytics either returns data or says no store is connected", async ({ request }) => {
-  const res = await request.get("/api/analytics", { timeout: 120_000 });
+  // An explicit narrow range keeps this cheap on a real, connected store --
+  // no range here defaulted to a wide window, which on a store with tens of
+  // thousands of orders runs the full analytics computation and ships a
+  // multi-hundred-KB-to-multi-MB response on every single deploy this suite
+  // runs against. This only needs to prove the endpoint answers, not that a
+  // wide window of data comes back.
+  const to = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const res = await request.get(`/api/analytics?from=${from}&to=${to}`, { timeout: 120_000 });
   if (res.status() === 409) {
     expect((await res.json()).code).toBe("not_connected");
     return;
