@@ -19,8 +19,9 @@ export const dynamic = "force-dynamic";
  * instead of quietly claiming a plan nothing was ever paid for.
  *
  * Deliberately narrow: this only clears a *pending* (non-active) attempt. An
- * already-active subscription is a real cancellation with real consequences
- * (losing paid-for access before the period ends) and isn't this route's job.
+ * already-active subscription, or an authenticated trial that's actually
+ * running, is a real cancellation with real consequences (losing paid-for
+ * or trial access before the period ends) and isn't this route's job.
  */
 export async function POST(request: Request) {
   const tenant = await resolveTenant(request);
@@ -32,7 +33,11 @@ export async function POST(request: Request) {
     { razorpay_subscription_id: string | null; subscription_status: string }[]
   >`select razorpay_subscription_id, subscription_status from profiles where id = ${tenant.userId}`;
 
-  if (!profile?.razorpay_subscription_id || profile.subscription_status === "active") {
+  if (
+    !profile?.razorpay_subscription_id ||
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "authenticated"
+  ) {
     return NextResponse.json({ ok: true });
   }
 
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
 
   await db()`
     update profiles
-       set plan = null, subscription_status = 'none', razorpay_subscription_id = null
+       set plan = null, subscription_status = 'none', razorpay_subscription_id = null, trial_ends_at = null
      where id = ${tenant.userId}
   `;
 

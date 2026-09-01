@@ -17,21 +17,21 @@ import { Button } from "@/components/ui/button";
  * can never disagree about whether an account is blocked.
  *
  * `checkSendAllowance` in src/lib/billing/usage.ts is the real gate; this is
- * only the advance warning for the same rule. Absent for unlimited (Plus, or
- * a grandfathered pre-billing account) and for an account still mid-mandate
- * ("created") or gracing a bounced charge ("past_due") — those can still
- * send.
+ * only the advance warning for the same rule. Reads `usage.limit === 0`
+ * directly rather than re-deriving "which statuses count as blocked" from
+ * `subscriptionStatus` here — that used to be a second, hand-maintained copy
+ * of the same policy `planMessageLimit` already computes, and it had drifted
+ * (this banner treated a still-mid-mandate "created" account as not blocked,
+ * while the real gate already refused it). `usage.limit` is null for
+ * anything actually unlimited (legacy_unlimited, or an active/trialing
+ * Plus), so it can never misfire for those.
  */
 export function SubscriptionBanner() {
   const { status, initialising } = useBilling();
 
-  if (initialising || !status || status.legacyUnlimited) return null;
+  if (initialising || !status) return null;
 
-  const blocked =
-    status.plan === null ||
-    status.subscriptionStatus === "halted" ||
-    status.subscriptionStatus === "cancelled" ||
-    status.subscriptionStatus === "none";
+  const blocked = status.usage.limit === 0;
   if (!blocked) return null;
 
   return (

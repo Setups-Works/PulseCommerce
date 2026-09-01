@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 interface ProfileRow extends BillingProfile {
   current_period_end: Date | null;
+  trial_used_at: Date | null;
 }
 
 export async function GET(request: Request) {
@@ -16,7 +17,8 @@ export async function GET(request: Request) {
   const { userId } = resolved.value;
 
   const [profile] = await db()<ProfileRow[]>`
-    select plan, subscription_status, current_period_end, grace_until, legacy_unlimited
+    select plan, subscription_status, current_period_end, grace_until, legacy_unlimited,
+           trial_ends_at, trial_used_at
     from profiles
     where id = ${userId}
   `;
@@ -40,5 +42,7 @@ export async function GET(request: Request) {
     graceUntil: profile?.grace_until?.toISOString() ?? null,
     legacyUnlimited: profile?.legacy_unlimited ?? false,
     usage: { sent, limit },
+    trialEndsAt: profile?.trial_ends_at?.toISOString() ?? null,
+    trialAvailable: !profile?.trial_used_at,
   });
 }

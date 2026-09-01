@@ -4,11 +4,15 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 
 export interface BillingStatus {
   plan: "go" | "plus" | null;
-  subscriptionStatus: "none" | "created" | "active" | "past_due" | "halted" | "cancelled";
+  subscriptionStatus: "none" | "created" | "authenticated" | "active" | "past_due" | "halted" | "cancelled";
   currentPeriodEnd: string | null;
   graceUntil: string | null;
   legacyUnlimited: boolean;
   usage: { sent: number; limit: number | null };
+  /** Set once a trial mandate is authenticated; null before then or once real billing takes over. */
+  trialEndsAt: string | null;
+  /** False once this account has ever authenticated a trial mandate, on either plan. */
+  trialAvailable: boolean;
 }
 
 interface BillingState {

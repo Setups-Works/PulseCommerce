@@ -54,6 +54,26 @@ export async function POST(request: Request) {
   const subscriptionId = event.payload.subscription?.entity.id;
 
   switch (event.event) {
+    case "subscription.authenticated": {
+      // Fires once the UPI mandate is actually set up — for a trial
+      // subscription (start_at in the future) this is the moment the trial
+      // genuinely begins, well before the first charge; for an immediate
+      // subscription it's a brief intermediate state on the way to
+      // subscription.activated moments later. Safe to run for both: only a
+      // profile whose *current* checkout attempt requested a trial
+      // (trial_ends_at is set) has trial_used_at burned, and only once —
+      // idempotent under this route's own billing_webhook_events dedupe.
+      const sub = event.payload.subscription?.entity;
+      if (!sub) break;
+      await db()`
+        update profiles
+           set subscription_status = 'authenticated',
+               trial_used_at = case when trial_ends_at is not null then now() else trial_used_at end
+         where razorpay_subscription_id = ${sub.id}
+      `;
+      break;
+    }
+
     case "subscription.activated": {
       const sub = event.payload.subscription?.entity;
       if (!sub) break;

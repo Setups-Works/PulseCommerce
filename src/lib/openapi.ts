@@ -171,7 +171,11 @@ export const openApiDocument = {
                 plan: { type: "string", enum: ["go", "plus"], nullable: true },
                 subscriptionStatus: {
                   type: "string",
-                  enum: ["none", "created", "active", "past_due", "halted", "cancelled"],
+                  enum: ["none", "created", "authenticated", "active", "past_due", "halted", "cancelled"],
+                  description:
+                    "\"authenticated\" is Razorpay's own status for a mandate that's set up but " +
+                    "not yet charged -- the live state of a 14-day free trial between mandate " +
+                    "setup and the deferred first debit.",
                 },
                 currentPeriodEnd: { type: "string", format: "date-time", nullable: true },
                 graceUntil: { type: "string", format: "date-time", nullable: true },
@@ -183,6 +187,16 @@ export const openApiDocument = {
                     limit: { type: "integer", nullable: true, description: "null means unlimited." },
                   },
                 },
+                trialEndsAt: {
+                  type: "string",
+                  format: "date-time",
+                  nullable: true,
+                  description: "Set once a trial mandate is authenticated; null before then or once real billing takes over.",
+                },
+                trialAvailable: {
+                  type: "boolean",
+                  description: "False once this account has ever authenticated a trial mandate, on either plan.",
+                },
               },
             }),
           },
@@ -192,13 +206,19 @@ export const openApiDocument = {
     "/api/billing/checkout": {
       post: {
         tags: ["Billing"],
-        summary: "Start (or change) a subscription",
+        summary: "Start (or change) a subscription, with a one-time 14-day free trial",
         description:
           "Session only — like managing API keys, a leaked API key must not be able " +
           "to change what the account is billed. Creates a Razorpay customer and a " +
           "UPI Autopay subscription for the requested plan, cancelling any existing " +
-          "subscription first. Returns a subscription id for Razorpay's Checkout.js " +
-          "to open; the mandate itself is collected there, not by this app.",
+          "subscription first (a no-op if the account is already active or mid-trial " +
+          "on exactly this plan). An account that has never authenticated a trial " +
+          "mandate before gets one automatically: the UPI mandate is authorized now, " +
+          "same as any subscription, but Razorpay defers the first charge 14 days " +
+          "(`start_at`) -- nothing further is required from the customer or this app " +
+          "for the real charge to happen automatically once the trial ends. Returns a " +
+          "subscription id for Razorpay's Checkout.js to open; the mandate itself is " +
+          "collected there, not by this app.",
         requestBody: {
           required: true,
           content: json({
@@ -208,8 +228,18 @@ export const openApiDocument = {
           }),
         },
         responses: {
-          200: { description: "Subscription created.", content: json({ type: "object", properties: { subscriptionId: { type: "string" } } }) },
+          200: {
+            description: "Subscription created (or reused, if already active/trialing on this plan).",
+            content: json({
+              type: "object",
+              properties: {
+                subscriptionId: { type: "string" },
+                trialDays: { type: "integer", description: "14 if a trial was granted on this call, otherwise 0." },
+              },
+            }),
+          },
           401: errorResponse("Not signed in, or authenticated with an API key."),
+          502: errorResponse("Razorpay rejected the subscription request (e.g. an out-of-range start_at)."),
           503: errorResponse("The plan's Razorpay plan id is not configured."),
         },
       },
@@ -220,13 +250,14 @@ export const openApiDocument = {
         summary: "Revert an abandoned checkout attempt",
         description:
           "Session only. Cancels the account's Razorpay subscription and clears its " +
-          "plan, but only when that subscription isn't already active — a checkout " +
-          "started and then abandoned (the Checkout.js popup closed without " +
-          "completing the mandate) leaves a \"created\" subscription behind with no " +
-          "webhook ever coming to clean it up. Called automatically when that popup " +
-          "is dismissed. A no-op if the account has no pending subscription, or if " +
-          "it's already active (this route only reverts a pending attempt, not a " +
-          "real subscription).",
+          "plan (and any pending trial), but only when that subscription isn't " +
+          "already active or an authenticated trial — a checkout started and then " +
+          "abandoned (the Checkout.js popup closed without completing the mandate) " +
+          "leaves a \"created\" subscription behind with no webhook ever coming to " +
+          "clean it up. Called automatically when that popup is dismissed. A no-op " +
+          "if the account has no pending subscription, or if it's already active or " +
+          "mid-trial (this route only reverts a pending attempt, not a real " +
+          "subscription or a running trial).",
         responses: {
           200: { description: "Reverted, or nothing to revert.", content: json({ type: "object", properties: { ok: { type: "boolean" } } }) },
           401: errorResponse("Not signed in, or authenticated with an API key."),

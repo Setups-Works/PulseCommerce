@@ -38,6 +38,7 @@ const PLANS = [
 const STATUS_LABEL: Record<BillingStatus["subscriptionStatus"], string> = {
   none: "No plan",
   created: "Awaiting mandate",
+  authenticated: "Free trial",
   active: "Active",
   past_due: "Payment failed — grace period",
   halted: "Halted",
@@ -101,7 +102,11 @@ export function BillingCard() {
         // not cards or netbanking, so there's no reason to offer them.
         config: { display: { blocks: { upi: { instruments: [{ method: "upi" }] } }, sequence: ["block.upi"], preferences: { show_default_blocks: false } } },
         handler: () => {
-          toast.success("Mandate set up — this can take a minute to activate.");
+          toast.success(
+            json.trialDays > 0
+              ? `Your ${json.trialDays}-day free trial has started.`
+              : "Mandate set up — this can take a minute to activate.",
+          );
           refreshStatus();
           void loadInvoices();
         },
@@ -171,14 +176,22 @@ export function BillingCard() {
                   </p>
                   {!status.legacyUnlimited && status.plan ? (
                     <Badge
-                      variant={status.subscriptionStatus === "active" ? "default" : "outline"}
+                      variant={
+                        status.subscriptionStatus === "active" || status.subscriptionStatus === "authenticated"
+                          ? "default"
+                          : "outline"
+                      }
                       className="text-[10px]"
                     >
                       {STATUS_LABEL[status.subscriptionStatus]}
                     </Badge>
                   ) : null}
                 </div>
-                {status.currentPeriodEnd && !status.legacyUnlimited ? (
+                {status.subscriptionStatus === "authenticated" && status.trialEndsAt ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Trial ends {new Date(status.trialEndsAt).toLocaleDateString()}
+                  </p>
+                ) : status.currentPeriodEnd && !status.legacyUnlimited ? (
                   <p className="text-[11px] text-muted-foreground">
                     Renews {new Date(status.currentPeriodEnd).toLocaleDateString()}
                   </p>
@@ -217,33 +230,39 @@ export function BillingCard() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {PLANS.map((plan) => (
-                <div key={plan.id} className="space-y-2 rounded-lg border p-3">
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-sm font-medium">{plan.label}</p>
-                    <p className="text-sm font-semibold">{plan.priceLabel}</p>
+              {PLANS.map((plan) => {
+                const isCurrent =
+                  status.plan === plan.id &&
+                  (status.subscriptionStatus === "active" || status.subscriptionStatus === "authenticated");
+                return (
+                  <div key={plan.id} className="space-y-2 rounded-lg border p-3">
+                    <div className="flex items-baseline justify-between">
+                      <p className="text-sm font-medium">{plan.label}</p>
+                      <p className="text-sm font-semibold">
+                        {status.trialAvailable && !isCurrent ? `14 days free, then ${plan.priceLabel}` : plan.priceLabel}
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{plan.detail}</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={isCurrent ? "outline" : "default"}
+                      disabled={subscribing !== null || isCurrent}
+                      onClick={() => subscribe(plan.id)}
+                      className="w-full gap-1.5"
+                    >
+                      {subscribing === plan.id ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                      {isCurrent
+                        ? "Current plan"
+                        : status.trialAvailable
+                          ? "Start free trial"
+                          : status.plan
+                            ? "Switch to this plan"
+                            : "Subscribe"}
+                    </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{plan.detail}</p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={status.plan === plan.id && status.subscriptionStatus === "active" ? "outline" : "default"}
-                    disabled={
-                      subscribing !== null ||
-                      (status.plan === plan.id && status.subscriptionStatus === "active")
-                    }
-                    onClick={() => subscribe(plan.id)}
-                    className="w-full gap-1.5"
-                  >
-                    {subscribing === plan.id ? <Loader2 className="size-3.5 animate-spin" /> : null}
-                    {status.plan === plan.id && status.subscriptionStatus === "active"
-                      ? "Current plan"
-                      : status.plan
-                        ? "Switch to this plan"
-                        : "Subscribe"}
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

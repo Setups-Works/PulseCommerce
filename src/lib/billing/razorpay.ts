@@ -46,6 +46,15 @@ export interface RazorpaySubscription {
 export async function createSubscription(opts: {
   customerId: string;
   planId: string;
+  /**
+   * Unix seconds. Omit for immediate billing. When set, the UPI mandate is
+   * still authorized right away via Checkout.js -- only the first charge is
+   * deferred to this moment, which is what a free trial actually is on
+   * Razorpay: a real, live mandate from day one, not a promise to ask for
+   * one later. See src/app/api/billing/checkout/route.ts for how this is
+   * computed (now + 14 days) and gated to one trial per account, ever.
+   */
+  startAt?: number;
 }): Promise<RazorpaySubscription> {
   /*
    * The Subscriptions Create API has no "method" field — which payment
@@ -59,11 +68,14 @@ export async function createSubscription(opts: {
   const body = {
     plan_id: opts.planId,
     customer_id: opts.customerId,
-    total_count: 12, // A ceiling on the mandate's validity; Razorpay renews it automatically.
+    // Counts 12 cycles from start_at, not from creation -- with a trial this
+    // still lands as 12 monthly charges beginning once the trial ends.
+    total_count: 12,
     // The mandate is completed right here, inline, via Checkout.js (see
     // BillingCard) -- Razorpay's own notify-by-email flow is a parallel,
     // confusing path to the same short_url a customer never needs to see.
     customer_notify: 0,
+    ...(opts.startAt ? { start_at: opts.startAt } : {}),
   } as unknown as Parameters<Razorpay["subscriptions"]["create"]>[0];
 
   const subscription = await razorpay().subscriptions.create(body);
