@@ -51,8 +51,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
     // Same reasoning as /api/analytics: derived from a snapshot that only
     // changes on the ~10-minute sync cadence, so a short private cache costs
     // no meaningful freshness and saves re-transferring an identical profile
-    // (with full order history) on every repeat view.
-    return NextResponse.json({ customer }, { headers: { "Cache-Control": "private, max-age=60" } });
+    // (with full order history) on every repeat view. Vary: Cookie for the
+    // same reason too -- this URL is identical for every signed-in user, and
+    // a browser's cache doesn't otherwise know two requests carried
+    // different session cookies; without it, a second account signing in on
+    // the same shared browser within the cache window could be served the
+    // first account's cached customer record.
+    return NextResponse.json(
+      { customer },
+      { headers: { "Cache-Control": "private, max-age=60", Vary: "Cookie" } },
+    );
   } catch (error) {
     if (isNotConnected(error)) {
       return NextResponse.json({ error: error.message, code: "not_connected" }, { status: 409 });

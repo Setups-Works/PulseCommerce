@@ -52,9 +52,19 @@ export async function GET(request: Request) {
      * the staleness the sync cadence already accepts elsewhere in this app,
      * and an explicit `?refresh=1` pull is itself an async re-sync, not
      * something an instant repeat click needs to bypass caching for.
+     *
+     * `Vary: Cookie` matters as much as `private` does here: this route has
+     * one URL shared by every signed-in user, and a browser's own cache keys
+     * on URL alone by default -- it does not know two requests to the same
+     * URL carried different session cookies. Without this, a second person
+     * signing into a different account on the same shared browser within
+     * the cache window could be served the first person's cached response.
+     * Vary: Cookie makes the cached entry only reusable for a request
+     * carrying the exact same cookie -- a new login is a new cookie, so it's
+     * always a fresh fetch.
      */
     return NextResponse.json(result, {
-      headers: { "Cache-Control": "private, max-age=60" },
+      headers: { "Cache-Control": "private, max-age=60", Vary: "Cookie" },
     });
   } catch (error) {
     /*

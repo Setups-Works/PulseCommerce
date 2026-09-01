@@ -56,8 +56,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       // updated by any code path in this app -- re-downloading the same
       // invoice (an accounting tool, a repeat click) has no reason to
       // re-transfer identical bytes. `private` keeps it out of any
-      // shared/CDN cache.
+      // shared/CDN cache. Vary: Cookie so a browser's own cache can't reuse
+      // this response for a request carrying a different session cookie --
+      // the id in the URL is an unguessable UUID scoped to one account by
+      // the query itself, but a shared browser switching accounts should
+      // never even have the *option* of replaying a cached response instead
+      // of hitting the server's own ownership check again.
       "Cache-Control": "private, max-age=86400, immutable",
+      Vary: "Cookie",
     },
   });
 }
