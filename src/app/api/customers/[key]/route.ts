@@ -48,7 +48,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
       return NextResponse.json({ error: "That customer has no orders in this period." }, { status: 404 });
     }
 
-    return NextResponse.json({ customer }, { headers: { "Cache-Control": "no-store" } });
+    // Same reasoning as /api/analytics: derived from a snapshot that only
+    // changes on the ~10-minute sync cadence, so a short private cache costs
+    // no meaningful freshness and saves re-transferring an identical profile
+    // (with full order history) on every repeat view.
+    return NextResponse.json({ customer }, { headers: { "Cache-Control": "private, max-age=60" } });
   } catch (error) {
     if (isNotConnected(error)) {
       return NextResponse.json({ error: error.message, code: "not_connected" }, { status: 409 });

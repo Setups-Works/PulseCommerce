@@ -40,8 +40,21 @@ export async function GET(request: Request) {
       granularity,
     });
 
+    /*
+     * This payload runs to ~1.4MB on a real store (uncapped customer rows by
+     * design — see engine.ts's DEFAULT_CUSTOMER_ROWS comment, needed for
+     * client-side search/sort, not a bug to shrink). `no-store` meant every
+     * dashboard reload re-downloaded the full thing even though the
+     * underlying snapshot only changes on the ~10-minute sync cadence
+     * (AGENTS.md) — a real, measured contributor to exceeding Vercel's
+     * bandwidth quota. `private` keeps this out of any shared/CDN cache
+     * (tenant-scoped data must never be cross-served); 60s is well inside
+     * the staleness the sync cadence already accepts elsewhere in this app,
+     * and an explicit `?refresh=1` pull is itself an async re-sync, not
+     * something an instant repeat click needs to bypass caching for.
+     */
     return NextResponse.json(result, {
-      headers: { "Cache-Control": "no-store" },
+      headers: { "Cache-Control": "private, max-age=60" },
     });
   } catch (error) {
     /*

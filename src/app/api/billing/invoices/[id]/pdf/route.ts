@@ -52,7 +52,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="pulsecommerce-invoice-${row.id.slice(0, 8)}.pdf"`,
       "Content-Length": String(buffer.byteLength),
-      "Cache-Control": "no-store",
+      // A billing_invoices row is written once by the webhook and never
+      // updated by any code path in this app -- re-downloading the same
+      // invoice (an accounting tool, a repeat click) has no reason to
+      // re-transfer identical bytes. `private` keeps it out of any
+      // shared/CDN cache.
+      "Cache-Control": "private, max-age=86400, immutable",
     },
   });
 }
