@@ -145,6 +145,22 @@ export async function proxy(request: NextRequest) {
 
   if (!pathname.startsWith("/api/")) {
     /*
+     * A Supabase email link (magic link, OAuth, an invite) that isn't on the
+     * project's own Redirect URLs allowlist gets silently rewritten to the
+     * bare origin at click time, stranding its one-time `?code=` on the
+     * unauthenticated home page instead of `/auth/callback`, where the actual
+     * server-side code-for-session exchange happens. Rather than depend on
+     * that allowlist always being configured for every path this app might
+     * ever redirect through, forward a code landing here to the real
+     * handler — the home page has no legitimate reason to receive one itself.
+     */
+    if (pathname === "/" && request.nextUrl.searchParams.has("code")) {
+      const callback = new URL("/auth/callback", request.url);
+      callback.search = request.nextUrl.search;
+      return NextResponse.redirect(callback);
+    }
+
+    /*
      * Signing in is not something you can do while signed in. Leaving the form
      * reachable means someone lands on it, cannot tell whether they are logged
      * in, and signs in again to find out.
