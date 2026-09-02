@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MagicLinkCatcher } from "@/components/auth/magic-link-catcher";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { AiAgent } from "@/components/marketing/landing/ai-agent";
 import { Automation } from "@/components/marketing/landing/automation";
@@ -63,6 +64,7 @@ export default function LandingPage() {
       />
 
       <ScrollProgress className="h-0.5 bg-linear-to-r from-primary via-chart-7 to-primary" />
+      <MagicLinkCatcher />
 
       <main>
         <Hero />
