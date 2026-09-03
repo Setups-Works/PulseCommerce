@@ -123,10 +123,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (job.message.type === "text" || !media) {
       return { chatId: recipient.chatId, type: "text" as const, content: { text: body } };
     }
+    // The gateway's send-bulk schema (BulkMessageContentDto) has no top-level
+    // `url` — media goes nested under the type-specific key (content.image.url,
+    // content.video.url), rejecting `content.url` outright as an unrecognised
+    // property. `job.message.type` is exactly "image" or "video" here (the
+    // "text" branch above already returned), which happens to match the
+    // schema's nested key names directly.
     return {
       chatId: recipient.chatId,
       type: job.message.type,
-      content: { url: media, caption: body },
+      content: { [job.message.type]: { url: media }, caption: body },
     };
   });
 
