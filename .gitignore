@@ -59,3 +59,4 @@ certificates
 out/
 .env*.local
 # PUL-8: verifying PR-based dev linking to Jira, safe to ignore
+# test: verify Vercel auto-deploy after GitHub reconnect, safe to ignore
