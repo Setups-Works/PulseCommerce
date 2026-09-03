@@ -82,6 +82,12 @@ rather than just the issue title; it already has the file pointers and a
   have access, or open a GitHub issue with
   [the feature-request template](.github/ISSUE_TEMPLATE/feature_request.md) —
   it gets triaged into a Jira issue from there.
+- **Asking an agent to build a feature that has no issue yet?** It should
+  create the issue itself, move it to In Progress before writing code, and
+  to In Review the moment its PR is open — see
+  [JIRA_WORKFLOW.md](JIRA_WORKFLOW.md) for the exact protocol. It should not
+  self-merge and mark Done without you having authorized that for the
+  specific task.
 
 ## Local setup, code style, and checks
 
