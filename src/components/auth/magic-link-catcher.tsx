@@ -9,53 +9,50 @@ import { supabaseBrowser } from "@/lib/supabase/client";
  * Catches a Supabase auth redirect that lands on the marketing home page.
  *
  * A magic link (and any other Supabase email-link flow) delivers its tokens
- * in the URL *hash* (#access_token=...), which a server can never see -- and
- * this project's own Supabase Redirect URLs allowlist only permits the bare
- * origin, so every one of these links lands here on `/` rather than on
- * `/auth/callback` or a page built specifically for it. See
- * reset-password-form.tsx for the identical constraint solved for the
- * password-recovery case: the Supabase browser client parses the hash
- * itself, asynchronously, after this component has already mounted, so this
- * listens for the resulting event rather than checking once and racing it.
+ * in the URL *hash* (#access_token=...&refresh_token=...), which a server
+ * can never see -- and this project's own Supabase Redirect URLs allowlist
+ * only permits the bare origin, so every one of these links lands here on
+ * `/` rather than on `/auth/callback` or a page built specifically for it.
  *
- * Renders nothing -- this only exists for the side effect, and must never
- * visibly disturb the marketing page it's mounted on for the overwhelming
- * majority of visits that carry no hash at all.
+ * Deliberately does NOT rely on the Supabase client's own automatic
+ * hash-detection (`detectSessionInUrl`) -- confirmed against a real
+ * deployment that this project's client either isn't configured for it or
+ * doesn't fire in time here, so `onAuthStateChange`/`getSession()` alone
+ * never resolved. Parses the two tokens directly out of the hash instead and
+ * calls `setSession` explicitly, which establishes (and persists, via the
+ * same cookie-writing browser client every other page reads) the session
+ * deterministically rather than hoping auto-detection engages.
  */
 export function MagicLinkCatcher() {
   const router = useRouter();
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (!hash || (!hash.includes("access_token") && !hash.includes("error"))) return;
+    if (!hash || hash.length < 2) return;
 
-    if (hash.includes("error")) {
-      const params = new URLSearchParams(hash.slice(1));
-      toast.error(
-        params.get("error_description")?.replace(/\+/g, " ") ??
-          "That sign-in link is invalid or has expired.",
-      );
+    const params = new URLSearchParams(hash.slice(1));
+    const errorDescription = params.get("error_description");
+    if (errorDescription) {
+      toast.error(errorDescription.replace(/\+/g, " "));
       window.history.replaceState(null, "", window.location.pathname);
       return;
     }
 
-    const supabase = supabaseBrowser();
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    if (!accessToken || !refreshToken) return;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
+    supabaseBrowser()
+      .auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ error }) => {
+        window.history.replaceState(null, "", window.location.pathname);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
         router.push("/dashboard");
-      }
-    });
-
-    // Covers the case where the hash was already processed (and the event
-    // already fired) before this listener was attached.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) router.push("/dashboard");
-    });
-
-    return () => subscription.unsubscribe();
+        router.refresh();
+      });
   }, [router]);
 
   return null;
