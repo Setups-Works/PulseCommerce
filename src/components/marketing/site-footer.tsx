@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Activity, ArrowRight, Mail } from "lucide-react";
 import { siGithub, siX } from "simple-icons";
@@ -158,19 +159,56 @@ export function SiteFooter() {
 
       <Separator />
 
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-xs text-muted-foreground sm:px-6">
-        <span>© 2026 PulseCommerce. Self-hosted, and yours.</span>
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 text-xs text-muted-foreground sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span>© 2026 PulseCommerce.</span>
+            <Link href="/about" className="transition-colors hover:text-foreground">
+              About
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+          </div>
 
-        <span className="flex items-center gap-4">
-          <span className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-good" />
-            Your data never leaves your deployment
+          <span className="flex items-center gap-4">
+            <span className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-good" />
+              Your data never leaves your deployment
+            </span>
+            <span className="hidden items-center gap-2 sm:flex">
+              <BrandMark icon={BRANDS.woocommerce} className="size-3.5" />
+              Built for WooCommerce
+            </span>
           </span>
-          <span className="hidden items-center gap-2 sm:flex">
-            <BrandMark icon={BRANDS.woocommerce} className="size-3.5" />
-            Built for WooCommerce
-          </span>
-        </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span>A product of</span>
+          <a
+            href="/about"
+            aria-label="Setups Works"
+            className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+          >
+            <Image
+              src="/brand/setups-works-black.png"
+              alt="Setups Works"
+              width={90}
+              height={20}
+              className="h-4 w-auto dark:hidden"
+            />
+            <Image
+              src="/brand/setups-works-white.png"
+              alt="Setups Works"
+              width={90}
+              height={20}
+              className="hidden h-4 w-auto dark:block"
+            />
+          </a>
+        </div>
       </div>
     </footer>
   );
