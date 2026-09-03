@@ -97,6 +97,13 @@ GitHub Issues. An issue that's ready for an agent to pick up carries an
 a "done when" checklist, written to be handed to the agent directly rather
 than just the issue summary.
 
+**Building a new feature that has no issue yet is a five-step protocol —
+create the issue, move it to In Progress before writing code, move it to In
+Review the moment a PR is open, and only to Done after it's actually
+merged.** [JIRA_WORKFLOW.md](JIRA_WORKFLOW.md) is the exact, mechanical
+version of this — read it before starting a feature from scratch, don't
+improvise the transition points.
+
 **Commit and link via a branch + PR, not a direct push to `main`.** GitHub
 for Jira's webhook reliably links a commit that arrives as part of a pull
 request — confirmed by direct test, a PR linked within seconds. A commit
