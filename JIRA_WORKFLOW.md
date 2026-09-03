@@ -87,12 +87,13 @@ their turn now.
 
 ### 5. After merge → transition to Done
 
-Once the PR is actually merged — by human review approval, or by the agent
-only if the developer explicitly authorized merging for this specific
-task — transition to Done. Don't self-merge and self-mark-Done without that
-authorization: merging is a real, visible action on shared history and
-needs the same confirmation any other merge does, task-by-task, not a
-standing blanket approval.
+**By default, the founder tests and merges** — not the agent, and not
+whichever developer opened the PR. Stop at In Review and wait. An agent
+only merges its own PR if the developer explicitly authorized that for
+this specific task, and even then transitions to Done immediately after,
+not before. Merging is a real, visible action on shared history; it needs
+the same confirmation any other merge does, task-by-task, never a standing
+blanket approval.
 
 ## Status reference
 
@@ -100,7 +101,7 @@ standing blanket approval.
 |---|---|---|
 | To Do | Issue exists, no work started | Whoever files it |
 | In Progress | An agent (or developer) is actively writing code for it | Agent, right before the first code change |
-| In Review | PR is open, code is written | Agent, the moment the PR is created |
+| In Review | PR is open, code is written, waiting on the founder to test and merge | Agent, the moment the PR is created |
 | Done | Merged and complete | Agent or reviewer, after merge |
 
 ## What NOT to do
