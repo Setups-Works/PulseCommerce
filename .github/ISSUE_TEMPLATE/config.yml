@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: PulseCommerce Jira board
+    url: https://setups-works.atlassian.net/jira/software/projects/PUL/boards/2
+    about: Work in progress and triaged issues live here, not in GitHub Issues.

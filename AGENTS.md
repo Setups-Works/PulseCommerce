@@ -88,6 +88,36 @@ lying around; it typically embeds a connection string.
   the assistant is a way to reach the ordinary REST endpoints, not a way
   around their guards. Keep both properties if you add a tool.
 
+## Jira workflow for AI agents
+
+Work is tracked on the PulseCommerce Jira board
+(`setups-works.atlassian.net/jira/software/projects/PUL/boards/2`), not in
+GitHub Issues. An issue that's ready for an agent to pick up carries an
+**"Agent prompt" comment** — self-contained context, real file pointers, and
+a "done when" checklist, written to be handed to the agent directly rather
+than just the issue summary.
+
+**Commit and link via a branch + PR, not a direct push to `main`.** GitHub
+for Jira's webhook reliably links a commit that arrives as part of a pull
+request — confirmed by direct test, a PR linked within seconds. A commit
+pushed straight to `main` was observed sitting unlinked for 15+ minutes on
+this repo even after the same commit's issue was otherwise valid and
+correctly keyed. Branch, commit with the issue key at the start of the
+message (`PUL-12: rename ...`), open a PR with the same key in the title,
+and merge that — don't push directly to `main` for anything that should
+show up on the issue's Development tab.
+
+**Each developer needs their own personal Jira API token for agent tooling
+to call the Jira REST API** (transitioning an issue, adding a comment,
+creating a linked sub-task) — this is separate from `.env.local`, which is
+runtime config the Next.js app itself reads; Jira credentials are never
+read by the app and must never end up in a file tracked by git. Generate a
+token at `id.atlassian.com/manage-profile/security/api-tokens`, scoped to
+your own Atlassian account, and export it in your own shell/agent config
+(commonly `JIRA_EMAIL` / `JIRA_API_TOKEN`, though the exact names depend on
+your tooling) — never use someone else's token on their behalf, and never
+paste a token into a commit, a PR description, or a file this repo tracks.
+
 ## Where to look first
 
 - `src/proxy.ts` — the single auth chokepoint (Next 16's replacement for
