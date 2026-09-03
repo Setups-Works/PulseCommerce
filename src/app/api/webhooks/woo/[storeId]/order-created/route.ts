@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import {
+  isOrderPaid,
   orderWebhookSchema,
   recordOrderConfirmationOutcome,
   sendOrderConfirmation,
@@ -91,6 +92,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ sto
       reason: "Predates order confirmations being enabled for this store.",
     });
     return NextResponse.json({ ok: true, skipped: "before enabled_at" });
+  }
+
+  /*
+   * order.created fires the moment checkout is submitted, before an
+   * off-site gateway has confirmed anything — this store's second
+   * registered webhook (order.updated) is what actually delivers the
+   * transition into a paid status for any order that didn't start out that
+   * way. Deliberately NOT recorded via recordOrderConfirmationOutcome: this
+   * is a "not yet", not a final answer, and the (store_id, woo_order_id)
+   * dedupe further down would otherwise permanently block the later
+   * order.updated delivery that's actually supposed to send. COD and other
+   * immediately-paid orders are unaffected — they arrive already
+   * "processing" on the very first order.created event.
+   */
+  if (!isOrderPaid(order)) {
+    return NextResponse.json({ ok: true, skipped: "order not yet paid" });
   }
 
   const outcome = await sendOrderConfirmation(store, order);

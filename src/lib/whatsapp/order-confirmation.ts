@@ -31,6 +31,7 @@ export const orderWebhookSchema = z
   .object({
     id: z.number(),
     number: z.string().optional(),
+    status: z.string().optional(),
     currency: z.string().optional(),
     total: z.string().optional(),
     date_created: z.string().optional(),
@@ -69,6 +70,26 @@ export interface OrderConfirmationStore {
 export type OrderConfirmationOutcome =
   | { status: "sent" }
   | { status: "skipped"; reason: string };
+
+/**
+ * Whether WooCommerce has actually recorded payment for this order.
+ *
+ * order.created fires the instant checkout is submitted — for any gateway
+ * that confirms off-site (UPI, cards, most non-COD methods), the order
+ * exists with status "pending" well before the customer has paid anything.
+ * "processing" (paid, awaiting fulfillment) and "completed" (paid and
+ * fulfilled, common for virtual/downloadable-only orders) are the only two
+ * statuses that mean money has actually moved; "on-hold" deliberately isn't
+ * included here — it commonly means "awaiting manual confirmation" (bank
+ * transfer, cheque), not confirmed payment.
+ *
+ * A missing status fails toward not sending, same philosophy as the
+ * order_confirmation_enabled_at check in the webhook route: a data gap
+ * excludes the order rather than including it.
+ */
+export function isOrderPaid(order: OrderWebhookPayload): boolean {
+  return order.status === "processing" || order.status === "completed";
+}
 
 /**
  * The first line item's product photo.

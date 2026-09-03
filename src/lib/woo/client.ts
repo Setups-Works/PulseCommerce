@@ -403,18 +403,28 @@ export class WooClient {
   }
 
   /**
-   * Registers the order.created webhook order confirmations listen on.
+   * Registers one of the two webhooks order confirmations listen on.
    *
    * This is the second mutating method on this client, after `createCoupon`
    * — see this file's own CLAUDE.md on why that line only had one entry
-   * until now. `topic` is hardcoded rather than caller-supplied, kept as
-   * narrow as the coupon method: this client creates exactly one kind of
+   * until now. `topic` is a caller-supplied union of exactly the two topics
+   * this feature needs — order.created alone isn't enough to know an order
+   * was actually paid (WooCommerce fires it the instant checkout is
+   * submitted, before an off-site gateway confirms anything), so the send
+   * also has to react to order.updated and gate on the status it carries.
+   * Kept a closed union rather than a bare `string`, for the same reason it
+   * was hardcoded before: this client creates exactly these two kinds of
    * webhook, nothing more general.
    */
-  async createWebhook(input: { name: string; deliveryUrl: string; secret: string }): Promise<WooWebhook> {
+  async createWebhook(input: {
+    name: string;
+    topic: "order.created" | "order.updated";
+    deliveryUrl: string;
+    secret: string;
+  }): Promise<WooWebhook> {
     return this.post<WooWebhook>("webhooks", {
       name: input.name,
-      topic: "order.created",
+      topic: input.topic,
       delivery_url: input.deliveryUrl,
       secret: input.secret,
       status: "active",

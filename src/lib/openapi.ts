@@ -1246,14 +1246,17 @@ export const openApiDocument = {
         tags: ["Order confirmations"],
         summary: "Turn order confirmations on or off",
         description:
-          "Requires the write scope. Turning this on registers a real order.created webhook on " +
-          "the merchant's own WooCommerce store (via the store's existing API credentials) " +
-          "pointed back at this app, and generates a per-store secret used to verify each " +
-          "delivery. Turning it off removes that webhook. Enabling fails with 422 if this app " +
-          "is not reachable from the public internet over HTTPS yet (APP_URL unset or pointing " +
-          "at a local address), and with 502 if WooCommerce itself refuses the registration — " +
-          "in either case the setting is not saved, so it can never read \"on\" with no live " +
-          "webhook behind it.",
+          "Requires the write scope. Turning this on registers two real webhooks on the " +
+          "merchant's own WooCommerce store (via the store's existing API credentials), both " +
+          "pointed back at this app: order.created and order.updated, sharing one per-store " +
+          "secret used to verify each delivery. Both are needed because order.created alone " +
+          "fires before an off-site payment gateway has confirmed anything — order.updated is " +
+          "what actually delivers the transition into a paid status for any order that didn't " +
+          "start out that way. Turning it off removes both webhooks. Enabling fails with 422 " +
+          "if this app is not reachable from the public internet over HTTPS yet (APP_URL unset " +
+          "or pointing at a local address), and with 502 if WooCommerce refuses either " +
+          "registration — in either case the setting is not saved, so it can never read \"on\" " +
+          "with no live webhook behind it.",
         requestBody: {
           required: true,
           content: json({
@@ -1274,7 +1277,7 @@ export const openApiDocument = {
     "/api/webhooks/woo/{storeId}/order-created": {
       post: {
         tags: ["Order confirmations"],
-        summary: "WooCommerce order.created event",
+        summary: "WooCommerce order.created and order.updated events",
         // Not open in the sense of unauthenticated — it verifies an HMAC
         // signature against a per-store secret instead of a session or key,
         // the same class of exception as /api/billing/webhook.
@@ -1283,11 +1286,16 @@ export const openApiDocument = {
           "Server-to-server from the merchant's own WooCommerce store, verified via the " +
           "X-WC-Webhook-Signature header against a per-store secret generated when order " +
           "confirmations were enabled (Settings → Order confirmations, or " +
-          "PATCH /api/whatsapp/order-confirmations). Deliveries are deduplicated by " +
-          "(store, WooCommerce order id), since WooCommerce delivers at-least-once and may " +
-          "redeliver after downtime. Sends the customer a WhatsApp thank-you message with a " +
-          "product photo from the order's first line item, subject to the same allowance, " +
-          "opt-out and session checks every other WhatsApp send path applies.",
+          "PATCH /api/whatsapp/order-confirmations). Receives both order.created and " +
+          "order.updated deliveries at this one URL. A delivery is only actually sent once the " +
+          "order's status is \"processing\" or \"completed\" — order.created alone fires before " +
+          "an off-site payment gateway has confirmed anything, so a still-pending order.created " +
+          "is acknowledged but not recorded, leaving the later order.updated that carries the " +
+          "paid status free to send. Deliveries that do proceed are deduplicated by (store, " +
+          "WooCommerce order id), since WooCommerce delivers at-least-once and may redeliver " +
+          "after downtime. Sends the customer a WhatsApp thank-you message with a product photo " +
+          "from the order's first line item, subject to the same allowance, opt-out and session " +
+          "checks every other WhatsApp send path applies.",
         parameters: [
           { name: "storeId", in: "path", required: true, schema: { type: "string" } },
         ],
