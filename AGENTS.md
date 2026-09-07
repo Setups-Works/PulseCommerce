@@ -125,6 +125,28 @@ your own Atlassian account, and export it in your own shell/agent config
 your tooling) — never use someone else's token on their behalf, and never
 paste a token into a commit, a PR description, or a file this repo tracks.
 
+## Update the changelog in the same PR, not after
+
+`src/lib/marketing/changelog.ts` feeds the public `/changelog` page, and it
+drifts the same way `README.md`'s "Vercel Cron" claim did — quietly, until
+someone notices it's stale. It went unmaintained for a week in practice: five
+real shipped changes (a new plan, a reliability fix, three new pages, several
+bug fixes) landed across five separate PRs with none of them touching this
+file, and it took a dedicated catch-up pass to close the gap. Don't leave that
+for someone else to notice later.
+
+**If a PR changes what a signed-in customer or a visitor can see or do, add a
+changelog entry in that same PR** — new pages, new plans or pricing, a
+customer-visible bug fix, a real behavior change. Follow the file's own doc
+comment for what to leave out (internal refactors with no visible effect,
+abandoned experiments) and match its existing voice: product language, not
+engineering language ("A campaign sending a photo or video over WhatsApp no
+longer fails silently", not "fixed BulkMessageContentDto schema mismatch").
+Group under today's real date; add a new date block at the top of the array
+rather than editing an old one. This is the same discipline as
+`src/lib/openapi.ts` — new routes documented in the commit that adds them, not
+backfilled in a batch later.
+
 ## Where to look first
 
 - `src/proxy.ts` — the single auth chokepoint (Next 16's replacement for
