@@ -31,6 +31,56 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    date: "2026-09-08",
+    title: "A Lite plan",
+    changes: [
+      {
+        kind: "new",
+        text: "Lite (₹1,999/mo): every analytics module, no WhatsApp. For a store that wants the numbers without the messaging — upgrade to Go or Plus any time campaigns, flows or a shared inbox become worth it.",
+      },
+    ],
+  },
+  {
+    date: "2026-09-07",
+    changes: [
+      {
+        kind: "improved",
+        text: "The dashboard, inbox and product picker load meaningfully faster for stores with a large order history — the caching that already sped up smaller stores wasn't actually taking effect once a store grew past a certain size.",
+      },
+    ],
+  },
+  {
+    date: "2026-09-03",
+    title: "About, Terms & Privacy",
+    changes: [
+      {
+        kind: "new",
+        text: "About, Terms of Service and Privacy Policy pages, linked from the footer.",
+      },
+      {
+        kind: "fixed",
+        text: "A magic sign-in link from email now signs you in correctly, instead of silently landing on the home page.",
+      },
+      {
+        kind: "fixed",
+        text: "The WhatsApp order-confirmation message now waits for a payment to actually go through before sending, instead of firing the instant checkout is submitted — a pending UPI or card order no longer gets a \"thank you\" before it's actually paid for.",
+      },
+      {
+        kind: "fixed",
+        text: "A campaign sending a photo or video over WhatsApp no longer fails silently for every recipient.",
+      },
+    ],
+  },
+  {
+    date: "2026-09-02",
+    changes: [
+      {
+        kind: "new",
+        text: "A public changelog page, linked from the footer.",
+      },
+    ],
+  },
+  {
     date: "2026-09-01",
     title: "A 14-day free trial",
     changes: [
