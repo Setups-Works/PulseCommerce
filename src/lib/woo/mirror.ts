@@ -1,6 +1,5 @@
 import { db } from "@/lib/db/client";
 import type { TenantStore } from "@/lib/auth/tenant";
-import { deleteCachedSnapshot, getCachedSnapshot, putCachedSnapshot } from "@/lib/storage/snapshot-cache";
 import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "./types";
 
 /**
@@ -16,6 +15,17 @@ import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "./types";
  * So the `raw` column exists, and this reassembles from it. What changed is
  * where the data comes from: three tiers of cache in front of a multi-minute
  * WooCommerce pull, replaced by three indexed queries against local tables.
+ *
+ * A full reassembly is still not cheap on a real store -- 188MB of raw JSON
+ * on a 22,000-order store, confirmed by testing against one, which rules out
+ * caching the *whole snapshot* as a single blob anywhere with a practical
+ * size limit (Redis, an HTTP response, ...). Consumers that only need part of
+ * the mirror should call a narrower reader below (`readProducts`,
+ * `readPhoneByCustomerKey`) instead of this function, and consumers that need
+ * derived results (analytics) should go through a cache keyed on the store's
+ * version -- see `getAnalyticsForVersion` in `@/lib/analytics/cache` -- rather
+ * than force a full readSnapshot() just to check whether the answer is
+ * already cached.
  *
  * ─── The remaining in-process cache ────────────────────────────────────────
  *
@@ -67,12 +77,6 @@ export async function readSnapshot(store: SnapshotSource): Promise<StoreSnapshot
   const hit = memo.get(store.id);
   if (hit && hit.expiresAt > Date.now()) return hit.snapshot;
 
-  const cached = await getCachedSnapshot(store.id);
-  if (cached) {
-    memo.set(store.id, { snapshot: cached, expiresAt: Date.now() + MEMO_TTL_MS });
-    return cached;
-  }
-
   const since = new Date();
   since.setMonth(since.getMonth() - (store.historyMonths || 24));
 
@@ -118,24 +122,82 @@ export async function readSnapshot(store: SnapshotSource): Promise<StoreSnapshot
   };
 
   memo.set(store.id, { snapshot, expiresAt: Date.now() + MEMO_TTL_MS });
-  // Best-effort, not awaited-for-correctness -- see snapshot-cache.ts's own
-  // doc comment. A failed write just means the next reader (possibly a
-  // different serverless instance, which is why this exists at all) pays
-  // for another Postgres reassembly, same as before this cache existed.
-  void putCachedSnapshot(store.id, snapshot);
   return snapshot;
 }
 
 /**
- * Drops the memo and the Redis cache entry for a store. Called after a sync,
- * a store disconnect, or a manual re-sync trigger, so the next read is
- * fresh — not several call sites all guaranteed to follow up with a read
- * that would naturally overwrite the Redis entry, so this invalidates it
- * directly rather than relying on that.
+ * Drops the in-process memo for a store. Called after a sync, a store
+ * disconnect, or a manual re-sync trigger, so the next read on this instance
+ * is fresh rather than serving the pre-sync snapshot for up to
+ * SNAPSHOT_CACHE_MINUTES.
  */
 export function forgetSnapshot(storeId: string): void {
   memo.delete(storeId);
-  void deleteCachedSnapshot(storeId);
+}
+
+/**
+ * Just the catalogue — for the product picker and template-variable lookups,
+ * neither of which touches an order or a customer. Splitting this out of
+ * readSnapshot() means a request that only needs fifty-odd products doesn't
+ * pay for reassembling the store's entire order history alongside them.
+ */
+export async function readProducts(storeId: string): Promise<WooProduct[]> {
+  const rows = await db()<{ raw: WooProduct }[]>`
+    select raw from woo_products where store_id = ${storeId}
+  `;
+  return rows.map((r) => r.raw);
+}
+
+/**
+ * The currency of the store's most recent order — same value readSnapshot()
+ * derives as `orders[0]?.raw?.currency`, since readSnapshot's orders are
+ * sorted `date_created desc`. WooCommerce has no store-level currency field
+ * to read this from directly, so, same as there, it's read off an order; one
+ * indexed row rather than the whole order history.
+ */
+export async function readMostRecentCurrency(storeId: string): Promise<string> {
+  const [row] = await db()<{ currency: string | null }[]>`
+    select currency from woo_orders
+    where store_id = ${storeId}
+    order by date_created desc
+    limit 1
+  `;
+  return row?.currency ?? "USD";
+}
+
+/**
+ * Each customer's most recent billing phone, keyed the same way
+ * `customerKey()` (src/lib/analytics/helpers.ts) keys a customer: a real
+ * `customer_id` wins, falling back to the billing email, falling back to the
+ * order id for a guest order with neither. Reimplemented in SQL rather than
+ * calling customerKey() itself because the point is to never pull the full
+ * order objects into the app at all -- this selects three narrow columns
+ * instead of the `raw` jsonb blob that carries every line item, and orders
+ * by date so, same as phoneMapFromSnapshot(), the most recent order *that
+ * carried a phone* wins for a customer who has ordered more than once --
+ * filtering out phone-less orders before picking "most recent" rather than
+ * after, so a later order with no phone on file doesn't blank out an earlier
+ * one that had it.
+ */
+export async function readPhoneByCustomerKey(storeId: string): Promise<Map<string, string>> {
+  const rows = await db()<{ key: string; phone: string }[]>`
+    select distinct on (key) key, phone from (
+      select
+        case
+          when customer_id > 0 then 'id:' || customer_id
+          when nullif(trim(billing_email), '') is not null then 'email:' || lower(trim(billing_email))
+          else 'order:' || id
+        end as key,
+        trim(raw -> 'billing' ->> 'phone') as phone,
+        date_created
+      from woo_orders
+      where store_id = ${storeId}
+        and nullif(trim(raw -> 'billing' ->> 'phone'), '') is not null
+    ) t
+    order by key, date_created desc
+  `;
+
+  return new Map(rows.map((r) => [r.key, r.phone]));
 }
 
 /* ── Queries that do not need the whole snapshot ──────────────────────────

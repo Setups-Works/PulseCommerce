@@ -41,7 +41,13 @@ const MAX_ENTRIES = 8;
 /** Insertion-ordered, so the first key is the oldest — Map guarantees this. */
 const cache = new Map<string, AnalyticsResult>();
 
-function keyFor(snapshot: StoreSnapshot, opts: AnalyticsOptions): string {
+/** Everything the cache key is built from, without the rest of the snapshot. */
+export interface SnapshotVersion {
+  storeUrl: string;
+  fetchedAt: string;
+}
+
+function keyFor(snapshot: SnapshotVersion, opts: AnalyticsOptions): string {
   const { range, granularity, allTime } = opts;
   return [
     snapshot.storeUrl,
@@ -156,6 +162,61 @@ export async function getAnalyticsCached(
     result,
   );
 
+  return result;
+}
+
+/**
+ * Same job as `getAnalyticsCached`, but for a caller that hasn't paid for a
+ * snapshot yet and would rather not, if it can avoid it.
+ *
+ * `version` needs only the store's URL and its last-sync timestamp — both
+ * already on hand wherever a `TenantStore` is, no query required — because
+ * that pair is everything the cache key is built from (see `keyFor` and
+ * `sharedKey`, which read the identical two fields off a real snapshot
+ * today). `loadSnapshot` is the expensive path (readSnapshot()'s Postgres
+ * reassembly, confirmed at 188MB / over a minute on a real 22,000-order
+ * store) and is only invoked on an actual miss.
+ *
+ * The mirror only changes once per sync cycle (~10 minutes), so between
+ * syncs every request after the first should hit the local map or the
+ * shared Postgres-bytea cache and never touch the raw order/customer/product
+ * tables at all — this is what makes /api/analytics, /api/reports/export and
+ * similar routes cheap on a warm cache instead of paying a full reassembly
+ * on every cold serverless instance.
+ */
+export async function getAnalyticsForVersion(
+  version: SnapshotVersion,
+  loadSnapshot: () => Promise<StoreSnapshot>,
+  opts: AnalyticsOptions = {},
+): Promise<AnalyticsResult> {
+  const key = keyFor(version, opts);
+
+  const local = cache.get(key);
+  if (local) {
+    cache.delete(key);
+    cache.set(key, local);
+    return local;
+  }
+
+  const sharedCacheKey = sharedKey({
+    storeUrl: version.storeUrl,
+    fetchedAt: version.fetchedAt,
+    from: opts.range?.from,
+    to: opts.range?.to,
+    granularity: opts.granularity,
+    allTime: opts.allTime,
+  });
+
+  const shared = await readShared(sharedCacheKey);
+  if (shared) {
+    remember(key, shared);
+    return shared;
+  }
+
+  const snapshot = await loadSnapshot();
+  const result = computeAnalytics(snapshot, opts);
+  remember(key, result);
+  void writeShared(sharedCacheKey, result);
   return result;
 }
 

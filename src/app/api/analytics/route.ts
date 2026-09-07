@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAnalyticsCached } from "@/lib/analytics/cache";
+import { getAnalyticsCached, getAnalyticsForVersion } from "@/lib/analytics/cache";
 import type { Granularity } from "@/lib/analytics/types";
 import { requireStore } from "@/lib/auth/tenant";
 import { NoMirrorDataError, loadSnapshot } from "@/lib/store/snapshot";
@@ -31,14 +31,28 @@ export async function GET(request: Request) {
       ? granularityParam
       : undefined;
 
-  try {
-    const snapshot = await loadSnapshot(store, { refresh: params.get("refresh") === "1" });
+  const refresh = params.get("refresh") === "1";
 
-    const result = await getAnalyticsCached(snapshot, {
-      range: from && to ? { from, to } : undefined,
-      allTime,
-      granularity,
-    });
+  try {
+    /*
+     * The fast path: the store's URL and its last-sync timestamp are the
+     * entire cache key (see getAnalyticsForVersion's doc comment) and cost
+     * nothing to obtain -- requireStore already resolved them. On a cache
+     * hit this never touches loadSnapshot() at all, which is the whole
+     * point: that function's Postgres reassembly measured at 188MB / over a
+     * minute on a real store, and this route is the one polled most (every
+     * dashboard load, every range change). An explicit ?refresh=1 always
+     * takes the slow path deliberately -- it's a request to bypass caching,
+     * not just to see fresh data.
+     */
+    const analyticsOpts = { range: from && to ? { from, to } : undefined, allTime, granularity };
+    const result = refresh
+      ? await getAnalyticsCached(await loadSnapshot(store, { refresh: true }), analyticsOpts)
+      : await getAnalyticsForVersion(
+          { storeUrl: store.url, fetchedAt: store.lastSyncAt ?? "" },
+          () => loadSnapshot(store),
+          analyticsOpts,
+        );
 
     /*
      * This payload runs to ~1.4MB on a real store (uncapped customer rows by

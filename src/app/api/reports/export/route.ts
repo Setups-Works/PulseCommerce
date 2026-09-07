@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAnalytics } from "@/lib/analytics/cache";
+import { getAnalyticsForVersion } from "@/lib/analytics/cache";
 import { sheetsToCsv, sheetToCsv } from "@/lib/export/csv";
 import { buildSheet, REPORT_IDS, type ReportId, type Sheet } from "@/lib/export/datasets";
 import { buildPdf } from "@/lib/export/pdf";
@@ -49,15 +49,21 @@ export async function POST(request: Request) {
   const { format, reports, from, to, granularity, limit } = parsed.data;
 
   try {
-    const snapshot = await loadSnapshot(store);
-    const result = getAnalytics(snapshot, {
-      range: from && to ? { from, to } : undefined,
-      granularity,
-      // Exports are the complete record — the UI row caps don't apply.
-      maxOrderRows: Number.MAX_SAFE_INTEGER,
-      maxCustomerRows: Number.MAX_SAFE_INTEGER,
-      includeHistory: true,
-    });
+    // Same fast-path-first pattern as /api/analytics — the store's URL and
+    // last-sync timestamp are the whole cache key, so a repeat export of the
+    // same range never has to pay for reassembling the raw mirror.
+    const result = await getAnalyticsForVersion(
+      { storeUrl: store.url, fetchedAt: store.lastSyncAt ?? "" },
+      () => loadSnapshot(store),
+      {
+        range: from && to ? { from, to } : undefined,
+        granularity,
+        // Exports are the complete record — the UI row caps don't apply.
+        maxOrderRows: Number.MAX_SAFE_INTEGER,
+        maxCustomerRows: Number.MAX_SAFE_INTEGER,
+        includeHistory: true,
+      },
+    );
 
     const sheets: Sheet[] = (reports as ReportId[]).map((id) => {
       const sheet = buildSheet(id, result);
