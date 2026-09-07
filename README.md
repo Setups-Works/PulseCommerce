@@ -1542,7 +1542,7 @@ proving you can approve the store is proof of access.
 | `APP_PASSWORD` | for login | Set alongside `AUTH_SECRET` to require a password. |
 | `KV_REST_API_URL` | on serverless | Redis endpoint. Vercel KV and Upstash both provide it. |
 | `KV_REST_API_TOKEN` | on serverless | Token for the above. `UPSTASH_REDIS_REST_*` also accepted. |
-| `SNAPSHOT_CACHE_MINUTES` | no | How long a snapshot stays warm. Default `60`. |
+| `SNAPSHOT_CACHE_MINUTES` | no | How long a snapshot stays warm. Default `10`. |
 | `WHATSAPP_API_URL` | no | Gateway base URL. Takes the connection out of the UI. |
 | `WHATSAPP_API_KEY` | no | Gateway API key, operator role. |
 | `WHATSAPP_SESSION_ID` | no | Which session to send from. Adopted automatically if omitted. |

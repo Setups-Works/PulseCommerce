@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/client";
 import type { TenantStore } from "@/lib/auth/tenant";
+import { deleteCachedSnapshot, getCachedSnapshot, putCachedSnapshot } from "@/lib/storage/snapshot-cache";
 import type { StoreSnapshot, WooCustomer, WooOrder, WooProduct } from "./types";
 
 /**
@@ -53,9 +54,24 @@ export class NoMirrorDataError extends Error {
   }
 }
 
-export async function readSnapshot(store: TenantStore): Promise<StoreSnapshot> {
+/**
+ * Narrower than the full TenantStore: everything below only ever reads these
+ * five fields, and the cron sync route (which warms the Redis cache right
+ * after a sync, before requireStore has assembled a full TenantStore) can
+ * only supply this much. Pick<> rather than a separate interface, so
+ * TenantStore stays the one place the full shape is defined.
+ */
+type SnapshotSource = Pick<TenantStore, "id" | "url" | "name" | "historyMonths" | "lastSyncAt">;
+
+export async function readSnapshot(store: SnapshotSource): Promise<StoreSnapshot> {
   const hit = memo.get(store.id);
   if (hit && hit.expiresAt > Date.now()) return hit.snapshot;
+
+  const cached = await getCachedSnapshot(store.id);
+  if (cached) {
+    memo.set(store.id, { snapshot: cached, expiresAt: Date.now() + MEMO_TTL_MS });
+    return cached;
+  }
 
   const since = new Date();
   since.setMonth(since.getMonth() - (store.historyMonths || 24));
@@ -102,12 +118,24 @@ export async function readSnapshot(store: TenantStore): Promise<StoreSnapshot> {
   };
 
   memo.set(store.id, { snapshot, expiresAt: Date.now() + MEMO_TTL_MS });
+  // Best-effort, not awaited-for-correctness -- see snapshot-cache.ts's own
+  // doc comment. A failed write just means the next reader (possibly a
+  // different serverless instance, which is why this exists at all) pays
+  // for another Postgres reassembly, same as before this cache existed.
+  void putCachedSnapshot(store.id, snapshot);
   return snapshot;
 }
 
-/** Drops the memo for a store. Called after a sync, so the next read is fresh. */
+/**
+ * Drops the memo and the Redis cache entry for a store. Called after a sync,
+ * a store disconnect, or a manual re-sync trigger, so the next read is
+ * fresh — not several call sites all guaranteed to follow up with a read
+ * that would naturally overwrite the Redis entry, so this invalidates it
+ * directly rather than relying on that.
+ */
 export function forgetSnapshot(storeId: string): void {
   memo.delete(storeId);
+  void deleteCachedSnapshot(storeId);
 }
 
 /* ── Queries that do not need the whole snapshot ──────────────────────────

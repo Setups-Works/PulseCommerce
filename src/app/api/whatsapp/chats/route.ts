@@ -47,7 +47,19 @@ export async function GET(request: Request) {
   try {
     const chats = await new WhatsAppClient(config).listChats(80);
     const enriched = await withCustomerNames(store, chats, config.defaultDialCode);
-    return NextResponse.json({ chats: enriched });
+    /*
+     * The gateway call is cheap; the customer-name enrichment above is not —
+     * it pays a full readSnapshot() (the whole order/customer/product mirror,
+     * tens of MB on a real store) on every uncached hit. This route is
+     * polled every 60s by any open Inbox tab, so without a cache that cost
+     * repeats indefinitely for as long as the tab stays open. Same
+     * private + Vary: Cookie treatment as /api/analytics and /api/customers,
+     * for the same tenant-cache-poisoning reason.
+     */
+    return NextResponse.json(
+      { chats: enriched },
+      { headers: { "Cache-Control": "private, max-age=60", Vary: "Cookie" } },
+    );
   } catch (error) {
     if (error instanceof WhatsAppApiError) {
       return NextResponse.json(

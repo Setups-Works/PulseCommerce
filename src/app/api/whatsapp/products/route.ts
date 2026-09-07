@@ -50,7 +50,19 @@ export async function GET(request: Request) {
         sales: product.total_sales ?? 0,
       }));
 
-    return NextResponse.json({ products: matches, currency: snapshot.currency });
+    /*
+     * Hit on every 250ms-debounced keystroke in the picker with no caching
+     * previously — each request still pays the full loadSnapshot() cost (the
+     * whole order/customer/product mirror) on a cold instance, regardless of
+     * how narrow the search is, since it's the same underlying snapshot load
+     * before any client-side filtering happens. Products don't change often
+     * enough to need fresher than a couple of minutes; same private +
+     * Vary: Cookie treatment as the other tenant-scoped cached routes.
+     */
+    return NextResponse.json(
+      { products: matches, currency: snapshot.currency },
+      { headers: { "Cache-Control": "private, max-age=120", Vary: "Cookie" } },
+    );
   } catch (error) {
     if (isNotConnected(error)) {
       return NextResponse.json({ error: error.message, code: "not_connected" }, { status: 409 });
