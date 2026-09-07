@@ -126,6 +126,7 @@ const PROTECTED_PAGES = [
   "/flows",
   "/abandoned-checkouts",
   "/order-confirmations",
+  "/whatsapp-cloud-pilot",
   "/menu",
   "/connect",
   "/onboarding",
