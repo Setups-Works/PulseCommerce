@@ -80,6 +80,12 @@ export const openApiDocument = {
     { name: "Sync", description: "The local mirror of your WooCommerce store" },
     { name: "Billing", description: "Plans, usage, invoices and Razorpay subscriptions" },
     { name: "Order confirmations", description: "WhatsApp thank-you messages sent on new orders" },
+    {
+      name: "WhatsApp Cloud API pilot",
+      description:
+        "PUL-16: a minimal pilot against Meta's official Cloud API test business number, built " +
+        "for App Review. Not the merchant-facing send path.",
+    },
   ],
   paths: {
     "/api/sync": {
@@ -879,6 +885,79 @@ export const openApiDocument = {
           },
           409: errorResponse("Session cannot send, or the number has opted out"),
           422: errorResponse("Unreadable number, or not on WhatsApp"),
+        },
+      },
+    },
+
+    "/api/whatsapp-cloud/test-send": {
+      post: {
+        tags: ["WhatsApp Cloud API pilot"],
+        summary: "Send one message via Meta's Cloud API test business number",
+        description:
+          "PUL-16 pilot, not the merchant-facing send path. Exercises whatsapp_business_messaging " +
+          "against the temporary test token and test business number from the App Dashboard's own " +
+          "API Setup page — never per-tenant credentials. Recipient must be one of the up to 5 " +
+          "numbers verified as a test recipient in the App Dashboard. mode \"template\" (default) " +
+          "sends the pre-approved hello_world template, which delivers regardless of an open " +
+          "customer-service window; mode \"text\" sends free-form and only actually delivers " +
+          "within an open 24h window — confirmed the hard way that Meta's API accepts and returns " +
+          "a message id for a \"text\" send outside that window without ever delivering it.",
+        requestBody: {
+          required: true,
+          content: json({
+            type: "object",
+            properties: {
+              to: { type: "string", example: "916383984698" },
+              message: { type: "string", maxLength: 4096, description: "Required when mode is \"text\"." },
+              mode: { type: "string", enum: ["template", "text"], default: "template" },
+            },
+            required: ["to"],
+          }),
+        },
+        responses: {
+          200: {
+            description: "Sent",
+            content: json({
+              type: "object",
+              properties: { sent: { type: "boolean" }, messageId: { type: "string" } },
+            }),
+          },
+          422: errorResponse("Invalid recipient or message"),
+          502: errorResponse("The Cloud API rejected the send"),
+        },
+      },
+    },
+
+    "/api/whatsapp-cloud/templates": {
+      get: {
+        tags: ["WhatsApp Cloud API pilot"],
+        summary: "List message templates on the test WhatsApp Business Account",
+        description:
+          "PUL-16 pilot. Exercises whatsapp_business_management by resolving the test phone " +
+          "number's parent WABA and listing its message templates.",
+        responses: {
+          200: {
+            description: "Templates",
+            content: json({
+              type: "object",
+              properties: {
+                templates: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      name: { type: "string" },
+                      status: { type: "string" },
+                      category: { type: "string" },
+                      language: { type: "string" },
+                    },
+                  },
+                },
+              },
+            }),
+          },
+          502: errorResponse("Could not list message templates"),
         },
       },
     },
