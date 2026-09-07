@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { isNotConnected } from "@/lib/store/errors";
 import { requireStore } from "@/lib/auth/tenant";
-import { loadSnapshot } from "@/lib/store/snapshot";
+import { readMostRecentCurrency, readProducts } from "@/lib/woo/mirror";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,10 +9,12 @@ export const maxDuration = 120;
 /**
  * Catalogue search, for picking the product a campaign is about.
  *
- * Served from the cached snapshot rather than WooCommerce, so typing in the
- * picker costs nothing upstream. Only the fields a message can use are
- * returned — a search box has no business shipping stock levels or ratings to
- * the browser.
+ * Reads the products mirror directly, not the full store snapshot — the
+ * picker only ever needs the catalogue, and pulling in the whole order and
+ * customer history alongside it (readSnapshot()'s cost, tens to hundreds of
+ * MB on a real store) to answer a question about fifty-odd products would be
+ * pure waste. Only the fields a message can use are returned — a search box
+ * has no business shipping stock levels or ratings to the browser.
  */
 export async function GET(request: Request) {
   const resolved = await requireStore(request);
@@ -25,9 +26,12 @@ export async function GET(request: Request) {
   const limit = Math.min(Number(params.get("limit")) || 20, 50);
 
   try {
-    const snapshot = await loadSnapshot(store);
+    const [products, currency] = await Promise.all([
+      readProducts(store.id),
+      readMostRecentCurrency(store.id),
+    ]);
 
-    const matches = snapshot.products
+    const matches = products
       .filter((product) => {
         if (product.status && product.status !== "publish") return false;
         if (!query) return true;
@@ -51,22 +55,16 @@ export async function GET(request: Request) {
       }));
 
     /*
-     * Hit on every 250ms-debounced keystroke in the picker with no caching
-     * previously — each request still pays the full loadSnapshot() cost (the
-     * whole order/customer/product mirror) on a cold instance, regardless of
-     * how narrow the search is, since it's the same underlying snapshot load
-     * before any client-side filtering happens. Products don't change often
-     * enough to need fresher than a couple of minutes; same private +
-     * Vary: Cookie treatment as the other tenant-scoped cached routes.
+     * Hit on every 250ms-debounced keystroke in the picker. Products don't
+     * change often enough to need fresher than a couple of minutes; same
+     * private + Vary: Cookie treatment as the other tenant-scoped cached
+     * routes.
      */
     return NextResponse.json(
-      { products: matches, currency: snapshot.currency },
+      { products: matches, currency },
       { headers: { "Cache-Control": "private, max-age=120", Vary: "Cookie" } },
     );
   } catch (error) {
-    if (isNotConnected(error)) {
-      return NextResponse.json({ error: error.message, code: "not_connected" }, { status: 409 });
-    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not read the catalogue." },
       { status: 500 },

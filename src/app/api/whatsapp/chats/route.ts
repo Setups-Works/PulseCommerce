@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getAnalytics } from "@/lib/analytics/cache";
+import { getAnalyticsForVersion } from "@/lib/analytics/cache";
 import { requireStore, type TenantStore } from "@/lib/auth/tenant";
 import { loadSnapshot } from "@/lib/store/snapshot";
 import { WhatsAppApiError, WhatsAppClient, type WhatsAppChat } from "@/lib/whatsapp/client";
 import { readWhatsAppConfig } from "@/lib/whatsapp/config";
-import { phoneMapFromSnapshot } from "@/lib/whatsapp/recipients";
 import { normalisePhone } from "@/lib/whatsapp/phone";
+import { readPhoneByCustomerKey } from "@/lib/woo/mirror";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,13 +48,12 @@ export async function GET(request: Request) {
     const chats = await new WhatsAppClient(config).listChats(80);
     const enriched = await withCustomerNames(store, chats, config.defaultDialCode);
     /*
-     * The gateway call is cheap; the customer-name enrichment above is not —
-     * it pays a full readSnapshot() (the whole order/customer/product mirror,
-     * tens of MB on a real store) on every uncached hit. This route is
-     * polled every 60s by any open Inbox tab, so without a cache that cost
-     * repeats indefinitely for as long as the tab stays open. Same
-     * private + Vary: Cookie treatment as /api/analytics and /api/customers,
-     * for the same tenant-cache-poisoning reason.
+     * The gateway call is cheap; the customer-name enrichment above is
+     * cheaper than it used to be but still real work (an analytics lookup
+     * plus a phone-map query) on every uncached hit, and this route is
+     * polled every 60s by any open Inbox tab. Same private + Vary: Cookie
+     * treatment as /api/analytics and /api/customers, for the same
+     * tenant-cache-poisoning reason.
      */
     return NextResponse.json(
       { chats: enriched },
@@ -88,9 +87,20 @@ async function withCustomerNames(
   });
 
   const lookup = (async () => {
-    const snapshot = await loadSnapshot(store);
-    const analytics = getAnalytics(snapshot);
-    const phoneByKey = phoneMapFromSnapshot(snapshot);
+    /*
+     * Two independent, much cheaper reads instead of one loadSnapshot() --
+     * neither needs the whole order/customer/product mirror. The analytics
+     * result comes from the shared cache on every request except the one
+     * right after a sync (getAnalyticsForVersion only pays for a full
+     * reassembly on an actual miss), and the phone lookup is a narrow
+     * three-column SQL query rather than the full `raw` order documents.
+     */
+    const [analytics, phoneByKey] = await Promise.all([
+      getAnalyticsForVersion({ storeUrl: store.url, fetchedAt: store.lastSyncAt ?? "" }, () =>
+        loadSnapshot(store),
+      ),
+      readPhoneByCustomerKey(store.id),
+    ]);
 
     // Index customers by the same E.164 form a chat id reduces to, so the two
     // sides match regardless of how the number was typed at checkout.

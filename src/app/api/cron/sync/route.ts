@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAnalyticsForVersion } from "@/lib/analytics/cache";
 import { db } from "@/lib/db/client";
 import { forgetSnapshot, readSnapshot } from "@/lib/woo/mirror";
 import { syncStore } from "@/lib/woo/sync";
@@ -77,21 +78,36 @@ export async function POST(request: Request) {
       });
       forgetSnapshot(store.id);
       /*
-       * Warms the Redis snapshot cache with this store's fresh data right
-       * here, once, in the sync job -- rather than leaving the first
+       * Warms the shared analytics cache (Postgres bytea, see
+       * analytics/shared-cache.ts) with this store's default-range figures
+       * right here, once, in the sync job -- rather than leaving the first
        * dashboard/inbox/product-search request after this sync to pay for
-       * it. This is the one place in the app a full Postgres reassembly is
-       * actually expected: once per store per cron cycle, not once per
-       * user-facing request. A failure here (e.g. no history yet on a
-       * store's very first sync) must not fail the sync itself.
+       * it. This used to warm a whole-snapshot Redis cache instead; that
+       * design didn't survive contact with a real store (188MB serialized on
+       * a 22,000-order store, timing out on every write) and warming the
+       * derived analytics result is both what dashboard/inbox actually read
+       * and, at ~1.4MB gzipped, well within what a cache entry should be.
+       * `lastSyncAt` has to be re-read fresh rather than reused from the row
+       * fetched before this loop started -- syncStore() is what just updated
+       * it, and a stale value here would key the cache entry under a
+       * timestamp no reader will ever ask for again. A failure here (e.g. no
+       * history yet on a store's very first sync) must not fail the sync
+       * itself.
        */
-      await readSnapshot({
-        id: store.id,
-        url: store.url,
-        name: store.name,
-        historyMonths: store.history_months,
-        lastSyncAt: null,
-      }).catch(() => {});
+      const [{ last_sync_at: freshLastSyncAt }] = await db()<{ last_sync_at: Date | null }[]>`
+        select last_sync_at from stores where id = ${store.id}
+      `;
+      await getAnalyticsForVersion(
+        { storeUrl: store.url, fetchedAt: freshLastSyncAt?.toISOString() ?? "" },
+        () =>
+          readSnapshot({
+            id: store.id,
+            url: store.url,
+            name: store.name,
+            historyMonths: store.history_months,
+            lastSyncAt: freshLastSyncAt?.toISOString() ?? null,
+          }),
+      ).catch(() => {});
       results.push({ store: store.url, ok: true, ...result });
     } catch (error) {
       // One unreachable store must not stop the rest: a merchant who revoked
