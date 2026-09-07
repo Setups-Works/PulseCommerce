@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { forgetSnapshot } from "@/lib/woo/mirror";
+import { forgetSnapshot, readSnapshot } from "@/lib/woo/mirror";
 import { syncStore } from "@/lib/woo/sync";
 
 export const runtime = "nodejs";
@@ -76,6 +76,22 @@ export async function POST(request: Request) {
         maxPages: store.max_pages,
       });
       forgetSnapshot(store.id);
+      /*
+       * Warms the Redis snapshot cache with this store's fresh data right
+       * here, once, in the sync job -- rather than leaving the first
+       * dashboard/inbox/product-search request after this sync to pay for
+       * it. This is the one place in the app a full Postgres reassembly is
+       * actually expected: once per store per cron cycle, not once per
+       * user-facing request. A failure here (e.g. no history yet on a
+       * store's very first sync) must not fail the sync itself.
+       */
+      await readSnapshot({
+        id: store.id,
+        url: store.url,
+        name: store.name,
+        historyMonths: store.history_months,
+        lastSyncAt: null,
+      }).catch(() => {});
       results.push({ store: store.url, ok: true, ...result });
     } catch (error) {
       // One unreachable store must not stop the rest: a merchant who revoked

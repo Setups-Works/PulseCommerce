@@ -61,7 +61,10 @@ export default function InboxPage() {
 
   const loadChats = useCallback(async () => {
     try {
-      const res = await fetch("/api/whatsapp/chats", { cache: "no-store" });
+      // Not no-store: the route sets its own short private Cache-Control,
+      // specifically so this poll doesn't re-pay a full snapshot read every
+      // time — letting the browser honour that cache is the point.
+      const res = await fetch("/api/whatsapp/chats");
       const body = await res.json();
       if (!res.ok) {
         setError(body.error ?? "Could not load conversations.");
@@ -92,7 +95,10 @@ export default function InboxPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadChats();
-    const interval = setInterval(() => void loadChats(), 30_000);
+    // Matches the route's own 60s Cache-Control -- polling faster than the
+    // cache window would just mean every other poll pays for a snapshot
+    // read the cache was added specifically to avoid.
+    const interval = setInterval(() => void loadChats(), 60_000);
     return () => clearInterval(interval);
   }, [loadChats]);
 
