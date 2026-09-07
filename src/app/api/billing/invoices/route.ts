@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 interface InvoiceRow {
   id: string;
-  plan: "go" | "plus";
+  plan: "go" | "plus" | "lite";
   amount_paise: number;
   currency: string;
   status: "paid" | "failed" | "refunded";

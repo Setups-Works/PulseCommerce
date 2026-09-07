@@ -25,11 +25,21 @@ import { Button } from "@/components/ui/button";
  * while the real gate already refused it). `usage.limit` is null for
  * anything actually unlimited (legacy_unlimited, or an active/trialing
  * Plus), so it can never misfire for those.
+ *
+ * Lite is a third, deliberate exception: its `usage.limit` is also 0, but
+ * not because anything is broken or unpaid -- Lite simply doesn't include
+ * WhatsApp, on purpose, at any subscription status. Telling a Lite
+ * subscriber their subscription "isn't active" would be false, and "Add a
+ * subscription" would be telling someone who already has one to add another.
+ * WHATSAPP_PAGES in src/proxy.ts is what actually keeps a Lite account off
+ * the pages this would matter on; this banner has nothing useful to say on
+ * the analytics pages Lite does use.
  */
 export function SubscriptionBanner() {
   const { status, initialising } = useBilling();
 
   if (initialising || !status) return null;
+  if (status.plan === "lite") return null;
 
   const blocked = status.usage.limit === 0;
   if (!blocked) return null;

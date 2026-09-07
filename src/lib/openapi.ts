@@ -174,7 +174,7 @@ export const openApiDocument = {
             content: json({
               type: "object",
               properties: {
-                plan: { type: "string", enum: ["go", "plus"], nullable: true },
+                plan: { type: "string", enum: ["go", "plus", "lite"], nullable: true },
                 subscriptionStatus: {
                   type: "string",
                   enum: ["none", "created", "authenticated", "active", "past_due", "halted", "cancelled"],
@@ -230,7 +230,7 @@ export const openApiDocument = {
           content: json({
             type: "object",
             required: ["plan"],
-            properties: { plan: { type: "string", enum: ["go", "plus"] } },
+            properties: { plan: { type: "string", enum: ["go", "plus", "lite"] } },
           }),
         },
         responses: {
@@ -286,7 +286,7 @@ export const openApiDocument = {
                     type: "object",
                     properties: {
                       id: { type: "string" },
-                      plan: { type: "string", enum: ["go", "plus"] },
+                      plan: { type: "string", enum: ["go", "plus", "lite"] },
                       amountPaise: { type: "integer" },
                       currency: { type: "string" },
                       status: { type: "string", enum: ["paid", "failed", "refunded"] },

@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       const payment = event.payload.payment?.entity;
       if (!sub || !payment) break;
 
-      const [profile] = await db()<{ id: string; plan: "go" | "plus" | null }[]>`
+      const [profile] = await db()<{ id: string; plan: "go" | "plus" | "lite" | null }[]>`
         select id, plan from profiles where razorpay_subscription_id = ${sub.id}
       `;
       if (!profile?.plan) break;

@@ -16,13 +16,13 @@ import { BrandMark, BRANDS } from "@/components/marketing/brand-mark";
 import { Cta } from "@/components/marketing/landing/cta";
 import { Pricing as LandingPricing } from "@/components/marketing/landing/pricing";
 import { FAQ } from "@/lib/marketing/faq";
-import { INCLUDED } from "@/lib/marketing/plans";
+import { ANALYTICS_MODULES, WHATSAPP_MODULES } from "@/lib/marketing/plans";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "One price for all thirteen modules. Choose how messages are carried: your own WhatsApp host with no per-message fee, or the official Cloud API with delivery backed by Meta.",
+    "Lite for analytics alone, or Go/Plus to add WhatsApp campaigns, flows and the inbox. Choose how messages are carried: your own WhatsApp host with no per-message fee, or the official Cloud API with delivery backed by Meta.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -95,24 +95,25 @@ export default function PricingPage() {
           <BlurFade inView>
             <Badge variant="outline" className="gap-1.5">
               <span className="size-1.5 rounded-full bg-primary" />
-              Every module, every tier
+              Analytics, or analytics plus WhatsApp
             </Badge>
           </BlurFade>
           <BlurFade delay={0.08} inView>
             <h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl">
-              One price.{" "}
+              Pay for{" "}
               <AuroraText
                 colors={["var(--chart-7)", "var(--primary)", "var(--chart-3)", "var(--primary)"]}
                 speed={0.6}
               >
-                No feature gates.
+                what you use.
               </AuroraText>
             </h1>
           </BlurFade>
           <BlurFade delay={0.16} inView>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
-              Tiers are sized by how many WhatsApp messages you send a month, not by what the
-              product will tell you about your store. Go and Plus get the same thirteen modules.
+              Lite is every analytics module, nothing else. Go and Plus add WhatsApp campaigns,
+              flows and the inbox, sized by how many messages you send a month — not by what the
+              product will tell you about your store.
             </p>
           </BlurFade>
         </div>
@@ -130,11 +131,29 @@ export default function PricingPage() {
       <Section className="bg-muted/20">
         <SectionHeading
           eyebrow="Included"
-          title="What every tier includes"
-          body="All of it. The list is here so nobody has to go looking for the asterisk."
+          title="Every analytics module. Every tier."
+          body="Lite, Go and Plus all get the same analytics — the list is here so nobody has to go looking for the asterisk."
         />
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {INCLUDED.map((item, i) => (
+          {ANALYTICS_MODULES.map((item, i) => (
+            <BlurFade key={item} delay={Math.min(i * 0.03, 0.3)} inView>
+              <div className="flex items-start gap-2.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+                <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span className="text-sm">{item}</span>
+              </div>
+            </BlurFade>
+          ))}
+        </div>
+      </Section>
+
+      <Section>
+        <SectionHeading
+          eyebrow="Go & Plus add"
+          title="WhatsApp, on top of the same analytics"
+          body="Lite doesn't include any of this — upgrade when campaigns, flows or a shared inbox actually become worth carrying WhatsApp for."
+        />
+        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {WHATSAPP_MODULES.map((item, i) => (
             <BlurFade key={item} delay={Math.min(i * 0.03, 0.3)} inView>
               <div className="flex items-start gap-2.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
                 <Check className="mt-0.5 size-4 shrink-0 text-primary" />

@@ -12,11 +12,12 @@ export const dynamic = "force-dynamic";
  * (src/app/api/keys/route.ts), a leaked API key must not be able to change
  * what the account is billed, so this is not reachable with one.
  */
-const bodySchema = z.object({ plan: z.enum(["go", "plus"]) });
+const bodySchema = z.object({ plan: z.enum(["go", "plus", "lite"]) });
 
-const PLAN_ENV: Record<"go" | "plus", string | undefined> = {
+const PLAN_ENV: Record<"go" | "plus" | "lite", string | undefined> = {
   go: process.env.RAZORPAY_PLAN_ID_GO,
   plus: process.env.RAZORPAY_PLAN_ID_PLUS,
+  lite: process.env.RAZORPAY_PLAN_ID_LITE,
 };
 
 /**
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   }
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "A plan of \"go\" or \"plus\" is required." }, { status: 422 });
+    return NextResponse.json({ error: "A plan of \"lite\", \"go\" or \"plus\" is required." }, { status: 422 });
   }
 
   const planId = PLAN_ENV[parsed.data.plan];
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     {
       razorpay_customer_id: string | null;
       razorpay_subscription_id: string | null;
-      plan: "go" | "plus" | null;
+      plan: "go" | "plus" | "lite" | null;
       subscription_status: string;
       trial_used_at: Date | null;
     }[]

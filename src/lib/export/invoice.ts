@@ -14,7 +14,7 @@ import { BRAND, FONT, INK, MARGIN, MUTED, RULE, makeFormatter, registerFonts } f
 
 export interface Invoice {
   id: string;
-  plan: "go" | "plus";
+  plan: "go" | "plus" | "lite";
   amountPaise: number;
   currency: string;
   status: "paid" | "failed" | "refunded";
@@ -24,7 +24,7 @@ export interface Invoice {
   razorpayPaymentId: string | null;
 }
 
-const PLAN_LABEL: Record<Invoice["plan"], string> = { go: "Go", plus: "Plus" };
+const PLAN_LABEL: Record<Invoice["plan"], string> = { go: "Go", plus: "Plus", lite: "Lite" };
 
 export function buildInvoicePdf(invoice: Invoice, account: { email: string }): Buffer {
   const doc = new jsPDF({ unit: "pt", format: "a4" }); // portrait — a receipt, not a report

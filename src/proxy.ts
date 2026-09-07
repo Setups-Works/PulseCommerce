@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { readPresentedKey, verifyApiKey, type Scope } from "@/lib/auth/api-key";
+import { hasWhatsAppPlan } from "@/lib/billing/usage";
 import { databaseConfigured } from "@/lib/db/client";
 import { USER_EMAIL_HEADER, USER_ID_HEADER } from "@/lib/auth/headers";
 
@@ -27,6 +28,19 @@ import { USER_EMAIL_HEADER, USER_ID_HEADER } from "@/lib/auth/headers";
  * full of empty panels and failed requests, wondering what is broken.
  *
  * Marketing pages, sign-in, sign-up and the API reference stay open.
+ *
+ * A third layer, on top of those two: WHATSAPP_PAGES / WHATSAPP_API gate
+ * WhatsApp-specific pages and routes behind `plan !== "lite"` (see
+ * planIncludesWhatsApp in src/lib/billing/usage.ts). This is authorization,
+ * not authentication — a deliberate widening of what this file does, made
+ * here rather than at each of the dozen individual WhatsApp route handlers,
+ * for the same reason the identity check itself lives in one place: a route
+ * added later and not threaded through a per-handler check is a silent hole,
+ * where a route not added to a list here is at least a visible omission to
+ * grep for. The real backstop either way is planMessageLimit returning 0 for
+ * Lite (checkSendAllowance, checked at every actual send site) — this layer
+ * is about a Lite account never seeing or reaching the feature at all, not
+ * the only thing preventing a message from going out.
  *
  * ─── Why it also touches cookies ───────────────────────────────────────────
  *
@@ -133,6 +147,44 @@ const PROTECTED_PAGES = [
   "/cli-login",
 ];
 
+/** Pages a Lite account (analytics only) is redirected away from. */
+const WHATSAPP_PAGES = [
+  "/campaigns",
+  "/flows",
+  "/abandoned-checkouts",
+  "/order-confirmations",
+  "/menu",
+  "/inbox",
+  "/whatsapp-cloud-pilot",
+  "/assistant",
+];
+
+/**
+ * API prefixes gated the same way, for both a session and an API key.
+ * /api/ai/chat is included alongside the /api/whatsapp* prefixes because
+ * /assistant is gated above — its own value (asking questions, drafting
+ * messages) is inseparable from the WhatsApp actions it proposes, so it's
+ * gated as a whole rather than trying to allow read-only questions through
+ * while blocking only the send proposals.
+ */
+const WHATSAPP_API_PREFIXES = ["/api/whatsapp", "/api/whatsapp-cloud", "/api/ai/chat"];
+
+function matchesPrefix(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/** Null when the request may proceed; a ready-to-return response otherwise. */
+async function whatsappPlanGate(userId: string): Promise<NextResponse | null> {
+  if (await hasWhatsAppPlan(userId)) return null;
+  return NextResponse.json(
+    {
+      error: "This plan does not include WhatsApp.",
+      hint: "Upgrade to Go or Plus in Settings → Billing to use WhatsApp features.",
+    },
+    { status: 402 },
+  );
+}
+
 export async function proxy(request: NextRequest) {
   // Carries any refreshed auth cookies, whatever the outcome below.
   const response = NextResponse.next({ request });
@@ -175,6 +227,14 @@ export async function proxy(request: NextRequest) {
     const isProtected = PROTECTED_PAGES.some(
       (p) => pathname === p || pathname.startsWith(`${p}/`),
     );
+
+    if (isProtected && user && databaseConfigured() && matchesPrefix(pathname, WHATSAPP_PAGES)) {
+      const included = await hasWhatsAppPlan(user.id);
+      if (!included) {
+        return NextResponse.redirect(new URL("/settings?section=billing&upgrade=whatsapp", request.url));
+      }
+    }
+
     if (!isProtected || user) return response;
 
     /*
@@ -214,7 +274,13 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  if (user) return forward(request, user.id, user.email ?? "");
+  if (user) {
+    if (matchesPrefix(pathname, WHATSAPP_API_PREFIXES)) {
+      const deniedForSession = await whatsappPlanGate(user.id);
+      if (deniedForSession) return deniedForSession;
+    }
+    return forward(request, user.id, user.email ?? "");
+  }
 
   const presented = readPresentedKey(request.headers);
   if (!presented) {
@@ -241,6 +307,11 @@ export async function proxy(request: NextRequest) {
       `This key does not have the "${needed}" scope.`,
       `"${key.name}" is limited to: ${key.scopes.join(", ")}. Issue a key with the "${needed}" scope to call this endpoint.`,
     );
+  }
+
+  if (matchesPrefix(pathname, WHATSAPP_API_PREFIXES)) {
+    const denied = await whatsappPlanGate(key.userId);
+    if (denied) return denied;
   }
 
   return forward(request, key.userId, key.ownerEmail ?? "", key.scopes);

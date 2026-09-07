@@ -22,7 +22,7 @@ import {
 
 interface Invoice {
   id: string;
-  plan: "go" | "plus";
+  plan: "go" | "plus" | "lite";
   amountPaise: number;
   currency: string;
   status: "paid" | "failed" | "refunded";
@@ -31,6 +31,7 @@ interface Invoice {
 }
 
 const PLANS = [
+  { id: "lite" as const, label: "Lite", priceLabel: "₹1,999/mo", detail: "Analytics only — no WhatsApp" },
   { id: "go" as const, label: "Go", priceLabel: "₹3,999/mo", detail: "10,000 WhatsApp messages/month" },
   { id: "plus" as const, label: "Plus", priceLabel: "₹5,999/mo", detail: "Unlimited WhatsApp messages" },
 ];
@@ -61,7 +62,7 @@ declare global {
 export function BillingCard() {
   const { status, refresh: refreshStatus } = useBilling();
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
-  const [subscribing, setSubscribing] = useState<"go" | "plus" | null>(null);
+  const [subscribing, setSubscribing] = useState<"go" | "plus" | "lite" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkoutReady, setCheckoutReady] = useState(false);
 
@@ -79,7 +80,7 @@ export function BillingCard() {
     void loadInvoices();
   }, [loadInvoices]);
 
-  const subscribe = async (plan: "go" | "plus") => {
+  const subscribe = async (plan: "go" | "plus" | "lite") => {
     setSubscribing(plan);
     setError(null);
     try {
@@ -229,7 +230,7 @@ export function BillingCard() {
               {status.usage.limit ? <Progress value={usagePct} /> : null}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               {PLANS.map((plan) => {
                 const isCurrent =
                   status.plan === plan.id &&

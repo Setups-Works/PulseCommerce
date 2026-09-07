@@ -75,6 +75,7 @@ export default function SettingsPage() {
   const [maxPages, setMaxPages] = useState(300);
   const [savingWindow, setSavingWindow] = useState(false);
   const [authOutcome, setAuthOutcome] = useState<string | null>(null);
+  const [upgradePrompt, setUpgradePrompt] = useState<string | null>(null);
   const { stores, reload: reloadStores } = useConnectedStores();
   const [busyStore, setBusyStore] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>("store");
@@ -116,6 +117,7 @@ export default function SettingsPage() {
     const params = new URLSearchParams(window.location.search);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAuthOutcome(params.get("auth"));
+    setUpgradePrompt(params.get("upgrade"));
     const requested = params.get("section");
     if (SECTIONS.some((s) => s.id === requested)) {
       setSection(requested as SectionId);
@@ -199,6 +201,17 @@ export default function SettingsPage() {
           {outcome.tone === "good" ? <CheckCircle2 /> : <TriangleAlert />}
           <AlertTitle>{outcome.title}</AlertTitle>
           <AlertDescription>{outcome.detail}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {upgradePrompt === "whatsapp" ? (
+        <Alert>
+          <Info />
+          <AlertTitle>That page needs Go or Plus</AlertTitle>
+          <AlertDescription>
+            The Lite plan is analytics only. Upgrade below to use WhatsApp campaigns, flows, the
+            inbox and order confirmations.
+          </AlertDescription>
         </Alert>
       ) : null}
 

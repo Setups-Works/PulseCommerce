@@ -37,12 +37,12 @@ export function Pricing({ heading = true, footer = heading }: PricingProps = {})
         <SectionHeading
           align="center"
           eyebrow="Pricing"
-          title="Every feature, on both plans."
-          body="Tiers are sized by how many WhatsApp messages you send a month, not by what the product will tell you about your store. A store on Go gets the same analytics, flows and assistant as one on Plus."
+          title="Analytics alone, or analytics plus WhatsApp."
+          body="Lite is every analytics module and nothing else. Go and Plus add WhatsApp campaigns, flows and the inbox, sized by how many messages you send a month — not by what the product will tell you about your store."
         />
       ) : null}
 
-      <div className={cn("mx-auto grid max-w-3xl items-stretch gap-6 sm:grid-cols-2", heading && "mt-12")}>
+      <div className={cn("mx-auto grid max-w-5xl items-stretch gap-6 sm:grid-cols-3", heading && "mt-12")}>
         {PLANS.map((plan, i) => (
           <BlurFade key={plan.name} delay={i * 0.08} inView className="h-full">
             <div

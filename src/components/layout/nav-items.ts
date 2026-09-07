@@ -23,6 +23,8 @@ export interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   description: string;
+  /** Hidden for a Lite (analytics-only) plan — matches src/proxy.ts's WHATSAPP_PAGES. */
+  whatsapp?: boolean;
 }
 
 export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -97,42 +99,49 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: "Assistant",
         icon: Sparkles,
         description: "Ask about the store, and have messages drafted for approval",
+        whatsapp: true,
       },
       {
         href: "/campaigns",
         label: "Campaigns",
         icon: Megaphone,
         description: "Build audiences and measure campaign and coupon performance",
+        whatsapp: true,
       },
       {
         href: "/flows",
         label: "Flows",
         icon: Workflow,
         description: "Multi-step campaigns that send themselves over days",
+        whatsapp: true,
       },
       {
         href: "/abandoned-checkouts",
         label: "Abandoned checkouts",
         icon: ShoppingCart,
         description: "WhatsApp reminders for checkouts left pending",
+        whatsapp: true,
       },
       {
         href: "/order-confirmations",
         label: "Order confirmations",
         icon: PackageCheck,
         description: "A WhatsApp thank-you, with a product photo, the moment an order comes in",
+        whatsapp: true,
       },
       {
         href: "/menu",
         label: "Auto-reply",
         icon: MessageSquare,
         description: "The menu a customer gets when they message you first",
+        whatsapp: true,
       },
       {
         href: "/inbox",
         label: "Inbox",
         icon: MessageCircle,
         description: "WhatsApp conversations, with the customer behind each number",
+        whatsapp: true,
       },
     ],
   },
