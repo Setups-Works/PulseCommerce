@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 export interface BillingStatus {
-  plan: "go" | "plus" | null;
+  plan: "go" | "plus" | "lite" | null;
   subscriptionStatus: "none" | "created" | "authenticated" | "active" | "past_due" | "halted" | "cancelled";
   currentPeriodEnd: string | null;
   graceUntil: string | null;

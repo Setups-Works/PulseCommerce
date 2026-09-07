@@ -12,6 +12,9 @@ import { db } from "@/lib/db/client";
 
 const GO_MONTHLY_LIMIT = 10_000;
 
+/** "lite" is analytics only — see planIncludesWhatsApp below for the gate this drives. */
+export type PlanId = "go" | "plus" | "lite";
+
 export interface SendAllowance {
   allowed: boolean;
   /** null means unlimited (Plus, or a grandfathered legacy account). */
@@ -20,7 +23,7 @@ export interface SendAllowance {
 }
 
 export interface BillingProfile {
-  plan: "go" | "plus" | null;
+  plan: PlanId | null;
   subscription_status: string;
   grace_until: Date | null;
   legacy_unlimited: boolean;
@@ -54,6 +57,11 @@ function currentPeriod(): string {
  */
 export function planMessageLimit(profile: BillingProfile): number | null {
   if (profile.legacy_unlimited) return null;
+  // Lite has no WhatsApp allowance at all, regardless of subscription status
+  // -- there is no "usable Lite subscription that can still send," unlike Go
+  // past_due getting a grace window. See planIncludesWhatsApp for the same
+  // policy applied to page/route access rather than the send count.
+  if (profile.plan === "lite") return 0;
 
   const inGrace = profile.grace_until !== null && profile.grace_until.getTime() > Date.now();
   // `authenticated` is Razorpay's own status for "mandate set up, first
@@ -127,4 +135,35 @@ export async function recordSend(userId: string, count = 1): Promise<void> {
     on conflict (user_id, period)
     do update set sent_count = whatsapp_usage.sent_count + excluded.sent_count, updated_at = now()
   `;
+}
+
+/**
+ * Whether this plan includes WhatsApp at all — Go and Plus do, Lite doesn't,
+ * a grandfathered legacy account does regardless of its `plan` value.
+ *
+ * Deliberately independent of `subscription_status`: a `past_due` Go account
+ * still gets to see its Inbox and Campaigns pages during its grace window
+ * (planMessageLimit is what actually blocks the send once the grace period
+ * runs out) — Lite is different in kind, not in standing: there is no
+ * subscription state that makes it include WhatsApp, so this reads plan type
+ * alone. src/proxy.ts is the caller — see WHATSAPP_PAGES / WHATSAPP_API
+ * there for what this gates.
+ */
+export function planIncludesWhatsApp(profile: Pick<BillingProfile, "plan" | "legacy_unlimited">): boolean {
+  if (profile.legacy_unlimited) return true;
+  return profile.plan === "go" || profile.plan === "plus";
+}
+
+/**
+ * Loads just enough of a profile to answer planIncludesWhatsApp, for a
+ * caller (src/proxy.ts) that only has a userId and needs a single fast
+ * lookup rather than the full BillingProfile most other callers assemble
+ * alongside a usage query.
+ */
+export async function hasWhatsAppPlan(userId: string): Promise<boolean> {
+  const [profile] = await db()<Pick<BillingProfile, "plan" | "legacy_unlimited">[]>`
+    select plan, legacy_unlimited from profiles where id = ${userId}
+  `;
+  if (!profile) return false;
+  return planIncludesWhatsApp(profile);
 }

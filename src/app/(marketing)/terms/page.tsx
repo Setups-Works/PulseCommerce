@@ -59,7 +59,7 @@ export default function TermsPage() {
 
           <LegalSection title="4. Billing and plans">
             <p>
-              Paid plans (Go and Plus) bill monthly via Razorpay UPI Autopay. New subscriptions
+              Paid plans (Lite, Go and Plus) bill monthly via Razorpay UPI Autopay. New subscriptions
               include a one-time 14-day free trial; your payment mandate is authorized immediately,
               and the first charge is deferred to the end of the trial. You can cancel from Settings
               → Billing at any time; cancelling stops future billing but doesn&apos;t refund the
