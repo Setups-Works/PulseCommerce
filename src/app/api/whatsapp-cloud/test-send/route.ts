@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTenant } from "@/lib/auth/tenant";
-import { sendCloudTextMessage, WhatsAppCloudApiError } from "@/lib/whatsapp-cloud/client";
+import {
+  sendCloudTemplateMessage,
+  sendCloudTextMessage,
+  WhatsAppCloudApiError,
+} from "@/lib/whatsapp-cloud/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
   to: z.string().min(6),
-  message: z.string().min(1).max(4096),
+  message: z.string().min(1).max(4096).optional(),
+  // "template" reliably delivers business-initiated with no open-window
+  // requirement (confirmed the hard way -- a "text" send outside an open
+  // 24h window returns a real message id from Meta but is never actually
+  // delivered). Defaults to template for exactly that reason.
+  mode: z.enum(["template", "text"]).default("template"),
 });
 
 /**
@@ -41,9 +50,16 @@ export async function POST(request: Request) {
     );
   }
 
+  if (parsed.data.mode === "text" && !parsed.data.message) {
+    return NextResponse.json({ error: "message is required for a text send." }, { status: 422 });
+  }
+
   try {
-    const sent = await sendCloudTextMessage(parsed.data.to, parsed.data.message);
-    return NextResponse.json({ sent: true, messageId: sent.messageId });
+    const sent =
+      parsed.data.mode === "template"
+        ? await sendCloudTemplateMessage(parsed.data.to)
+        : await sendCloudTextMessage(parsed.data.to, parsed.data.message!);
+    return NextResponse.json({ sent: true, messageId: sent.messageId, mode: parsed.data.mode });
   } catch (error) {
     const message =
       error instanceof WhatsAppCloudApiError ? error.message : "The Cloud API rejected the send.";

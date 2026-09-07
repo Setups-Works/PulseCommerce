@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 interface CloudMessageTemplate {
@@ -27,6 +28,7 @@ interface CloudMessageTemplate {
  * whatsapp_business_management.
  */
 export default function WhatsAppCloudPilotPage() {
+  const [mode, setMode] = useState<"template" | "text">("template");
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("Hello from the PulseCommerce Cloud API pilot.");
   const [sending, setSending] = useState(false);
@@ -40,14 +42,14 @@ export default function WhatsAppCloudPilotPage() {
       const res = await fetch("/api/whatsapp-cloud/test-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to, message }),
+        body: JSON.stringify({ to, message, mode }),
       });
       const body = await res.json();
       if (!res.ok) {
         toast.error(body.error ?? "The send failed.");
         return;
       }
-      toast.success(`Sent — message id ${body.messageId}`);
+      toast.success(`Sent (${body.mode}) — message id ${body.messageId}`);
     } finally {
       setSending(false);
     }
@@ -82,13 +84,29 @@ export default function WhatsAppCloudPilotPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "template" | "text")}>
+            <TabsList>
+              <TabsTrigger value="template">Template (reliable)</TabsTrigger>
+              <TabsTrigger value="text">Free-form text</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {mode === "text" && (
+            <p className="text-xs text-muted-foreground">
+              Only delivers if the recipient has messaged this business number first, opening a
+              24h window — otherwise Meta accepts the call and returns a message id, but the
+              message is never actually delivered.
+            </p>
+          )}
+
           <Input
             placeholder="Recipient, e.g. 916383984698"
             value={to}
             onChange={(e) => setTo(e.target.value)}
           />
-          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
-          <Button onClick={sendTest} disabled={sending || !to || !message}>
+          {mode === "text" && (
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+          )}
+          <Button onClick={sendTest} disabled={sending || !to || (mode === "text" && !message)}>
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             Send
           </Button>

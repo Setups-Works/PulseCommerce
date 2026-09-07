@@ -29,13 +29,15 @@ export class WhatsAppCloudApiError extends Error {
 interface CloudCredentials {
   accessToken: string;
   phoneNumberId: string;
+  wabaId: string | null;
 }
 
 function credentialsFromEnv(): CloudCredentials | null {
   const accessToken = process.env.WHATSAPP_CLOUD_TEST_TOKEN?.trim();
   const phoneNumberId = process.env.WHATSAPP_CLOUD_TEST_PHONE_NUMBER_ID?.trim();
   if (!accessToken || !phoneNumberId) return null;
-  return { accessToken, phoneNumberId };
+  const wabaId = process.env.WHATSAPP_CLOUD_TEST_WABA_ID?.trim() || null;
+  return { accessToken, phoneNumberId, wabaId };
 }
 
 async function graphRequest<T>(
@@ -78,11 +80,16 @@ export interface CloudSentMessage {
 /**
  * Sends a free-form text message via the Cloud API.
  *
- * Only valid within a 24h customer-service window (i.e. the recipient
- * messaged this business number first) or, for this pilot, to one of the
- * up to 5 numbers Meta lets you pre-verify as test recipients regardless of
- * that window. A real merchant-facing send outside that window needs an
- * approved template — see PUL-17, not built yet.
+ * Only actually delivered within an open 24h customer-service window (the
+ * recipient messaged this business number first) — confirmed the hard way:
+ * a pre-verified test recipient is exempt from needing App-Review-approved
+ * production access, but NOT from this window rule, which is universal. The
+ * Graph API still accepts the call and returns a real message id outside
+ * the window, so a 200 response here does not mean the message actually
+ * reached the recipient's phone. Real merchant sends (order confirmations,
+ * campaigns) are always business-initiated with no guaranteed open window,
+ * so they need sendCloudTemplateMessage below, not this — see PUL-17 for
+ * the full template-submission workflow, not built yet.
  */
 export async function sendCloudTextMessage(to: string, body: string): Promise<CloudSentMessage> {
   const creds = credentialsFromEnv();
@@ -105,6 +112,48 @@ export async function sendCloudTextMessage(to: string, body: string): Promise<Cl
       to,
       type: "text",
       text: { body },
+    },
+  });
+
+  return {
+    messagingProduct: response.messaging_product,
+    waId: response.contacts[0]?.wa_id ?? to,
+    messageId: response.messages[0]?.id ?? "",
+  };
+}
+
+/**
+ * Sends an approved template message — the only kind that reliably
+ * delivers business-initiated, with no open-window requirement. Defaults
+ * to "hello_world", the fixed template every WABA has pre-approved from
+ * creation, specifically so a pilot/test send doesn't need PUL-17's
+ * template-submission workflow to exist first.
+ */
+export async function sendCloudTemplateMessage(
+  to: string,
+  templateName = "hello_world",
+  languageCode = "en_US",
+): Promise<CloudSentMessage> {
+  const creds = credentialsFromEnv();
+  if (!creds) {
+    throw new WhatsAppCloudApiError(
+      "WHATSAPP_CLOUD_TEST_TOKEN and WHATSAPP_CLOUD_TEST_PHONE_NUMBER_ID must both be set.",
+      0,
+      "messages",
+    );
+  }
+
+  const response = await graphRequest<{
+    messaging_product: string;
+    contacts: { wa_id: string }[];
+    messages: { id: string }[];
+  }>(`${creds.phoneNumberId}/messages`, creds.accessToken, {
+    method: "POST",
+    body: {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: { name: templateName, language: { code: languageCode } },
     },
   });
 
@@ -139,18 +188,15 @@ export async function listCloudMessageTemplates(): Promise<CloudMessageTemplate[
     );
   }
 
-  // The template list lives on the WABA, not the phone number -- Meta's test
-  // setup exposes the phone number id directly, but message_templates is a
-  // WABA-level edge. The phone number lookup response includes its parent
-  // WABA id, so resolve that first rather than requiring a second env var.
-  const phoneInfo = await graphRequest<{ id: string; whatsapp_business_account?: { id: string } }>(
-    `${creds.phoneNumberId}?fields=whatsapp_business_account`,
-    creds.accessToken,
-  );
-  const wabaId = phoneInfo.whatsapp_business_account?.id;
-  if (!wabaId) {
+  // The template list lives on the WABA, not the phone number. Confirmed the
+  // hard way: the phone number node has no whatsapp_business_account field
+  // ("(#100) Tried accessing nonexisting field") -- there is no documented
+  // way to derive the WABA id from a phone number id via this node, so it's
+  // a third env var, read directly off the App Dashboard's WhatsApp Business
+  // account ID shown next to the test number.
+  if (!creds.wabaId) {
     throw new WhatsAppCloudApiError(
-      "Could not resolve the WhatsApp Business Account id for this phone number.",
+      "WHATSAPP_CLOUD_TEST_WABA_ID must be set (the WhatsApp Business account ID shown in the App Dashboard).",
       0,
       "message_templates",
     );
@@ -158,7 +204,7 @@ export async function listCloudMessageTemplates(): Promise<CloudMessageTemplate[
 
   const templates = await graphRequest<{
     data: { id: string; name: string; status: string; category: string; language: string }[];
-  }>(`${wabaId}/message_templates`, creds.accessToken);
+  }>(`${creds.wabaId}/message_templates`, creds.accessToken);
 
   return templates.data.map((t) => ({
     id: t.id,

@@ -897,16 +897,21 @@ export const openApiDocument = {
           "PUL-16 pilot, not the merchant-facing send path. Exercises whatsapp_business_messaging " +
           "against the temporary test token and test business number from the App Dashboard's own " +
           "API Setup page — never per-tenant credentials. Recipient must be one of the up to 5 " +
-          "numbers verified as a test recipient in the App Dashboard.",
+          "numbers verified as a test recipient in the App Dashboard. mode \"template\" (default) " +
+          "sends the pre-approved hello_world template, which delivers regardless of an open " +
+          "customer-service window; mode \"text\" sends free-form and only actually delivers " +
+          "within an open 24h window — confirmed the hard way that Meta's API accepts and returns " +
+          "a message id for a \"text\" send outside that window without ever delivering it.",
         requestBody: {
           required: true,
           content: json({
             type: "object",
             properties: {
               to: { type: "string", example: "916383984698" },
-              message: { type: "string", maxLength: 4096 },
+              message: { type: "string", maxLength: 4096, description: "Required when mode is \"text\"." },
+              mode: { type: "string", enum: ["template", "text"], default: "template" },
             },
-            required: ["to", "message"],
+            required: ["to"],
           }),
         },
         responses: {
